@@ -114,11 +114,23 @@ export interface DefiPool {
   chain: string;
   project: string;
   symbol: string;
+  /** Faixa de taxa ou detalhe do pool (ex.: "0.3%"), quando o protocolo informa. */
+  poolMeta: string | null;
   tvlUsd: number;
   apy: number | null;
   apyBase: number | null;
   apyReward: number | null;
+  /** APY médio dos últimos 30 dias. */
+  apyMean30d: number | null;
+  /** Volume negociado no pool, em US$. Só existe para pools de DEX. */
+  volumeUsd1d: number | null;
+  volumeUsd7d: number | null;
+  /** Perda impermanente estimada nos últimos 7 dias (%). */
+  il7d: number | null;
+  ilRisk: boolean;
   stablecoin: boolean;
+  /** true quando o pool é de liquidez em DEX (par de ativos), false para empréstimo, staking e outros. */
+  dex: boolean;
 }
 
 interface LlamaPool {
@@ -126,31 +138,59 @@ interface LlamaPool {
   chain: string;
   project: string;
   symbol: string;
+  poolMeta?: string | null;
+  exposure?: string | null;
+  ilRisk?: string | null;
   tvlUsd: number;
   apy: number | null;
   apyBase: number | null;
   apyReward: number | null;
+  apyMean30d?: number | null;
+  volumeUsd1d?: number | null;
+  volumeUsd7d?: number | null;
+  il7d?: number | null;
   stablecoin: boolean;
 }
 
+const DEX_PROJECT =
+  /(uniswap|pancakeswap|sushiswap|aerodrome|velodrome|camelot|curve|balancer|raydium|orca|meteora|thena|trader-?joe|lfj|maverick|ramses|quickswap|shadow|hyperswap|kyber|ambient|fluid-dex|bunni|izumi|dodo|solidly|equalizer|swapbased|alienbase|baseswap|syncswap|nile|cetus|turbos|hercules|mmf|wigoswap)/i;
+
+/** Pool de liquidez em DEX: dois ou mais ativos e protocolo de exchange descentralizada. */
+export function isDexPool(project: string, exposure?: string | null): boolean {
+  return exposure === "multi" && DEX_PROJECT.test(project);
+}
+
+export function toDefiPool(p: LlamaPool): DefiPool {
+  const dex = isDexPool(p.project, p.exposure);
+  return {
+    id: p.pool,
+    chain: p.chain,
+    project: p.project,
+    symbol: p.symbol,
+    poolMeta: p.poolMeta ?? null,
+    tvlUsd: p.tvlUsd,
+    apy: p.apy,
+    apyBase: p.apyBase,
+    apyReward: p.apyReward,
+    apyMean30d: p.apyMean30d ?? null,
+    volumeUsd1d: dex ? p.volumeUsd1d ?? null : null,
+    volumeUsd7d: dex ? p.volumeUsd7d ?? null : null,
+    il7d: p.il7d ?? null,
+    ilRisk: p.ilRisk === "yes",
+    stablecoin: p.stablecoin,
+    dex,
+  };
+}
+
+/** Pools do DefiLlama (gratuito). Cache de 30 min; v2 inclui volume, taxa e perda impermanente. */
 export function getDefiPools() {
-  return cached<DefiPool[]>("defillama:pools", 30 * 60, async () => {
+  return cached<DefiPool[]>("defillama:pools:v2", 30 * 60, async () => {
     const raw = await fetchJson<{ data: LlamaPool[] }>("https://yields.llama.fi/pools", {}, 40000);
     return raw.data
-      .filter((p) => p.tvlUsd >= 1_000_000 && p.apy !== null && p.apy < 1000)
+      .filter((p) => p.tvlUsd >= 300_000 && p.apy !== null && p.apy !== undefined && p.apy < 1000)
       .sort((a, b) => b.tvlUsd - a.tvlUsd)
-      .slice(0, 1500)
-      .map((p) => ({
-        id: p.pool,
-        chain: p.chain,
-        project: p.project,
-        symbol: p.symbol,
-        tvlUsd: p.tvlUsd,
-        apy: p.apy,
-        apyBase: p.apyBase,
-        apyReward: p.apyReward,
-        stablecoin: p.stablecoin,
-      }));
+      .slice(0, 4000)
+      .map(toDefiPool);
   });
 }
 
