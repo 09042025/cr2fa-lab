@@ -110,3 +110,14 @@ table.data tr:hover td {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-slow { animation: none; }
+}

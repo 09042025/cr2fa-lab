@@ -42,7 +42,7 @@ export async function createCheckout(order: OrderRow, payerEmail: string): Promi
       items: [
         {
           id: `pro-${order.period}`,
-          title: `Plano Pro ${periodLabel(order.period)} - ${process.env.APP_NAME || "CR2FA Lab"}`,
+          title: `Plano Pro ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
           quantity: 1,
           currency_id: "BRL",
           unit_price: order.amount_cents / 100,

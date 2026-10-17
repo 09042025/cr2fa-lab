@@ -1,9 +1,12 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getUser } from "@/lib/auth";
 import { BLOCKS, EMERGENCY_RESERVE_MONTHS } from "@/lib/protocol";
 import { FREE_LIMITS, PLAN_FEATURES, formatBRL, priceCents } from "@/lib/plans";
 import { Disclaimer, Logo } from "@/components/ui";
-import { ProtocolPie } from "@/components/PieChart";
+import pizza from "@/assets/protocolo-pizza.webp";
+import autor from "@/assets/emerson-niza.webp";
+import autorAvatar from "@/assets/emerson-niza-avatar.webp";
 
 export default async function Home() {
   const user = await getUser();
@@ -25,9 +28,9 @@ export default async function Home() {
 
       <section className="grid items-center gap-10 py-10 md:grid-cols-2">
         <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Protocolo CR2FA</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold">NIZA INVEST</p>
           <h1 className="font-display text-4xl font-bold leading-tight text-gold-soft md:text-5xl">
-            Cinco blocos de 20%. Diversificação em duas camadas.
+            Cinco blocos de 20%. Diversificação em duas camadas com o Protocolo CR2FA.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-muted">
             Cripto, fundos imobiliários, ações, renda fixa e uma reserva para oportunidades, com dados atualizados e uma carteira que mostra quanto comprar ou vender para voltar ao
@@ -37,9 +40,66 @@ export default async function Home() {
             <Link href="/cadastrar" className="btn btn-gold">Começar grátis</Link>
             <Link href="#planos" className="btn btn-ghost">Ver planos</Link>
           </div>
+          <a href="#autor" className="mt-7 inline-flex items-center gap-3 rounded-full border border-line bg-panel/60 py-1.5 pl-1.5 pr-4 transition hover:border-gold">
+            <Image src={autorAvatar} alt="Foto de Emerson Niza" width={44} height={44} unoptimized className="h-11 w-11 rounded-full border border-gold/60 object-cover" />
+            <span className="text-left text-sm leading-tight">
+              <span className="block font-semibold text-white">Emerson Niza</span>
+              <span className="block text-xs text-muted">Engenheiro · investidor desde 2014 · cripto desde 2020</span>
+            </span>
+          </a>
         </div>
-        <div className="flex justify-center">
-          <ProtocolPie blocks={BLOCKS} size={320} />
+        <div className="relative isolate flex justify-center">
+          <div aria-hidden className="absolute left-1/2 top-1/2 -z-10 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/25 blur-3xl" />
+          <Image
+            src={pizza}
+            alt="Protocolo CR2FA: cinco blocos de 20% — criptomoedas, fundos imobiliários, ações, renda fixa e reserva para oportunidades"
+            priority
+            unoptimized
+            className="float-slow w-full max-w-[470px] drop-shadow-[0_28px_36px_rgba(0,0,0,0.6)]"
+          />
+        </div>
+      </section>
+
+      <section id="autor" className="card grid items-center gap-8 p-6 md:grid-cols-[300px_1fr] md:p-8">
+        <div className="mx-auto w-full max-w-[300px]">
+          <Image
+            src={autor}
+            alt="Emerson Niza, engenheiro e investidor, criador do Protocolo CR2FA"
+            unoptimized
+            className="aspect-[4/5] w-full rounded-2xl border border-gold/40 object-cover shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+          />
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Quem está por trás do Protocolo</p>
+          <h2 className="font-display text-3xl font-bold text-gold-soft">Emerson Niza</h2>
+          <p className="mt-1 text-sm text-muted">Bitcoin · Mercado · Liberdade</p>
+
+          <ul className="mt-4 flex flex-wrap gap-2 text-xs">
+            {["Engenheiro há mais de 20 anos", "Investidor desde 2014", "Cripto desde 2020", "Canal no YouTube desde out/2025"].map((t) => (
+              <li key={t} className="rounded-full border border-line bg-panel-2 px-3 py-1 text-white/90">{t}</li>
+            ))}
+          </ul>
+
+          <div className="mt-5 space-y-3 text-[15px] leading-relaxed text-white/85">
+            <p>
+              Sou engenheiro, com mais de 20 anos de carreira, e amo o que faço. Mesmo assim, quero mais escolhas no futuro: liberdade financeira e geográfica. Foi por isso que
+              comecei a investir em 2014 e, desde 2020, também em cripto.
+            </p>
+            <p>
+              O NIZA INVEST nasceu para organizar o que eu mesmo faço: dividir o patrimônio em blocos claros, olhar os dados antes de decidir e rebalancear com disciplina, sem
+              depender de palpite.
+            </p>
+            <p>
+              No meu canal eu destrincho investimentos estratégicos, Bitcoin, DeFi, lending pools, análise on-chain e leitura de mercado, além das novas tecnologias Web3. Sempre
+              com reflexões, atualidades e prática real, e sem promessa de ganho fácil.
+            </p>
+            <p className="text-white">Se você quer entender os riscos, diversificar com inteligência e usar a tecnologia a seu favor, seja bem-vindo.</p>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a className="btn btn-gold" href="https://www.youtube.com/channel/UCUSHyyzS1LKDntU9uKYaPGg?sub_confirmation=1" target="_blank" rel="noopener noreferrer">Ver o canal no YouTube ↗</a>
+          </div>
+          <p className="mt-4 text-xs text-muted">Conteúdo educativo, sem recomendação de investimento.</p>
         </div>
       </section>
 
@@ -105,7 +165,7 @@ export default async function Home() {
 
       <Disclaimer />
       <footer className="mt-8 border-t border-line pt-6 text-xs text-muted">
-        © {new Date().getFullYear()} {process.env.APP_NAME || "CR2FA Lab"}. Código aberto sob licença MIT.
+        © {new Date().getFullYear()} {process.env.APP_NAME || "NIZA INVEST"}.
       </footer>
     </div>
   );

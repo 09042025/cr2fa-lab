@@ -1,21 +1,26 @@
+import Image from "next/image";
 import Link from "next/link";
+import logoFull from "@/assets/logo-niza.webp";
+import logoMark from "@/assets/logo-niza-mark.webp";
 import type { Cached } from "@/lib/market";
 import { dateTime } from "@/lib/format";
 
-export const APP_NAME = process.env.APP_NAME || "CR2FA Lab";
+export const APP_NAME = process.env.APP_NAME || "NIZA INVEST";
 
 export function Logo({ size = "md" }: { size?: "md" | "lg" }) {
+  if (size === "lg") {
+    return (
+      <Link href="/" aria-label={APP_NAME} className="inline-flex">
+        <Image src={logoFull} alt={APP_NAME} height={112} unoptimized priority className="h-28 w-auto" />
+      </Link>
+    );
+  }
   return (
-    <Link href="/" className="inline-flex items-center gap-2">
-      <span
-        className={`grid place-items-center rounded-lg bg-gradient-to-b from-gold-soft to-gold font-display font-bold text-[#1a1203] ${
-          size === "lg" ? "h-10 w-10 text-lg" : "h-8 w-8 text-sm"
-        }`}
-        aria-hidden
-      >
-        C2
+    <Link href="/" aria-label={APP_NAME} className="inline-flex items-center gap-2.5">
+      <Image src={logoMark} alt="" height={34} unoptimized className="h-[34px] w-auto" />
+      <span className="font-display text-[17px] font-bold tracking-[0.16em] text-gold-soft">
+        NIZA <span className="font-medium text-gold">INVEST</span>
       </span>
-      <span className={`font-display font-bold tracking-wide text-gold-soft ${size === "lg" ? "text-2xl" : "text-lg"}`}>{APP_NAME}</span>
     </Link>
   );
 }

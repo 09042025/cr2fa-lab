@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const name = process.env.APP_NAME || "CR2FA Lab";
+const name = process.env.APP_NAME || "NIZA INVEST";
 
 export const metadata: Metadata = {
   title: { default: `${name} | Organize sua carteira em cinco blocos`, template: `%s | ${name}` },

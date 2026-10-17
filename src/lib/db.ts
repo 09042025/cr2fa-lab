@@ -65,6 +65,9 @@ function migrate(db: Database.Database) {
       fetched_at INTEGER NOT NULL
     );
   `);
+  // Origem da posição: 'manual' (digitada) ou 'b3' (importada da planilha da B3). Bancos antigos ganham a coluna aqui.
+  const cols = db.prepare("PRAGMA table_info(holdings)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "source")) db.exec("ALTER TABLE holdings ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'");
 }
 
 export function db(): Database.Database {

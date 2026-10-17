@@ -2,13 +2,13 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { BLOCKS, rebalance, type BlockKey } from "@/lib/protocol";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
-import { HoldingForm } from "@/components/HoldingForm";
+import { PortfolioEntry } from "@/components/PortfolioEntry";
 import { DeleteHolding } from "@/components/DeleteHolding";
 import { brl, pct } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-interface Holding { id: number; block: BlockKey; label: string; value_cents: number }
+interface Holding { id: number; block: BlockKey; label: string; value_cents: number; source: string }
 
 export default async function PortfolioPage() {
   const user = await requireUser();
@@ -21,7 +21,7 @@ export default async function PortfolioPage() {
     );
   }
 
-  const holdings = db().prepare("SELECT id, block, label, value_cents FROM holdings WHERE user_id = ? ORDER BY block, id").all(user.id) as Holding[];
+  const holdings = db().prepare("SELECT id, block, label, value_cents, source FROM holdings WHERE user_id = ? ORDER BY block, id").all(user.id) as Holding[];
   const current = Object.fromEntries(BLOCKS.map((b) => [b.key, 0])) as Record<BlockKey, number>;
   for (const h of holdings) current[h.block] += h.value_cents;
   const rows = rebalance(current);
@@ -29,8 +29,8 @@ export default async function PortfolioPage() {
 
   return (
     <>
-      <PageTitle title="Portfólio" subtitle="Registre suas posições por bloco. A tabela mostra quanto comprar (+) ou vender (−) em cada bloco para voltar aos 20% do Protocolo." />
-      <section className="card mb-6 p-4"><h2 className="mb-3 font-semibold">Adicionar posição</h2><HoldingForm /></section>
+      <PageTitle title="Portfólio" subtitle="Importe sua posição da B3 ou preencha manualmente, por bloco. A tabela mostra quanto comprar (+) ou vender (−) em cada bloco para voltar aos 20% do Protocolo." />
+      <PortfolioEntry startOnB3={holdings.length === 0} />
 
       <section className="card mb-6 p-4">
         <h2 className="mb-1 font-semibold">Rebalanceamento</h2>
@@ -65,7 +65,7 @@ export default async function PortfolioPage() {
               {holdings.map((h) => (
                 <tr key={h.id}>
                   <td>{BLOCKS.find((b) => b.key === h.block)?.name}</td>
-                  <td>{h.label}</td>
+                  <td>{h.label}{h.source === "b3" && <span className="ml-2 rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">B3</span>}</td>
                   <td className="num">{brl(h.value_cents / 100)}</td>
                   <td className="num"><DeleteHolding id={h.id} /></td>
                 </tr>
