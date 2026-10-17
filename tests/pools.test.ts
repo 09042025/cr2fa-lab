@@ -57,20 +57,30 @@ import { feeFromMeta, poolLink } from "../src/lib/poollinks";
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-test("link direto para Uniswap v3 com os dois tokens e a taxa", () => {
+test("link direto para a página do pool na Uniswap v3 (endereço confere com o pool real)", () => {
   const p = raw({ pool: "u", underlyingTokens: [WETH, USDC], poolMeta: "0.3%" });
-  assert.deepEqual(poolLink(p), { kind: "direct", name: "Uniswap", url: `https://app.uniswap.org/add/${WETH}/${USDC}/3000?chain=ethereum` });
+  assert.deepEqual(poolLink(p), { kind: "direct", name: "Uniswap", url: "https://app.uniswap.org/explore/pools/ethereum/0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8" });
+  const p05 = raw({ pool: "u5", underlyingTokens: [USDC, WETH], poolMeta: "0.05%" });
+  assert.equal(poolLink(p05).url, "https://app.uniswap.org/explore/pools/ethereum/0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640");
+  const base = raw({ pool: "ub", chain: "Base", underlyingTokens: ["0x4200000000000000000000000000000000000006", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], poolMeta: "0.05%" });
+  assert.equal(poolLink(base).url, "https://app.uniswap.org/explore/pools/base/0xd0b53D9277642d899DF5C87A3966A349A798F224");
   assert.equal(feeFromMeta("0.05%"), 500);
   assert.equal(feeFromMeta("0.01%"), 100);
   assert.equal(feeFromMeta("0.00%"), null);
   assert.equal(feeFromMeta("abc"), null);
 });
 
-test("link do PancakeSwap v3 e fallback para a página da DEX", () => {
+test("Uniswap v2 na Ethereum, e fallback para a página da DEX nos demais", () => {
+  const v2 = raw({ pool: "v2", project: "uniswap-v2", underlyingTokens: [WETH, USDC], poolMeta: null });
+  assert.equal(poolLink(v2).url, "https://app.uniswap.org/explore/pools/ethereum/0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc");
   const pk = raw({ pool: "k", project: "pancakeswap-amm-v3", chain: "BSC", underlyingTokens: [WETH, USDC], poolMeta: "0.25%" });
-  assert.equal(poolLink(pk).url, `https://pancakeswap.finance/add/${WETH}/${USDC}/2500?chain=bsc`);
+  assert.deepEqual(poolLink(pk), { kind: "home", name: "PancakeSwap", url: "https://pancakeswap.finance/liquidity/pools" });
   const v4 = raw({ pool: "v4", project: "uniswap-v4", underlyingTokens: [WETH, USDC] });
   assert.deepEqual(poolLink(v4), { kind: "home", name: "Uniswap", url: "https://app.uniswap.org/explore/pools?chain=ethereum" });
+  const polyV2 = raw({ pool: "pv2", project: "uniswap-v2", chain: "Polygon", underlyingTokens: [WETH, USDC] });
+  assert.equal(poolLink(polyV2).kind, "home");
+  const native = raw({ pool: "n", underlyingTokens: ["0x0000000000000000000000000000000000000000", USDC], poolMeta: "0.3%" });
+  assert.equal(poolLink(native).kind, "home");
   assert.equal(poolLink(raw({ pool: "c", project: "curve-dex", chain: "Arbitrum", underlyingTokens: [] })).url, "https://curve.finance/dex/arbitrum/pools/");
 });
 

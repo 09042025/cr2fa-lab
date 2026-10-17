@@ -1,4 +1,5 @@
 import type { DefiPool } from "./market";
+import { uniswapV2Pair, uniswapV3Pool } from "./uniswap";
 
 /**
  * Links para abrir o pool na DEX oficial.
@@ -31,7 +32,6 @@ const UNISWAP_CHAIN: Record<string, string> = {
   Ethereum: "ethereum", Arbitrum: "arbitrum", Optimism: "optimism", Polygon: "polygon", Base: "base",
   BSC: "bnb", Avalanche: "avalanche", Blast: "blast", Celo: "celo",
 };
-const PANCAKE_CHAIN: Record<string, string> = { Ethereum: "eth", BSC: "bsc", Arbitrum: "arb", Base: "base", Linea: "linea" };
 const CURVE_CHAIN: Record<string, string> = {
   Ethereum: "ethereum", Arbitrum: "arbitrum", Optimism: "optimism", Polygon: "polygon", Base: "base",
   Avalanche: "avalanche", Fantom: "fantom", Gnosis: "xdai",
@@ -78,7 +78,7 @@ export function llamaUrl(p: DefiPool): string {
 }
 
 /**
- * Escolhe o melhor destino: par direto na DEX (quando dá), página da DEX/protocolo,
+ * Escolhe o melhor destino: página do pool na DEX (Uniswap v2/v3, endereço calculado offline), página da DEX/protocolo,
  * ou a página do pool no DefiLlama como último recurso.
  */
 export function poolLink(p: DefiPool): PoolLink {
@@ -87,14 +87,14 @@ export function poolLink(p: DefiPool): PoolLink {
 
   if (pair) {
     const [a, b] = pair;
-    if (p.project === "uniswap-v3" && fee && UNISWAP_CHAIN[p.chain]) {
-      return { kind: "direct", name: "Uniswap", url: `https://app.uniswap.org/add/${a}/${b}/${fee}?chain=${UNISWAP_CHAIN[p.chain]}` };
+    const slug = UNISWAP_CHAIN[p.chain];
+    if (slug && p.project === "uniswap-v3" && fee) {
+      const addr = uniswapV3Pool(p.chain, a, b, fee);
+      if (addr) return { kind: "direct", name: "Uniswap", url: `https://app.uniswap.org/explore/pools/${slug}/${addr}` };
     }
-    if (p.project === "uniswap-v2" && UNISWAP_CHAIN[p.chain]) {
-      return { kind: "direct", name: "Uniswap", url: `https://app.uniswap.org/add/v2/${a}/${b}?chain=${UNISWAP_CHAIN[p.chain]}` };
-    }
-    if (p.project === "pancakeswap-amm-v3" && fee && PANCAKE_CHAIN[p.chain]) {
-      return { kind: "direct", name: "PancakeSwap", url: `https://pancakeswap.finance/add/${a}/${b}/${fee}?chain=${PANCAKE_CHAIN[p.chain]}` };
+    if (slug && p.project === "uniswap-v2") {
+      const addr = uniswapV2Pair(p.chain, a, b);
+      if (addr) return { kind: "direct", name: "Uniswap", url: `https://app.uniswap.org/explore/pools/${slug}/${addr}` };
     }
   }
 
