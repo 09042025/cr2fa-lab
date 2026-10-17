@@ -52,6 +52,21 @@ docker compose exec app npm run seed
 
 Os dados ficam no volume `cr2fa-data` (SQLite). Faça backup desse volume.
 
+## Publicar na Railway
+
+1. Crie uma conta em <https://railway.com> e escolha **New Project → Deploy from GitHub repo**, selecionando este repositório. A Railway detecta o `Dockerfile` e faz o build.
+2. No serviço, aba **Variables**, crie (copie os nomes de `.env.example`):
+   - `SESSION_SECRET` (gere com `openssl rand -base64 48`)
+   - `APP_URL` com o endereço final, por exemplo `https://app.seudominio.com.br`
+   - `DATABASE_PATH` = `/app/data/cr2fa.db`
+   - `PORT` = `3000`
+   - `RAILWAY_RUN_UID` = `0` (permite gravar no disco da Railway)
+   - `ADMIN_EMAIL` e `ADMIN_INITIAL_PASSWORD` (mínimo de 10 caracteres)
+   - as chaves do Mercado Pago e os endereços de cripto que for usar
+3. Crie um **Volume** e monte em `/app/data`. Sem ele, os dados (usuários e pedidos) se perdem a cada deploy. A Railway permite 1 volume por serviço e não permite réplicas com volume.
+4. Em **Settings → Networking**, gere o domínio público e, depois, adicione o seu domínio próprio seguindo as instruções de DNS mostradas.
+5. No primeiro start o servidor **cria o administrador automaticamente** (se ainda não houver um), com `ADMIN_EMAIL` e `ADMIN_INITIAL_PASSWORD`. Se a senha ficar vazia, uma senha aleatória aparece **uma única vez** nos logs do deploy. A troca é obrigatória no primeiro login. Depois de trocar, apague `ADMIN_INITIAL_PASSWORD` das variáveis.
+
 ## Pagamentos
 
 ### Pix e cartão (Mercado Pago)

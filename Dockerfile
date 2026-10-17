@@ -14,7 +14,6 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000
 COPY --from=build --chown=node:node /app ./
 RUN mkdir -p /app/data && chown -R node:node /app/data
 USER node
-VOLUME ["/app/data"]
 EXPOSE 3000
 # `npm run seed` funciona dentro do contêiner (docker compose exec app npm run seed)
 CMD ["npx", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
