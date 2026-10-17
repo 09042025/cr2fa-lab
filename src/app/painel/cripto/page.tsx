@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getCryptoMarkets, getDefiPools } from "@/lib/market";
+import { chartHref, cleanTicker } from "@/lib/charts";
 import { llamaUrl, poolLink } from "@/lib/poollinks";
 import { estimateMonthly, filterPools, turnover, type PoolFilters } from "@/lib/pools";
 import { Change, DataStatus, Disclaimer, Locked, PageTitle, ProBadge } from "@/components/ui";
@@ -19,7 +20,9 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
 
   const tipo = sp.tipo === "rendimento" ? "rendimento" : "liquidez";
   const base = pools.data ? pools.data.filter((p) => (tipo === "liquidez" ? p.dex : !p.dex)) : [];
-  const chains = [...new Set(base.map((p) => p.chain))].sort();
+  // Redes que o DefiLlama ainda não cobre em DEX, mas que o usuário quer ver (Uniswap v4 na Robinhood Chain).
+  const EXTRA_DEX_CHAINS = ["Robinhood Chain"];
+  const chains = [...new Set([...base.map((p) => p.chain), ...(tipo === "liquidez" ? EXTRA_DEX_CHAINS : [])])].sort();
   const dexes = [...new Set(base.map((p) => p.project))].sort();
   const eff: PoolFilters = isPro ? { ...sp, tipo } : { tipo };
   const filtered = pools.data ? filterPools(pools.data, eff) : [];
@@ -43,7 +46,14 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
                 {coins.data.slice(0, isPro ? 50 : FREE_LIMITS.crypto).map((c, i) => (
                   <tr key={c.id}>
                     <td className="text-muted">{i + 1}</td>
-                    <td>{c.name} <span className="text-muted">{c.symbol}</span></td>
+                    <td>
+                      {cleanTicker(c.symbol) ? (
+                        <Link href={chartHref("cripto", c.symbol, { nome: c.name, id: c.id })} title="Ver gráfico" className="text-gold-soft underline-offset-2 hover:underline">{c.name}</Link>
+                      ) : (
+                        <a href={`https://www.coingecko.com/en/coins/${encodeURIComponent(c.id)}`} target="_blank" rel="noopener noreferrer" title="Ver no CoinGecko" className="text-gold-soft underline-offset-2 hover:underline">{c.name} ↗</a>
+                      )}{" "}
+                      <span className="text-muted">{c.symbol}</span>
+                    </td>
                     <td className="num">{usd(c.priceUsd)}</td>
                     <td className="num"><Change value={c.change24h} /></td>
                     <td className="num"><Change value={c.change7d} /></td>
@@ -164,7 +174,13 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
                     </tr>
                   );
                 })}
-                {poolRows.length === 0 && <tr><td colSpan={12} className="text-muted">Nenhum pool com esses filtros.</td></tr>}
+                {poolRows.length === 0 && (
+                  <tr><td colSpan={12} className="text-muted">
+                    {isDex && (sp.rede === "Robinhood Chain")
+                      ? <>O DefiLlama ainda não lista pools de DEX da Robinhood Chain (hoje só aparecem empréstimos, na aba “Empréstimo e staking”). Veja os pools de Uniswap v4 dessa rede direto na <a className="text-gold-soft underline" href="https://app.uniswap.org/explore/pools/robinhood" target="_blank" rel="noopener noreferrer">Uniswap ↗</a>.</>
+                      : "Nenhum pool com esses filtros."}
+                  </td></tr>
+                )}
               </tbody>
             </table>
           </div>

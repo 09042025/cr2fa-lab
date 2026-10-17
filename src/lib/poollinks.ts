@@ -30,7 +30,7 @@ export function feeFromMeta(meta: string | null): number | null {
 
 const UNISWAP_CHAIN: Record<string, string> = {
   Ethereum: "ethereum", Arbitrum: "arbitrum", Optimism: "optimism", Polygon: "polygon", Base: "base",
-  BSC: "bnb", Avalanche: "avalanche", Blast: "blast", Celo: "celo",
+  BSC: "bnb", Avalanche: "avalanche", Blast: "blast", Celo: "celo", "Robinhood Chain": "robinhood",
 };
 const CURVE_CHAIN: Record<string, string> = {
   Ethereum: "ethereum", Arbitrum: "arbitrum", Optimism: "optimism", Polygon: "polygon", Base: "base",
@@ -43,7 +43,7 @@ const SUSHI_CHAIN: Record<string, string> = {
 
 interface Home { name: string; url: (chain: string) => string }
 const HOMES: { test: RegExp; home: Home }[] = [
-  { test: /^uniswap/, home: { name: "Uniswap", url: (c) => `https://app.uniswap.org/explore/pools${UNISWAP_CHAIN[c] ? `?chain=${UNISWAP_CHAIN[c]}` : ""}` } },
+  { test: /^uniswap/, home: { name: "Uniswap", url: (c) => `https://app.uniswap.org/explore/pools${UNISWAP_CHAIN[c] ? `/${UNISWAP_CHAIN[c]}` : ""}` } },
   { test: /^pancakeswap/, home: { name: "PancakeSwap", url: () => "https://pancakeswap.finance/liquidity/pools" } },
   { test: /^aerodrome/, home: { name: "Aerodrome", url: () => "https://aerodrome.finance/liquidity" } },
   { test: /^velodrome/, home: { name: "Velodrome", url: () => "https://velodrome.finance/liquidity" } },

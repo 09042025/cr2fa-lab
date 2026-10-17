@@ -76,7 +76,9 @@ test("Uniswap v2 na Ethereum, e fallback para a página da DEX nos demais", () =
   const pk = raw({ pool: "k", project: "pancakeswap-amm-v3", chain: "BSC", underlyingTokens: [WETH, USDC], poolMeta: "0.25%" });
   assert.deepEqual(poolLink(pk), { kind: "home", name: "PancakeSwap", url: "https://pancakeswap.finance/liquidity/pools" });
   const v4 = raw({ pool: "v4", project: "uniswap-v4", underlyingTokens: [WETH, USDC] });
-  assert.deepEqual(poolLink(v4), { kind: "home", name: "Uniswap", url: "https://app.uniswap.org/explore/pools?chain=ethereum" });
+  assert.deepEqual(poolLink(v4), { kind: "home", name: "Uniswap", url: "https://app.uniswap.org/explore/pools/ethereum" });
+  const hood = raw({ pool: "h", project: "uniswap-v4", chain: "Robinhood Chain", underlyingTokens: [] });
+  assert.equal(poolLink(hood).url, "https://app.uniswap.org/explore/pools/robinhood");
   const polyV2 = raw({ pool: "pv2", project: "uniswap-v2", chain: "Polygon", underlyingTokens: [WETH, USDC] });
   assert.equal(poolLink(polyV2).kind, "home");
   const native = raw({ pool: "n", underlyingTokens: ["0x0000000000000000000000000000000000000000", USDC], poolMeta: "0.3%" });
