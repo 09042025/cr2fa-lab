@@ -1,5 +1,5 @@
 import { getUser } from "@/lib/auth";
-import { getDefiPools } from "@/lib/market";
+import { getAllPools } from "@/lib/market";
 import { csvCell, filterPools } from "@/lib/pools";
 
 export async function GET(req: Request) {
@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   if (user.plan !== "pro") return new Response("Recurso do plano Pró.", { status: 403 });
 
   const url = new URL(req.url);
-  const pools = await getDefiPools();
+  const pools = await getAllPools();
   if (!pools.data) return new Response("Dados indisponíveis no momento.", { status: 503 });
 
   const rows = filterPools(pools.data, {

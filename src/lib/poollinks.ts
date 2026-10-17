@@ -73,7 +73,12 @@ function tokenPair(p: DefiPool): [string, string] | null {
     : null;
 }
 
+/** Página de detalhes do pool na fonte dos dados (DefiLlama ou DexPaprika). */
 export function llamaUrl(p: DefiPool): string {
+  if (p.source === "dexpaprika") {
+    const ref = p.id.replace(/^dexpaprika:/, "");
+    return POOL_ID_V4.test(ref) ? `https://dexpaprika.com/robinhood/pool/${ref}` : "https://dexpaprika.com/robinhood";
+  }
   return `https://defillama.com/yields/pool/${encodeURIComponent(p.id)}`;
 }
 
@@ -81,7 +86,12 @@ export function llamaUrl(p: DefiPool): string {
  * Escolhe o melhor destino: página do pool na DEX (Uniswap v2/v3, endereço calculado offline), página da DEX/protocolo,
  * ou a página do pool no DefiLlama como último recurso.
  */
+const POOL_ID_V4 = /^0x[0-9a-fA-F]{64}$/;
+
 export function poolLink(p: DefiPool): PoolLink {
+  if (p.source === "dexpaprika" && p.project === "uniswap-v4" && p.poolRef && POOL_ID_V4.test(p.poolRef) && UNISWAP_CHAIN[p.chain]) {
+    return { kind: "direct", name: "Uniswap", url: `https://app.uniswap.org/explore/pools/${UNISWAP_CHAIN[p.chain]}/${p.poolRef}` };
+  }
   const pair = tokenPair(p);
   const fee = feeFromMeta(p.poolMeta);
 

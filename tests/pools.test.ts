@@ -52,7 +52,7 @@ test("giro e estimativa mensal", () => {
   assert.equal(estimateMonthly(0, 12), null);
 });
 
-import { feeFromMeta, poolLink } from "../src/lib/poollinks";
+import { feeFromMeta, llamaUrl, poolLink } from "../src/lib/poollinks";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
@@ -94,4 +94,42 @@ test("endereço inválido ou protocolo desconhecido nunca vira link direto", () 
   assert.deepEqual(poolLink(unknown), { kind: "llama", name: "DefiLlama", url: "https://defillama.com/yields/pool/id%2Fwith%3Fodd" });
   const same = raw({ pool: "s", underlyingTokens: [USDC, USDC], poolMeta: "0.3%" });
   assert.equal(poolLink(same).kind, "home");
+});
+
+import { toPaprikaPool } from "../src/lib/market";
+
+const HOOD_ID = "0xdd966537d39c76e84f05df1efd3bb38f1ef4f5928feee84b72240e1c70e02c19";
+const hoodRaw = {
+  id: HOOD_ID, dex_id: "uniswap_v4", dex_name: "Uniswap V4", chain: "robinhood", volume_usd_24h: 1.75, volume_usd_7d: 1.75, fee: null,
+  liquidity_usd: 24641634.9, tokens: [
+    { id: "0x5fc5dc8e93bb982f633101f78d8f679b5ba6d168", symbol: "USDG", name: "USDG Robinhood" },
+    { id: "0xf1d958a5edd31308f02edd46cd9b6cc5e48fe8a4", symbol: "PONS", name: "Pons" },
+  ],
+};
+
+test("pool da Robinhood Chain vindo do DexPaprika: sem taxa, com link direto na Uniswap", () => {
+  const p = toPaprikaPool(hoodRaw, "Robinhood Chain")!;
+  assert.equal(p.symbol, "USDG-PONS");
+  assert.equal(p.project, "uniswap-v4");
+  assert.equal(p.tvlUsd, 24641634.9);
+  assert.equal(p.apy, null);
+  assert.equal(p.stablecoin, false);
+  assert.equal(p.dex, true);
+  assert.equal(poolLink(p).url, `https://app.uniswap.org/explore/pools/robinhood/${HOOD_ID}`);
+  assert.equal(llamaUrl(p), `https://dexpaprika.com/robinhood/pool/${HOOD_ID}`);
+  assert.deepEqual(filterPools([p], { tipo: "liquidez", rede: "Robinhood Chain" }).map((x) => x.id), [p.id]);
+});
+
+test("DexPaprika: descarta dados incompletos e limpa símbolos", () => {
+  assert.equal(toPaprikaPool({ ...hoodRaw, liquidity_usd: 0 }, "Robinhood Chain"), null);
+  assert.equal(toPaprikaPool({ ...hoodRaw, tokens: [hoodRaw.tokens[0]] }, "Robinhood Chain"), null);
+  assert.equal(toPaprikaPool({ ...hoodRaw, id: undefined }, "Robinhood Chain"), null);
+  const dirty = toPaprikaPool({ ...hoodRaw, tokens: [{ id: "x", symbol: "<b>A</b>" }, { id: "y", symbol: "USDG" }] }, "Robinhood Chain")!;
+  assert.equal(dirty.symbol, "bAb-USDG");
+  assert.equal(dirty.tokens.length, 0);
+  const stable = toPaprikaPool({ ...hoodRaw, tokens: [{ symbol: "USDG" }, { symbol: "USDC" }] }, "Robinhood Chain")!;
+  assert.equal(stable.stablecoin, true);
+  const odd = toPaprikaPool({ ...hoodRaw, id: "javascript:alert(1)" }, "Robinhood Chain")!;
+  assert.equal(odd.poolRef, null);
+  assert.equal(poolLink(odd).kind, "home");
 });

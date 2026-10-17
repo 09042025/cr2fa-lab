@@ -133,6 +133,10 @@ export interface DefiPool {
   tokens: string[];
   /** true quando o pool é de liquidez em DEX (par de ativos), false para empréstimo, staking e outros. */
   dex: boolean;
+  /** Origem dos dados. Ausente em registros antigos do cache, que são sempre do DefiLlama. */
+  source?: "defillama" | "dexpaprika";
+  /** Identificador do pool na própria DEX (Uniswap v4: 32 bytes em hexadecimal). */
+  poolRef?: string | null;
 }
 
 interface LlamaPool {
@@ -183,6 +187,8 @@ export function toDefiPool(p: LlamaPool): DefiPool {
     stablecoin: p.stablecoin,
     tokens: (p.underlyingTokens ?? []).filter((t) => typeof t === "string" && /^0x[0-9a-fA-F]{40}$/.test(t)).slice(0, 4),
     dex,
+    source: "defillama",
+    poolRef: null,
   };
 }
 
@@ -196,6 +202,77 @@ export function getDefiPools() {
       .slice(0, 4000)
       .map(toDefiPool);
   });
+}
+
+/* ======================= Robinhood Chain (DexPaprika) =======================
+ * O DefiLlama não lista os pools de DEX dessa rede. O DexPaprika (gratuito) lista,
+ * mas sem taxa do pool nos pools Uniswap v4 (fee vem nulo). Por isso o APR fica vazio:
+ * mostramos liquidez, volume e giro, e não inventamos rendimento. */
+
+interface PaprikaToken { id?: string; symbol?: string; name?: string }
+export interface PaprikaPool {
+  id?: string;
+  dex_id?: string;
+  chain?: string;
+  volume_usd_24h?: number;
+  volume_usd_7d?: number;
+  liquidity_usd?: number;
+  tokens?: PaprikaToken[];
+}
+
+const STABLE_SYMBOLS = new Set(["USDG", "USDC", "USDT", "DAI", "USDS", "PYUSD", "USDE", "FDUSD", "USD1", "RLUSD", "USDTB"]);
+const cleanSymbol = (s: unknown) => (typeof s === "string" ? s.replace(/[^\p{L}\p{N}._$-]/gu, "").slice(0, 12) : "") || "?";
+
+/** Converte um pool do DexPaprika no formato da tabela. Devolve null se faltar o essencial. */
+export function toPaprikaPool(p: PaprikaPool, chainLabel: string): DefiPool | null {
+  const id = typeof p.id === "string" ? p.id : "";
+  const liq = Number(p.liquidity_usd);
+  if (!id || !Number.isFinite(liq) || liq <= 0 || !Array.isArray(p.tokens) || p.tokens.length < 2) return null;
+  const symbols = p.tokens.map((t) => cleanSymbol(t?.symbol));
+  const vol = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return {
+    id: `dexpaprika:${id}`,
+    chain: chainLabel,
+    project: String(p.dex_id || "dex").replace(/_/g, "-").toLowerCase().replace(/[^a-z0-9-]/g, ""),
+    symbol: symbols.join("-"),
+    poolMeta: null,
+    tvlUsd: liq,
+    apy: null,
+    apyBase: null,
+    apyReward: null,
+    apyMean30d: null,
+    volumeUsd1d: vol(p.volume_usd_24h),
+    volumeUsd7d: vol(p.volume_usd_7d),
+    il7d: null,
+    ilRisk: true,
+    stablecoin: symbols.every((x) => STABLE_SYMBOLS.has(x.toUpperCase())),
+    tokens: p.tokens.map((t) => t?.id ?? "").filter((t) => /^0x[0-9a-fA-F]{40}$/.test(t)).slice(0, 4),
+    dex: true,
+    source: "dexpaprika",
+    poolRef: /^0x[0-9a-fA-F]{64}$/.test(id) ? id : null,
+  };
+}
+
+export function getRobinhoodPools() {
+  return cached<DefiPool[]>("dexpaprika:robinhood:v1", 30 * 60, async () => {
+    const url =
+      "https://api.dexpaprika.com/networks/robinhood/pools/search?limit=100&order_by=liquidity_usd&sort=desc&liquidity_usd_min=50000&detailed=true";
+    const raw = await fetchJson<{ results?: PaprikaPool[] }>(url, {}, 20000);
+    return (raw.results ?? []).map((p) => toPaprikaPool(p, "Robinhood Chain")).filter((p): p is DefiPool => p !== null);
+  });
+}
+
+/** DefiLlama + redes que só o DexPaprika cobre. Se uma fonte falhar, a outra segue. */
+export async function getAllPools(): Promise<Cached<DefiPool[]>> {
+  const [llama, hood] = await Promise.all([getDefiPools(), getRobinhoodPools()]);
+  const data = llama.data || hood.data ? [...(llama.data ?? []), ...(hood.data ?? [])] : null;
+  const times = [llama.fetchedAt, hood.fetchedAt].filter((t): t is number => t !== null);
+  return {
+    data,
+    fetchedAt: times.length ? Math.min(...times) : null,
+    stale: llama.stale || hood.stale,
+    error: llama.error ?? undefined,
+  };
 }
 
 /* ===================== Ações e FIIs (brapi.dev, B3) ===================== */

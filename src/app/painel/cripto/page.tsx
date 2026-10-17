@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getCryptoMarkets, getDefiPools } from "@/lib/market";
+import { getCryptoMarkets, getAllPools } from "@/lib/market";
 import { chartHref, cleanTicker } from "@/lib/charts";
 import { llamaUrl, poolLink } from "@/lib/poollinks";
 import { estimateMonthly, filterPools, turnover, type PoolFilters } from "@/lib/pools";
@@ -16,7 +16,7 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
   const user = await requireUser();
   const sp = await searchParams;
   const isPro = user.plan === "pro";
-  const [coins, pools] = await Promise.all([getCryptoMarkets(), getDefiPools()]);
+  const [coins, pools] = await Promise.all([getCryptoMarkets(), getAllPools()]);
 
   const tipo = sp.tipo === "rendimento" ? "rendimento" : "liquidez";
   const base = pools.data ? pools.data.filter((p) => (tipo === "liquidez" ? p.dex : !p.dex)) : [];
@@ -82,7 +82,7 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
             ? "Pares de ativos em corretoras descentralizadas (Uniswap, PancakeSwap, Aerodrome, Camelot, Curve, Raydium e outras). Quem fornece liquidez recebe parte das taxas de negociação."
             : "Empréstimo, staking e outros protocolos em que você deposita um ativo e recebe rendimento."}
         </p>
-        <DataStatus result={pools} source="DefiLlama" />
+        <DataStatus result={pools} source="DefiLlama e DexPaprika (Robinhood Chain)" />
 
         {isPro ? (
           <form className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" method="get">
@@ -142,7 +142,7 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
                   const open = (
                     <>
                       <a href={link.url} target="_blank" rel="noopener noreferrer" title={title} className="text-gold-soft underline-offset-2 hover:underline">{p.symbol} <span aria-hidden>↗</span></a>
-                      {link.kind !== "llama" && <a href={llamaUrl(p)} target="_blank" rel="noopener noreferrer" title="Detalhes e histórico no DefiLlama" className="ml-1 text-xs text-muted hover:text-gold-soft">ⓘ</a>}
+                      {link.kind !== "llama" && <a href={llamaUrl(p)} target="_blank" rel="noopener noreferrer" title="Detalhes do pool na fonte dos dados" className="ml-1 text-xs text-muted hover:text-gold-soft">ⓘ</a>}
                     </>
                   );
                   return isDex ? (
@@ -177,7 +177,7 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
                 {poolRows.length === 0 && (
                   <tr><td colSpan={12} className="text-muted">
                     {isDex && (sp.rede === "Robinhood Chain")
-                      ? <>O DefiLlama ainda não lista pools de DEX da Robinhood Chain (hoje só aparecem empréstimos, na aba “Empréstimo e staking”). Veja os pools de Uniswap v4 dessa rede direto na <a className="text-gold-soft underline" href="https://app.uniswap.org/explore/pools/robinhood" target="_blank" rel="noopener noreferrer">Uniswap ↗</a>.</>
+                      ? <>Não consegui carregar os pools de DEX da Robinhood Chain agora (o DefiLlama só lista empréstimos dessa rede, na aba “Empréstimo e staking”). Veja os pools de Uniswap v4 dessa rede direto na <a className="text-gold-soft underline" href="https://app.uniswap.org/explore/pools/robinhood" target="_blank" rel="noopener noreferrer">Uniswap ↗</a>.</>
                       : "Nenhum pool com esses filtros."}
                   </td></tr>
                 )}
@@ -188,7 +188,7 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
         {!isPro && <div className="mt-4"><Locked feature={`Pools completos (${filtered.length || "centenas de"} disponíveis nesta aba) com filtros e simulador`} /></div>}
         <p className="mt-3 text-xs text-muted">
           {isDex
-            ? "APR de taxas vem do volume negociado no pool; recompensas em token oscilam e podem acabar. Giro é o volume de 24h dividido pelo TVL: quanto maior, mais taxa o pool gera por dólar depositado. A perda impermanente acontece quando os preços do par se afastam e pode superar as taxas ganhas. A estimativa de 30 dias usa o APR de hoje e não inclui essa perda. Clique no nome do par para abrir a DEX oficial em outra aba. Confira sempre o endereço do site e os tokens antes de conectar a carteira."
+            ? "APR de taxas vem do volume negociado no pool; recompensas em token oscilam e podem acabar. Giro é o volume de 24h dividido pelo TVL: quanto maior, mais taxa o pool gera por dólar depositado. A perda impermanente acontece quando os preços do par se afastam e pode superar as taxas ganhas. Na Robinhood Chain os pools Uniswap v4 não informam a taxa, então o APR aparece vazio (—) e só há liquidez, volume e giro. A estimativa de 30 dias usa o APR de hoje e não inclui essa perda. Clique no nome do par para abrir a DEX oficial em outra aba. Confira sempre o endereço do site e os tokens antes de conectar a carteira."
             : "APY alto costuma vir de recompensas em token, que oscilam. Stablecoin em protocolo DeFi tem risco de contrato, de paridade e de plataforma, por isso o Protocolo limita esse pedaço a 30% de um bloco de 20%."}
         </p>
       </section>
