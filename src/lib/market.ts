@@ -129,6 +129,8 @@ export interface DefiPool {
   il7d: number | null;
   ilRisk: boolean;
   stablecoin: boolean;
+  /** Endereços dos tokens do pool (só os válidos), usados para abrir a DEX direto no par. */
+  tokens: string[];
   /** true quando o pool é de liquidez em DEX (par de ativos), false para empréstimo, staking e outros. */
   dex: boolean;
 }
@@ -149,6 +151,7 @@ interface LlamaPool {
   volumeUsd1d?: number | null;
   volumeUsd7d?: number | null;
   il7d?: number | null;
+  underlyingTokens?: string[] | null;
   stablecoin: boolean;
 }
 
@@ -178,13 +181,14 @@ export function toDefiPool(p: LlamaPool): DefiPool {
     il7d: p.il7d ?? null,
     ilRisk: p.ilRisk === "yes",
     stablecoin: p.stablecoin,
+    tokens: (p.underlyingTokens ?? []).filter((t) => typeof t === "string" && /^0x[0-9a-fA-F]{40}$/.test(t)).slice(0, 4),
     dex,
   };
 }
 
 /** Pools do DefiLlama (gratuito). Cache de 30 min; v2 inclui volume, taxa e perda impermanente. */
 export function getDefiPools() {
-  return cached<DefiPool[]>("defillama:pools:v2", 30 * 60, async () => {
+  return cached<DefiPool[]>("defillama:pools:v3", 30 * 60, async () => {
     const raw = await fetchJson<{ data: LlamaPool[] }>("https://yields.llama.fi/pools", {}, 40000);
     return raw.data
       .filter((p) => p.tvlUsd >= 300_000 && p.apy !== null && p.apy !== undefined && p.apy < 1000)

@@ -51,3 +51,35 @@ test("giro e estimativa mensal", () => {
   assert.equal(estimateMonthly(1000, null), null);
   assert.equal(estimateMonthly(0, 12), null);
 });
+
+import { feeFromMeta, poolLink } from "../src/lib/poollinks";
+
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+
+test("link direto para Uniswap v3 com os dois tokens e a taxa", () => {
+  const p = raw({ pool: "u", underlyingTokens: [WETH, USDC], poolMeta: "0.3%" });
+  assert.deepEqual(poolLink(p), { kind: "direct", name: "Uniswap", url: `https://app.uniswap.org/add/${WETH}/${USDC}/3000?chain=ethereum` });
+  assert.equal(feeFromMeta("0.05%"), 500);
+  assert.equal(feeFromMeta("0.01%"), 100);
+  assert.equal(feeFromMeta("0.00%"), null);
+  assert.equal(feeFromMeta("abc"), null);
+});
+
+test("link do PancakeSwap v3 e fallback para a página da DEX", () => {
+  const pk = raw({ pool: "k", project: "pancakeswap-amm-v3", chain: "BSC", underlyingTokens: [WETH, USDC], poolMeta: "0.25%" });
+  assert.equal(poolLink(pk).url, `https://pancakeswap.finance/add/${WETH}/${USDC}/2500?chain=bsc`);
+  const v4 = raw({ pool: "v4", project: "uniswap-v4", underlyingTokens: [WETH, USDC] });
+  assert.deepEqual(poolLink(v4), { kind: "home", name: "Uniswap", url: "https://app.uniswap.org/explore/pools?chain=ethereum" });
+  assert.equal(poolLink(raw({ pool: "c", project: "curve-dex", chain: "Arbitrum", underlyingTokens: [] })).url, "https://curve.finance/dex/arbitrum/pools/");
+});
+
+test("endereço inválido ou protocolo desconhecido nunca vira link direto", () => {
+  const bad = raw({ pool: "b", underlyingTokens: ["javascript:alert(1)", USDC], poolMeta: "0.3%" });
+  assert.equal(bad.tokens.length, 1);
+  assert.equal(poolLink(bad).kind, "home");
+  const unknown = raw({ pool: "id/with?odd", project: "projeto-novo", exposure: "single" });
+  assert.deepEqual(poolLink(unknown), { kind: "llama", name: "DefiLlama", url: "https://defillama.com/yields/pool/id%2Fwith%3Fodd" });
+  const same = raw({ pool: "s", underlyingTokens: [USDC, USDC], poolMeta: "0.3%" });
+  assert.equal(poolLink(same).kind, "home");
+});
