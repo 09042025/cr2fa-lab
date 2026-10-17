@@ -35,6 +35,14 @@ export default async function CryptoPage({ searchParams }: { searchParams: Promi
     <>
       <PageTitle title="Cripto e DeFi" subtitle="Mercado de criptomoedas e pools de rendimento em dezenas de redes. No Protocolo, 60% do bloco é Bitcoin, 10% Ethereum e 30% stablecoins rendendo." />
 
+      <Link href="/painel/cripto/onchain" className="card mb-6 flex flex-wrap items-center justify-between gap-3 p-4 transition hover:border-gold">
+        <span>
+          <span className="block font-semibold text-gold-soft">Análise on-chain do Bitcoin</span>
+          <span className="block text-sm text-muted">Gráfico do Bitcoin com até 3 indicadores ao mesmo tempo: MVRV, preço realizado, Puell, Hash Ribbons e outros.</span>
+        </span>
+        <span className="btn btn-gold">Abrir →</span>
+      </Link>
+
       <section className="card mb-8 p-4">
         <h2 className="mb-2 font-semibold">Mercado</h2>
         <DataStatus result={coins} source="CoinGecko" />

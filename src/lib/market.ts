@@ -1,7 +1,7 @@
 import { db, now } from "./db";
 
 /** Busca JSON com timeout. Lança erro em respostas não-2xx. */
-async function fetchJson<T>(url: string, init: RequestInit = {}, timeoutMs = 15000): Promise<T> {
+export async function fetchJson<T>(url: string, init: RequestInit = {}, timeoutMs = 15000): Promise<T> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -318,17 +318,29 @@ async function fetchBrapi(symbols: string[]): Promise<Record<string, BrapiResult
   const out: Record<string, BrapiResult> = {};
   // Sem token, a brapi limita o plano gratuito; com token buscamos em lotes.
   const batchSize = token ? 10 : 1;
+  let lastError = "";
+  const get = async (batch: string[]) => {
+    const url = `https://brapi.dev/api/quote/${batch.join(",")}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+    const res = await fetchJson<{ results?: BrapiResult[] }>(url);
+    for (const r of res.results || []) out[r.symbol] = r;
+  };
   for (let i = 0; i < symbols.length; i += batchSize) {
     const batch = symbols.slice(i, i + batchSize);
-    const url = `https://brapi.dev/api/quote/${batch.join(",")}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
     try {
-      const res = await fetchJson<{ results?: BrapiResult[] }>(url);
-      for (const r of res.results || []) out[r.symbol] = r;
-    } catch {
-      // ignora o lote com falha; os demais seguem
+      await get(batch);
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : "erro";
+      // Alguns planos não aceitam vários ativos por chamada: tenta um a um.
+      if (batch.length > 1) {
+        for (const s of batch) {
+          try { await get([s]); } catch (e2) { lastError = e2 instanceof Error ? e2.message : lastError; }
+        }
+      }
     }
   }
-  if (Object.keys(out).length === 0) throw new Error("brapi.dev indisponível ou token inválido");
+  if (Object.keys(out).length === 0) {
+    throw new Error(token ? `brapi.dev recusou a consulta (${lastError}). Confira o BRAPI_TOKEN.` : "falta o BRAPI_TOKEN (token gratuito da brapi.dev)");
+  }
   return out;
 }
 

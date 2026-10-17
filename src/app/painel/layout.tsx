@@ -4,10 +4,11 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { Logo, ProBadge } from "@/components/ui";
 import { date } from "@/lib/format";
 
-const NAV: { href: string; label: string; pro?: boolean }[] = [
+const NAV: { href: string; label: string; pro?: boolean; sub?: boolean }[] = [
   { href: "/painel", label: "Visão geral" },
   { href: "/painel/protocolo", label: "Protocolo CR2FA" },
   { href: "/painel/cripto", label: "Cripto e DeFi" },
+  { href: "/painel/cripto/onchain", label: "On-chain do Bitcoin", sub: true },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
   { href: "/painel/acoes", label: "Ações" },
   { href: "/painel/renda-fixa", label: "Renda fixa" },
@@ -24,7 +25,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <Logo />
           <nav className="mt-5 flex gap-1 overflow-x-auto md:flex-col md:overflow-visible" aria-label="Principal">
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} className="flex items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-panel-2 hover:text-white">
+              <Link key={n.href} href={n.href} className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-lg py-2 text-sm text-muted hover:bg-panel-2 hover:text-white ${n.sub ? "px-3 md:pl-7 md:text-[13px]" : "px-3"}`}>
                 {n.label}
                 {n.pro && <ProBadge />}
               </Link>
