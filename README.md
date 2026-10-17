@@ -1,0 +1,122 @@
+# CR2FA Lab
+
+Painel de dados e organização de carteira baseado no **Protocolo CR2FA**: cinco blocos de 20% com diversificação em duas camadas.
+
+| Bloco | Divisão interna |
+|---|---|
+| Criptomoedas (20%) | 60% Bitcoin, 10% Ethereum, 30% stablecoins rendendo (Aave ou Kamino) |
+| Fundos imobiliários (20%) | 30% galpões, 30% shoppings, 30% outros de tijolo, 10% papel |
+| Ações (20%) | 50% Brasil (energia, bancos, saneamento, telecom, seguros, 20% cada) e 50% internacionais |
+| Renda fixa (20%) | 30% Tesouro Selic, 30% CDBs, 40% LCI/LCA |
+| Reserva para oportunidades (20%) | 50% CDB com liquidez diária, 50% Tesouro Selic |
+
+Antes dos cinco blocos vem a reserva de emergência (12 meses de salário), separada da carteira.
+
+> Conteúdo educativo, baseado em dados públicos. Não é recomendação de investimento.
+
+## O que tem
+
+- Cripto (mercado) e pools DeFi com TVL e APY, filtros por rede, ativo e TVL
+- Ações e FIIs da B3 organizados pelos setores do Protocolo
+- Renda fixa: taxas do Banco Central e comparador líquido (CDB x LCI/LCA x Tesouro Selic, com IR regressivo)
+- Calculadora do Protocolo e de juros compostos
+- Portfólio com rebalanceamento para os 20% de cada bloco (Pró)
+- Login com e-mail e senha, usuário **admin** e painel administrativo
+- Planos **Grátis** e **Pró**
+- Pagamento por **Pix e cartão de crédito** (Mercado Pago) e por **cripto**: Bitcoin, Ethereum, Arbitrum, Base, Polygon, Optimism e Solana (USDC/USDT e SOL), com verificação direta na blockchain
+
+## Rodando localmente
+
+Requisitos: Node.js 22+.
+
+```bash
+git clone <URL-DO-SEU-REPOSITORIO> cr2fa-lab
+cd cr2fa-lab
+npm install
+cp .env.example .env        # edite SESSION_SECRET e demais variáveis
+npm run seed                # cria o admin e mostra a senha inicial UMA vez
+npm run dev                 # http://localhost:3000
+```
+
+O `seed` usa `ADMIN_EMAIL` (padrão `admin@exemplo.com`). Se `ADMIN_INITIAL_PASSWORD` estiver vazio, gera uma senha aleatória e a exibe uma única vez no terminal. **No primeiro login o sistema obriga a troca da senha.** Para gerar outra senha inicial: `npm run seed -- --reset`.
+
+Gere o `SESSION_SECRET` com `openssl rand -base64 48`.
+
+## Docker
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+docker compose exec app npm run seed
+```
+
+Os dados ficam no volume `cr2fa-data` (SQLite). Faça backup desse volume.
+
+## Pagamentos
+
+### Pix e cartão (Mercado Pago)
+
+1. Crie uma aplicação em <https://www.mercadopago.com.br/developers> e copie o **Access Token** para `MERCADOPAGO_ACCESS_TOKEN`.
+2. No painel de Webhooks, cadastre `https://SEU-DOMINIO/api/webhooks/mercadopago`, marque o evento **Pagamentos** e copie a assinatura secreta para `MERCADOPAGO_WEBHOOK_SECRET`.
+3. Defina `APP_URL` com o domínio público (HTTPS).
+
+O app cria uma preferência do Checkout Pro (Pix e cartão). O webhook tem a **assinatura validada** e o status e o valor são **reconsultados na API** do Mercado Pago antes de liberar o Pró. Teste primeiro com credenciais de teste.
+
+### Cripto
+
+Defina apenas os endereços que quiser aceitar (redes sem endereço ficam desativadas):
+
+| Variável | Redes |
+|---|---|
+| `CRYPTO_EVM_ADDRESS` | Ethereum, Arbitrum, Base, Polygon, Optimism (ETH, USDC, USDT conforme a rede) |
+| `CRYPTO_SOL_ADDRESS` | Solana (SOL, USDC, USDT) |
+| `CRYPTO_BTC_ADDRESS` | Bitcoin |
+
+Como funciona: o usuário escolhe rede e ativo, o app converte o preço em BRL pela cotação do momento e gera um **valor exato único** (com casas extras que identificam o pedido), válido por 30 minutos. Depois de enviar, o usuário informa o hash e o servidor consulta a rede (RPC) e confere destinatário, ativo/contrato, **valor exato**, confirmações e que a transação é posterior ao pedido. Cada hash só vale uma vez.
+
+Use endereços **só de recebimento** e carteiras sob seu controle. Não há chaves privadas no app.
+
+Antes de produção, **confira os endereços dos contratos** de USDC/USDT em `src/lib/crypto.ts` nas fontes oficiais (Circle e Tether) e use RPCs próprios para estabilidade.
+
+## Dados de mercado
+
+| Dado | Fonte | Observação |
+|---|---|---|
+| Cripto | CoinGecko | chave opcional (`COINGECKO_API_KEY`) |
+| Pools DeFi | DefiLlama (yields) | |
+| Ações e FIIs | brapi.dev | `BRAPI_TOKEN` recomendado |
+| Selic, CDI, IPCA | Banco Central (SGS) | |
+
+Há cache em SQLite. Se uma fonte falhar, o painel mostra o último dado salvo com aviso, ou a mensagem de indisponível. O app nunca inventa números.
+
+Os tickers de ações e FIIs listados em `src/lib/market.ts` são exemplos de cada setor para ilustrar a estrutura e podem ser editados.
+
+## Segurança
+
+- Senhas com bcrypt, sessão em cookie `httpOnly` assinado (JWT), `SameSite=Lax`, checagem de origem nas rotas que alteram estado
+- Limite de tentativas de login e de verificações de pagamento
+- Troca de senha obrigatória do admin inicial
+- Exportação CSV com proteção contra injeção de fórmulas
+- Em produção, rode atrás de HTTPS e defina `SESSION_SECRET` forte
+
+## Desenvolvimento
+
+```bash
+npm run typecheck
+npm test
+npm run build
+```
+
+## Estrutura
+
+```
+src/app          páginas e rotas de API (Next.js App Router)
+src/lib          protocolo, renda fixa, mercado, pagamentos, auth, banco
+src/components   componentes de interface
+scripts          seed do admin
+tests            testes (node:test)
+```
+
+## Licença
+
+MIT. Veja [LICENSE](LICENSE).

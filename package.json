@@ -1,0 +1,36 @@
+{
+  "name": "cr2fa-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CR2FA Lab - painel de dados e organização de carteira em cinco blocos (cripto, FIIs, ações, renda fixa e reserva)",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed": "tsx --env-file-if-exists=.env scripts/seed-admin.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "DATABASE_PATH=:memory: tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "jose": "^6.2.12",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.4.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "postcss": "^8.5.30",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

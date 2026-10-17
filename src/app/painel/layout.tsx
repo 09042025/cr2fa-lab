@@ -1,0 +1,55 @@
+import Link from "next/link";
+import { requireUser } from "@/lib/auth";
+import { LogoutButton } from "@/components/LogoutButton";
+import { Logo, ProBadge } from "@/components/ui";
+import { date } from "@/lib/format";
+
+const NAV: { href: string; label: string; pro?: boolean }[] = [
+  { href: "/painel", label: "Visão geral" },
+  { href: "/painel/protocolo", label: "Protocolo CR2FA" },
+  { href: "/painel/cripto", label: "Cripto e DeFi" },
+  { href: "/painel/fiis", label: "Fundos imobiliários" },
+  { href: "/painel/acoes", label: "Ações" },
+  { href: "/painel/renda-fixa", label: "Renda fixa" },
+  { href: "/painel/portfolio", label: "Portfólio", pro: true },
+  { href: "/planos", label: "Planos e pagamento" },
+];
+
+export default async function PanelLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireUser();
+  return (
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 md:flex-row">
+      <aside className="md:sticky md:top-5 md:h-[calc(100vh-2.5rem)] md:w-60 md:shrink-0">
+        <div className="card flex h-full flex-col p-4">
+          <Logo />
+          <nav className="mt-5 flex gap-1 overflow-x-auto md:flex-col md:overflow-visible" aria-label="Principal">
+            {NAV.map((n) => (
+              <Link key={n.href} href={n.href} className="flex items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted hover:bg-panel-2 hover:text-white">
+                {n.label}
+                {n.pro && <ProBadge />}
+              </Link>
+            ))}
+            {user.role === "admin" && (
+              <Link href="/painel/admin" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-gold-soft hover:bg-panel-2">
+                Administração
+              </Link>
+            )}
+          </nav>
+          <div className="mt-4 border-t border-line pt-4 md:mt-auto">
+            <p className="truncate text-sm font-medium">{user.name}</p>
+            <p className="truncate text-xs text-muted">{user.email}</p>
+            <p className="mt-2 text-xs">
+              Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{user.plan === "pro" ? "Pró" : "Grátis"}</span>
+              {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-muted"> até {date(user.planExpiresAt)}</span> : null}
+            </p>
+            <div className="mt-3 space-y-2">
+              <Link href="/trocar-senha" className="btn btn-ghost w-full">Trocar senha</Link>
+              <LogoutButton />
+            </div>
+          </div>
+        </div>
+      </aside>
+      <main className="min-w-0 flex-1">{children}</main>
+    </div>
+  );
+}

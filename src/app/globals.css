@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #070d1c;
+  --color-panel: #0e1730;
+  --color-panel-2: #131f3f;
+  --color-line: #24335f;
+  --color-gold: #d9a520;
+  --color-gold-soft: #f3d27a;
+  --color-muted: #93a0c4;
+  --color-up: #34d399;
+  --color-down: #f87171;
+  --font-display: Georgia, "Times New Roman", serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #14224a 0%, transparent 60%),
+    var(--color-ink);
+  color: #e8ecf8;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+.card {
+  background: linear-gradient(180deg, var(--color-panel-2), var(--color-panel));
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: filter 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.btn-gold {
+  background: linear-gradient(180deg, var(--color-gold-soft), var(--color-gold));
+  color: #1a1203;
+}
+.btn-gold:hover {
+  filter: brightness(1.08);
+}
+.btn-ghost {
+  border: 1px solid var(--color-line);
+  color: #e8ecf8;
+}
+.btn-ghost:hover {
+  background: var(--color-panel-2);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input {
+  width: 100%;
+  background: #0a1226;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  color: #e8ecf8;
+  outline: none;
+}
+.input:focus {
+  border-color: var(--color-gold);
+}
+.label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-bottom: 0.3rem;
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+table.data th {
+  text-align: left;
+  color: var(--color-muted);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-line);
+  white-space: nowrap;
+}
+table.data td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid rgba(36, 51, 95, 0.55);
+  white-space: nowrap;
+}
+table.data tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
