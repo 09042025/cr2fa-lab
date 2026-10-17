@@ -6,8 +6,8 @@
 export const MAX_INDICATORS = 3;
 
 export type Fmt = "ratio" | "usd" | "compact" | "pct" | "eh" | "trillion";
-export type BaseKey = "supply" | "rc" | "hash" | "diff" | "addr" | "tx" | "tvol";
-export type Group = "valuation" | "price" | "network";
+export type BaseKey = "supply" | "rc" | "hash" | "diff" | "addr" | "tx" | "tvol" | "sth" | "lth";
+export type Group = "valuation" | "holders" | "price" | "network";
 
 export interface IndicatorDef {
   id: string;
@@ -28,6 +28,7 @@ export interface IndicatorDef {
 
 export const GROUPS: { id: Group; label: string }[] = [
   { id: "valuation", label: "Valuation on-chain" },
+  { id: "holders", label: "Detentores de curto e longo prazo (corte de 155 dias)" },
   { id: "price", label: "Médias e modelos de preço" },
   { id: "network", label: "Rede e mineração" },
 ];
@@ -72,6 +73,26 @@ export const INDICATORS: IndicatorDef[] = [
     id: "nvt", name: "NVT (90 dias)", group: "valuation", axis: "own", scale: "log", fmt: "ratio", needs: ["supply", "tvol"],
     lines: [{ label: "NVT" }],
     desc: "Valor de mercado dividido pela média de 90 dias do valor transferido ajustado na rede, em dólar. É o equivalente do P/L do Bitcoin: valores altos indicam preço alto em relação ao uso da rede.",
+  },
+  {
+    id: "sth_realized_price", name: "Preço realizado STH", group: "holders", axis: "price", scale: "log", fmt: "usd", needs: ["sth"],
+    lines: [{ label: "Preço realizado STH" }],
+    desc: "Preço médio de aquisição das moedas que se moveram nos últimos 155 dias, ou seja, dos detentores de curto prazo (STH). Fica no eixo do preço. Preço acima da linha: o comprador recente está no lucro, e a linha costuma funcionar como suporte em altas. Preço abaixo: o comprador recente está no prejuízo, e a linha costuma virar resistência. Dados gratuitos cobrem só os últimos 4 anos.",
+  },
+  {
+    id: "lth_realized_price", name: "Preço realizado LTH", group: "holders", axis: "price", scale: "log", fmt: "usd", needs: ["lth"],
+    lines: [{ label: "Preço realizado LTH" }],
+    desc: "Preço médio de aquisição das moedas paradas há mais de 155 dias, os detentores de longo prazo (LTH). Fica no eixo do preço e sobe devagar, porque essas moedas raramente se movem. Nos fundos de ciclos anteriores o preço chegou perto dessa linha ou abaixo dela. Dados gratuitos cobrem só os últimos 4 anos.",
+  },
+  {
+    id: "sth_mvrv", name: "MVRV STH", group: "holders", axis: "own", scale: "linear", fmt: "ratio", refs: [1], needs: ["sth"],
+    lines: [{ label: "Preço ÷ preço realizado STH" }],
+    desc: "Preço dividido pelo preço realizado dos detentores de curto prazo. Acima de 1 eles estão no lucro, abaixo de 1 estão no prejuízo. Picos altos mostram lucro curto prazo elevado e risco de realização. Dados gratuitos cobrem só os últimos 4 anos.",
+  },
+  {
+    id: "lth_mvrv", name: "MVRV LTH", group: "holders", axis: "own", scale: "log", fmt: "ratio", refs: [1], needs: ["lth"],
+    lines: [{ label: "Preço ÷ preço realizado LTH" }],
+    desc: "Preço dividido pelo preço realizado dos detentores de longo prazo. Mede o lucro acumulado de quem segura há mais tempo: quanto maior, maior o incentivo para esses detentores venderem. Dados gratuitos cobrem só os últimos 4 anos.",
   },
   {
     id: "wma200", name: "Média móvel de 200 semanas", group: "price", axis: "price", scale: "log", fmt: "usd", needs: [],
@@ -137,6 +158,7 @@ export const DEFAULT_IDS = ["realized_price", "mvrv_z"];
 export const PRESETS: { label: string; ids: string[] }[] = [
   { label: "Topo de ciclo", ids: ["mvrv_z", "puell", "pi_cycle"] },
   { label: "Fundo de ciclo", ids: ["realized_price", "wma200", "mvrv"] },
+  { label: "Detentores", ids: ["sth_realized_price", "lth_realized_price", "sth_mvrv"] },
   { label: "Mineradores", ids: ["hash_ribbons", "puell", "difficulty"] },
   { label: "Modelos de preço", ids: ["power_law", "wma200", "mayer"] },
 ];

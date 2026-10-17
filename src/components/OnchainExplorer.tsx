@@ -14,6 +14,7 @@ interface Payload {
   price: Series;
   series: Record<string, Series[]>;
   unavailable: string[];
+  holderError: string | null;
   halvings: number[];
 }
 
@@ -145,6 +146,10 @@ export function OnchainExplorer({ initial }: { initial: string[] }) {
           Fonte: Coin Metrics (dados da rede Bitcoin, dia fechado em UTC){data?.updatedAt ? `. Atualizado em ${new Date(data.updatedAt * 1000).toLocaleString("pt-BR")}` : ""}.
           {data?.stale ? <span className="ml-1 text-gold-soft">Exibindo o último dado salvo, a fonte não respondeu.</span> : null}
         </p>
+        {selected.some((id) => INDICATOR_BY_ID[id]?.group === "holders") && (
+          <p className="mt-1 text-xs text-muted">Preço realizado STH e LTH: BGeometrics (bitcoin-data.com), plano gratuito, que cobre os últimos 4 anos. Por isso essas linhas começam mais tarde que o preço.</p>
+        )}
+        {data?.holderError && <p className="mt-1 text-xs text-gold-soft">Os indicadores de detentores (STH/LTH) estão indisponíveis agora: {data.holderError}. O site tenta de novo em até 30 minutos.</p>}
       </section>
 
       <section className="card p-4">
@@ -217,7 +222,7 @@ export function OnchainExplorer({ initial }: { initial: string[] }) {
       <p className="text-xs leading-relaxed text-muted">
         Os indicadores são calculados aqui a partir de dados abertos da rede (preço, oferta, valor realizado, hash rate, endereços e transações). Os nomes seguem as fórmulas
         padrão do mercado, mas os valores podem diferir um pouco dos de outros sites, que usam fontes e ajustes próprios. Indicadores que dependem da idade de cada moeda
-        (SOPR, Reserve Risk, HODL Waves, lucro e prejuízo de detentores de curto e longo prazo) não estão incluídos. Zonas históricas descrevem o passado e não garantem o futuro.
+        (SOPR, Reserve Risk, HODL Waves, NUPL de curto e longo prazo) não estão incluídos. O preço realizado STH e LTH vem de outra fonte gratuita (BGeometrics). Zonas históricas descrevem o passado e não garantem o futuro.
       </p>
     </div>
   );

@@ -35,6 +35,9 @@ export interface Base {
   tx: Series | null;
   /** Valor transferido ajustado, US$. */
   tvol: Series | null;
+  /** Preço realizado dos detentores de curto (STH) e longo prazo (LTH), em US$. */
+  sth: Series | null;
+  lth: Series | null;
 }
 
 const nulls = (n: number): Series => new Array<number | null>(n).fill(null);
@@ -106,7 +109,9 @@ export function hashToEh(a: Series): Series {
   return scale(a, 1 / div);
 }
 
-export function buildBase(raw: RawOnchain): Base {
+export type DayValue = [number, number];
+
+export function buildBase(raw: RawOnchain, extra: { sth?: DayValue[] | null; lth?: DayValue[] | null } = {}): Base {
   const s = raw.series;
   const price = s.PriceUSD;
   const supply = s.SplyCur ?? null;
@@ -130,6 +135,8 @@ export function buildBase(raw: RawOnchain): Base {
     addr: s.AdrActCnt ?? null,
     tx: s.TxCnt ?? null,
     tvol: s.TxTfrValAdjUSD ?? null,
+    sth: extra.sth?.length ? alignSeries(new Map(extra.sth), raw.start, raw.n) : null,
+    lth: extra.lth?.length ? alignSeries(new Map(extra.lth), raw.start, raw.n) : null,
   };
 }
 
@@ -167,6 +174,10 @@ const CALC: Record<string, Calc> = {
     return [combine(iss, ma, (i, m) => (m > 0 && i > 0 ? i / m : null))];
   },
   nvt: (b) => [combine(marketCap(b), sma(b.tvol as Series, 90), (m, v) => (v > 0 ? m / v : null))],
+  sth_realized_price: (b) => [(b.sth as Series).slice()],
+  lth_realized_price: (b) => [(b.lth as Series).slice()],
+  sth_mvrv: (b) => [combine(b.price, b.sth as Series, (p, r) => (r > 0 ? p / r : null))],
+  lth_mvrv: (b) => [combine(b.price, b.lth as Series, (p, r) => (r > 0 ? p / r : null))],
   wma200: (b) => [sma(b.price, 1400)],
   dma200: (b) => [sma(b.price, 200)],
   mayer: (b) => [combine(b.price, sma(b.price, 200), (p, m) => (m > 0 ? p / m : null))],
@@ -217,4 +228,30 @@ export function alignSeries(points: Map<number, number>, start: number, n: numbe
     if (i >= 0 && i < n) out[i] = v;
   }
   return out;
+}
+
+/**
+ * Lê a resposta da API de preço realizado STH/LTH (bitcoin-data.com). O formato é uma lista de objetos com a data
+ * (`d`, "AAAA-MM-DD", ou `unixTs`) e um campo numérico com o valor. Aceita também a lista dentro de `data`.
+ */
+export function parseHolderRows(body: unknown): DayValue[] {
+  const list = Array.isArray(body) ? body : Array.isArray((body as { data?: unknown } | null)?.data) ? ((body as { data: unknown[] }).data) : [];
+  const out = new Map<number, number>();
+  for (const row of list) {
+    if (!row || typeof row !== "object") continue;
+    const r = row as Record<string, unknown>;
+    let day: number | null = null;
+    if (typeof r.d === "string" && /^\d{4}-\d{2}-\d{2}/.test(r.d)) day = epochDay(r.d.slice(0, 10));
+    else if (Number.isFinite(Number(r.unixTs))) {
+      const ts = Number(r.unixTs);
+      day = Math.floor((ts > 1e11 ? ts / 1000 : ts) / 86400);
+    }
+    if (day === null) continue;
+    for (const [k, v] of Object.entries(r)) {
+      if (k === "d" || k === "unixTs" || v === null || v === "") continue;
+      const n = Number(v);
+      if (Number.isFinite(n) && n > 0) { out.set(day, n); break; }
+    }
+  }
+  return [...out.entries()].sort((a, b) => a[0] - b[0]);
 }

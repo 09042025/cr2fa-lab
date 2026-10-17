@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { INDICATORS, INDICATOR_BY_ID, MAX_INDICATORS, epochDay, formatValue, parseIds } from "../src/lib/onchain-defs";
 import {
-  alignSeries, buildBase, computeIndicators, expandingStd, hashToEh, issuance, powerLaw, sma, unavailableIds,
+  alignSeries, buildBase, computeIndicators, expandingStd, hashToEh, issuance, parseHolderRows, powerLaw, sma, unavailableIds,
   type RawOnchain, type Series,
 } from "../src/lib/onchain-calc";
 import { dateTicks, extent, linePath, linearTicks, logTicks, padExtent, sampleIndices } from "../src/lib/chartmath";
@@ -116,7 +116,8 @@ test("sem métricas opcionais, só os indicadores dependentes ficam indisponíve
 });
 
 test("todo indicador devolve uma série por linha definida, com o tamanho dos dados", () => {
-  const b = buildBase(synth());
+  const pairs = Array.from({ length: 400 }, (_, i): [number, number] => [START + 400 + i, 80 + i]);
+  const b = buildBase(synth(), { sth: pairs, lth: pairs });
   const all = computeIndicators(b, INDICATORS.map((d) => d.id));
   assert.equal(Object.keys(all).length, INDICATORS.length);
   for (const d of INDICATORS) {
@@ -176,4 +177,32 @@ test("marcas de data e amostragem", () => {
 test("linePath interrompe a linha nos buracos", () => {
   const d = linePath([0, 1, 2, 9, 10], (i) => i, (v) => v, [1, 2, 3, null, null, null, null, null, null, 4, 5], 3);
   assert.equal(d, "M0.0,1.0L1.0,2.0L2.0,3.0M9.0,4.0L10.0,5.0");
+});
+
+test("parseHolderRows aceita data em texto ou timestamp e qualquer nome de campo numérico", () => {
+  const a = parseHolderRows([
+    { d: "2024-01-02", unixTs: 1704153600, sthRealizedPrice: "42000.5" },
+    { d: "2024-01-01", unixTs: 1704067200, sthRealizedPrice: 41000 },
+    { d: "2024-01-03", sthRealizedPrice: null },
+    { unixTs: 1704326400000, valor: 43000 },
+    "lixo",
+  ]);
+  assert.deepEqual(a.map((x) => x[1]), [41000, 42000.5, 43000]);
+  assert.equal(a[0][0], epochDay("2024-01-01"));
+  assert.deepEqual(parseHolderRows({ data: [{ d: "2024-01-01", x: 5 }] }), [[epochDay("2024-01-01"), 5]]);
+  assert.deepEqual(parseHolderRows({ erro: "limite" }), []);
+  assert.deepEqual(parseHolderRows(null), []);
+});
+
+test("preço realizado STH/LTH: MVRV STH = preço ÷ preço realizado e indisponível sem a fonte", () => {
+  const raw = synth();
+  const sthPairs: [number, number][] = Array.from({ length: N }, (_, i) => [START + i, 50 + i]);
+  const b = buildBase(raw, { sth: sthPairs, lth: null });
+  const c = computeIndicators(b, ["sth_mvrv", "sth_realized_price", "lth_realized_price", "lth_mvrv"]);
+  assert.ok(Math.abs(last(c.sth_mvrv[0]) - (100 + N - 1) / (50 + N - 1)) < 1e-9);
+  assert.equal(last(c.sth_realized_price[0]), 50 + N - 1);
+  assert.equal(c.lth_realized_price, undefined);
+  const off = unavailableIds(b);
+  assert.ok(off.includes("lth_mvrv") && off.includes("lth_realized_price") && !off.includes("sth_mvrv"));
+  assert.ok(unavailableIds(buildBase(raw)).includes("sth_realized_price"));
 });

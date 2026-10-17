@@ -1,5 +1,5 @@
 import { getUser } from "@/lib/auth";
-import { getBtcOnchain } from "@/lib/onchain";
+import { getBtcOnchain, getHolderPrices } from "@/lib/onchain";
 import { buildBase, computeIndicators, round6, unavailableIds } from "@/lib/onchain-calc";
 import { HALVINGS, epochDay, parseIds } from "@/lib/onchain-defs";
 
@@ -13,14 +13,16 @@ export async function GET(req: Request) {
   const raw = await getBtcOnchain();
   if (!raw.data) return Response.json({ error: raw.error || "Dados indisponíveis no momento." }, { status: 503 });
 
-  const base = buildBase(raw.data);
+  const holders = await getHolderPrices();
+  const base = buildBase(raw.data, { sth: holders.sth.data, lth: holders.lth.data });
   const computed = computeIndicators(base, ids);
   const series = Object.fromEntries(Object.entries(computed).map(([id, lines]) => [id, lines.map(round6)]));
 
   return Response.json(
     {
       updatedAt: raw.fetchedAt,
-      stale: raw.stale,
+      stale: raw.stale || holders.sth.stale || holders.lth.stale,
+      holderError: holders.sth.data && holders.lth.data ? null : holders.sth.error || holders.lth.error || "sem dados",
       start: base.start,
       n: base.n,
       price: round6(base.price),

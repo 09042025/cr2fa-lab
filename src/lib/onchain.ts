@@ -1,6 +1,6 @@
 import { cached, fetchJson, type Cached } from "./market";
 import { now } from "./db";
-import { alignSeries, type RawOnchain } from "./onchain-calc";
+import { alignSeries, parseHolderRows, type DayValue, type RawOnchain } from "./onchain-calc";
 import { epochDay } from "./onchain-defs";
 
 /**
@@ -86,4 +86,34 @@ export function getBtcOnchain(): Promise<Cached<RawOnchain>> {
     inflight = null;
   });
   return inflight;
+}
+
+/* ---- Preço realizado de detentores de curto (STH) e longo prazo (LTH): BGeometrics / bitcoin-data.com ---- */
+
+// Plano gratuito: sem chave, últimos 4 anos, 8 pedidos por hora e 15 por dia. Por isso o cache é longo
+// e, depois de uma falha, ficamos 30 minutos sem tentar de novo.
+const HOLDER_TTL = 12 * 3600;
+const HOLDER_COOLDOWN_MS = 30 * 60 * 1000;
+const cooldown = new Map<string, number>();
+
+function holderLoader(key: string, path: string): () => Promise<DayValue[]> {
+  return async () => {
+    if (Date.now() < (cooldown.get(key) ?? 0)) throw new Error("fonte em espera depois de uma falha");
+    try {
+      const rows = parseHolderRows(await fetchJson<unknown>(`https://bitcoin-data.com/v1/${path}`, {}, 30000));
+      if (rows.length < 30) throw new Error("resposta sem dados");
+      return rows;
+    } catch (e) {
+      cooldown.set(key, Date.now() + HOLDER_COOLDOWN_MS);
+      throw e;
+    }
+  };
+}
+
+export async function getHolderPrices(): Promise<{ sth: Cached<DayValue[]>; lth: Cached<DayValue[]> }> {
+  const [sth, lth] = await Promise.all([
+    cached<DayValue[]>("bgeometrics:sth-realized-price:v1", HOLDER_TTL, holderLoader("sth", "sth-realized-price")),
+    cached<DayValue[]>("bgeometrics:lth-realized-price:v1", HOLDER_TTL, holderLoader("lth", "lth-realized-price")),
+  ]);
+  return { sth, lth };
 }
