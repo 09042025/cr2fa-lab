@@ -36,7 +36,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
           ) : (
             <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa e filtro por setor no plano Pró.</div>
           )}
-          <QuotesTable rows={rows} />
+          <QuotesTable rows={rows} origem="fiis" />
           {!isPro && all.length > rows.length && <div className="mt-4"><Locked feature={`Lista completa (${all.length} ativos)`} /></div>}
         </section>
       )}
