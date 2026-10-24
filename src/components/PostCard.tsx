@@ -3,19 +3,12 @@ import { Avatar } from "./Avatar";
 import { BanButton, BlockButton } from "./CommunityChat";
 import { CommentForm, DeleteItem, LikeButton, PinButton, ReportPost } from "./FeedClient";
 import { MAX_COMMENT, topicLabel, type Post } from "@/lib/feed";
-import { REPORT_REASONS, splitMentions } from "@/lib/community";
+import { REPORT_REASONS } from "@/lib/community";
+import { RichText } from "./RichText";
 
 const when = (t: number) => new Date(t * 1000).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 
-function Text({ body, first }: { body: string; first: string }) {
-  return (
-    <>
-      {splitMentions(body).map((t, i) =>
-        t.mention ? <span key={i} className={`rounded px-0.5 font-medium ${t.text.slice(1).toLowerCase() === first ? "bg-gold/25 text-gold-soft" : "text-gold-soft"}`}>{t.text}</span> : <span key={i}>{t.text}</span>,
-      )}
-    </>
-  );
-}
+const Text = RichText;
 
 export function PostCard({ p, viewer, showPin = false }: { p: Post; viewer: { id: number; role: string; name: string }; showPin?: boolean }) {
   const isAdmin = viewer.role === "admin";

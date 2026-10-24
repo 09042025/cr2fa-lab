@@ -5,6 +5,7 @@ import { getMember, listFollows, listPosts, pinnedPostId } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FeedClient";
 import { PostCard } from "@/components/PostCard";
+import { RichText } from "@/components/RichText";
 import { date } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             {m.banned && <span className="rounded bg-down/20 px-1.5 text-[10px] font-semibold uppercase text-down">Suspenso</span>}
           </h1>
           <p className="text-sm text-muted">@{m.handle}</p>
-          {m.bio && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">{m.bio}</p>}
+          {m.bio && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6"><RichText body={m.bio} /></p>}
           <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
             {m.location && <span>📍 {m.location}</span>}
             {m.website && <a href={m.website} target="_blank" rel="noopener noreferrer nofollow ugc" className="text-gold-soft underline">🔗 {host}</a>}

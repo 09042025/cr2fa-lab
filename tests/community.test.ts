@@ -99,3 +99,13 @@ test("denunciar e bloquear", () => {
   setBlocked(b, a, false);
   assert.equal(listMessages("geral", b).some((x) => x.id === m), true);
 });
+
+import { shortUrl, splitRich } from "../src/lib/community";
+test("links no texto: clicáveis, sem a pontuação final e só http(s)", () => {
+  const t = splitRich("veja https://www.youtube.com/channel/UCUSH?sub=1, e @Ana javascript:alert(1) http://x.com).");
+  const links = t.filter((x) => x.type === "link");
+  assert.deepEqual(links.map((l) => (l as { href: string }).href), ["https://www.youtube.com/channel/UCUSH?sub=1", "http://x.com/"]);
+  assert.ok(t.some((x) => x.type === "mention" && x.text === "@Ana"));
+  assert.ok(!t.some((x) => x.type === "link" && /javascript/i.test(x.text)));
+  assert.equal(shortUrl("https://www.youtube.com/channel/UCUSHyyzS1LKDntU9uKYaPGg?sub_confirmation=1", 30).length, 30);
+});
