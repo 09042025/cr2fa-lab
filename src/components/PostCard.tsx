@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Avatar } from "./Avatar";
 import { BanButton, BlockButton } from "./CommunityChat";
-import { CommentForm, DeleteItem, LikeButton, ReportPost } from "./FeedClient";
+import { CommentForm, DeleteItem, LikeButton, PinButton, ReportPost } from "./FeedClient";
 import { MAX_COMMENT, topicLabel, type Post } from "@/lib/feed";
 import { REPORT_REASONS, splitMentions } from "@/lib/community";
 
@@ -17,11 +17,17 @@ function Text({ body, first }: { body: string; first: string }) {
   );
 }
 
-export function PostCard({ p, viewer }: { p: Post; viewer: { id: number; role: string; name: string } }) {
+export function PostCard({ p, viewer, showPin = false }: { p: Post; viewer: { id: number; role: string; name: string }; showPin?: boolean }) {
   const isAdmin = viewer.role === "admin";
   const first = viewer.name.split(" ")[0].toLowerCase();
   return (
     <article className="card p-4">
+      {p.pinned && showPin && (
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="text-gold"><path d="M16 3a1 1 0 0 1 .7 1.7L15.4 6l.6 5 2.4 2.4a1 1 0 0 1-.7 1.6H13v5a1 1 0 0 1-2 0v-5H6.3a1 1 0 0 1-.7-1.7L8 11l.6-5-1.3-1.3A1 1 0 0 1 8 3h8Z" /></svg>
+          Fixado
+        </p>
+      )}
       <header className="flex items-center gap-3">
         <Link href={`/painel/comunidade/membro/${p.userId}`}><Avatar name={p.author} id={p.authorAvatar} size={40} /></Link>
         <div className="min-w-0 flex-1">
@@ -45,6 +51,7 @@ export function PostCard({ p, viewer }: { p: Post; viewer: { id: number; role: s
         <LikeButton id={p.id} count={p.likes} liked={p.liked} />
         <span className="text-xs text-muted">{p.comments.length} {p.comments.length === 1 ? "comentário" : "comentários"}</span>
         <span className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1">
+          {p.userId === viewer.id && <PinButton postId={p.id} pinned={p.pinned} />}
           {(isAdmin || p.userId === viewer.id) && <DeleteItem id={p.id} kind="post" />}
           {p.userId !== viewer.id && <ReportPost postId={p.id} reasons={REPORT_REASONS} />}
           {p.userId !== viewer.id && !p.authorIsAdmin && <BlockButton userId={p.userId} />}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getMember, listPosts } from "@/lib/feed";
+import { getMember, listFollows, listPosts, pinnedPostId } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FeedClient";
 import { PostCard } from "@/components/PostCard";
@@ -9,11 +9,20 @@ import { date } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function MemberPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ aba?: string }> }) {
   const user = await requireUser();
   const m = getMember(Number((await params).id), user.id);
   if (!m) notFound();
-  const { posts } = listPosts({ viewerId: user.id, authorId: m.id, limit: 20 });
+  const aba = (await searchParams).aba === "seguindo" ? "seguindo" : (await searchParams).aba === "seguidores" ? "seguidores" : "posts";
+  const pinId = pinnedPostId(m.id);
+  const pinned = pinId ? listPosts({ viewerId: user.id, authorId: m.id, onlyId: pinId }).posts[0] : undefined;
+  const { posts } = aba === "posts" ? listPosts({ viewerId: user.id, authorId: m.id, limit: 20, excludeId: pinned?.id }) : { posts: [] };
+  const follows = aba === "posts" ? [] : listFollows(m.id, aba === "seguindo" ? "following" : "followers", user.id);
+  const viewer = { id: user.id, role: user.role, name: user.name };
+  const base = `/painel/comunidade/membro/${m.id}`;
+  const tab = (id: string, label: string) => (
+    <Link key={id} href={id === "posts" ? base : `${base}?aba=${id}`} aria-current={aba === id ? "page" : undefined} className={`flex-1 border-b-2 px-4 py-3 text-center text-sm font-medium ${aba === id ? "border-gold text-white" : "border-transparent text-muted hover:text-white"}`}>{label}</Link>
+  );
   const host = m.website ? new URL(m.website).hostname.replace(/^www\./, "") : "";
   return (
     <div className="mx-auto max-w-2xl">
@@ -45,15 +54,34 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
           </p>
           <p className="mt-3 flex gap-5 text-sm">
             <span><strong>{m.posts}</strong> <span className="text-muted">{m.posts === 1 ? "publicação" : "publicações"}</span></span>
-            <span><strong>{m.following}</strong> <span className="text-muted">seguindo</span></span>
-            <span><strong>{m.followers}</strong> <span className="text-muted">{m.followers === 1 ? "seguidor" : "seguidores"}</span></span>
+            <Link href={`${base}?aba=seguindo`} className="hover:underline"><strong>{m.following}</strong> <span className="text-muted">seguindo</span></Link>
+            <Link href={`${base}?aba=seguidores`} className="hover:underline"><strong>{m.followers}</strong> <span className="text-muted">{m.followers === 1 ? "seguidor" : "seguidores"}</span></Link>
           </p>
         </div>
+        <nav className="flex border-t border-line" aria-label="Seções do perfil">{tab("posts", "Publicações")}{tab("seguindo", "Seguindo")}{tab("seguidores", "Seguidores")}</nav>
       </section>
-      <div className="space-y-4">
-        {posts.length === 0 && <p className="card p-6 text-sm text-muted">Nenhuma publicação ainda.</p>}
-        {posts.map((p) => <PostCard key={p.id} p={p} viewer={{ id: user.id, role: user.role, name: user.name }} />)}
-      </div>
+      {aba === "posts" ? (
+        <div className="space-y-4">
+          {pinned && <PostCard p={pinned} viewer={viewer} showPin />}
+          {!pinned && posts.length === 0 && <p className="card p-6 text-sm text-muted">Nenhuma publicação ainda.</p>}
+          {posts.map((p) => <PostCard key={p.id} p={p} viewer={viewer} showPin />)}
+        </div>
+      ) : (
+        <ul className="card divide-y divide-line">
+          {follows.length === 0 && <li className="p-6 text-sm text-muted">{aba === "seguindo" ? "Não segue ninguém ainda." : "Ainda não tem seguidores."}</li>}
+          {follows.map((f) => (
+            <li key={f.id} className="flex items-center gap-3 p-4">
+              <Link href={`/painel/comunidade/membro/${f.id}`}><Avatar name={f.name} id={f.avatarId} size={44} /></Link>
+              <div className="min-w-0 flex-1">
+                <Link href={`/painel/comunidade/membro/${f.id}`} className="font-semibold hover:underline">{f.name}</Link>
+                <p className="text-xs text-muted">@{f.handle}</p>
+                {f.bio && <p className="mt-1 truncate text-sm text-muted">{f.bio}</p>}
+              </div>
+              {!f.isMe && <FollowButton userId={f.id} following={f.iFollow} />}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -113,6 +113,15 @@ export function CommentForm({ postId, max }: { postId: number; max: number }) {
   );
 }
 
+export function PinButton({ postId, pinned }: { postId: number; pinned: boolean }) {
+  const router = useRouter();
+  return (
+    <button className={link} onClick={async () => { await post({ action: "pin", postId, pin: !pinned }); router.refresh(); }}>
+      {pinned ? "desafixar do perfil" : "fixar no perfil"}
+    </button>
+  );
+}
+
 export function DeleteItem({ id, kind }: { id: number; kind: "post" | "comment" }) {
   const router = useRouter();
   return (

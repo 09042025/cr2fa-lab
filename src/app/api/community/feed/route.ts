@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { getUser, rateLimit } from "@/lib/auth";
 import { REPORT_REASONS, isBanned } from "@/lib/community";
-import { addComment, addPost, deleteComment, deletePost, MAX_COMMENT, MAX_POST, reportPost, toggleLike } from "@/lib/feed";
+import { setPinned, addComment, addPost, deleteComment, deletePost, MAX_COMMENT, MAX_POST, reportPost, toggleLike } from "@/lib/feed";
 import { fail, json, sameOrigin } from "@/lib/http";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("post"), topic: z.string().max(20), body: z.string().max(MAX_POST), imageId: z.number().int().positive().nullish() }),
   z.object({ action: z.literal("like"), postId: z.number().int().positive() }),
   z.object({ action: z.literal("comment"), postId: z.number().int().positive(), body: z.string().max(MAX_COMMENT) }),
+  z.object({ action: z.literal("pin"), postId: z.number().int().positive(), pin: z.boolean() }),
   z.object({ action: z.literal("report"), postId: z.number().int().positive(), reason: z.string().max(60) }),
 ]);
 
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
     if (!rateLimit(`feed-post:${user!.id}`, 10, 60 * 60_000)) return fail("Limite de 10 publicações por hora atingido.", 429);
     return addPost(user!.id, d.topic, d.body, d.imageId) ? json({ ok: true }, 201) : fail("Escreva algo ou anexe uma imagem.");
   }
+  if (d.action === "pin") return setPinned(user!.id, d.postId, d.pin) ? json({ ok: true }) : fail("Só é possível fixar publicações suas.", 403);
   if (d.action === "like") return toggleLike(d.postId, user!.id) ? json({ ok: true }) : fail("Publicação não encontrada.", 404);
   if (d.action === "comment") return addComment(d.postId, user!.id, d.body) ? json({ ok: true }, 201) : fail("Escreva um comentário de até 500 caracteres.");
   return reportPost(d.postId, user!.id, d.reason, REPORT_REASONS) ? json({ ok: true }, 201) : fail("Não foi possível denunciar (você já denunciou ou a publicação é sua).");
