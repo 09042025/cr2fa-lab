@@ -69,6 +69,16 @@ function migrate(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_resets_user ON password_resets(user_id);
 
+    -- Mensagens da Comunidade (canais fixos definidos em src/lib/community.ts).
+    CREATE TABLE IF NOT EXISTS community_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      channel TEXT NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_community_channel ON community_messages(channel, id);
+
     CREATE TABLE IF NOT EXISTS cache (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
