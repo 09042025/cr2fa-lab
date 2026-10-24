@@ -6,7 +6,7 @@ const TABS = [
   { href: "/painel/comunidade", label: "Chat" },
   { href: "/painel/comunidade/feed", label: "Feed" },
   { href: "/painel/comunidade/noticias", label: "Notícias" },
-  { href: "/painel/comunidade/lives", label: "Lives", pro: true },
+  { href: "/painel/comunidade/lives", label: "Lives VIP", pro: true },
 ];
 
 export function CommunityTabs(_props: { pro?: boolean }) {
