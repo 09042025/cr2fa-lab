@@ -77,6 +77,10 @@ Na tela de login há o link **Esqueci minha senha**. O usuário informa o e-mail
 
 Sem essas variáveis, o pedido não envia e-mail e o servidor registra um aviso no log.
 
+## Configurações e administração
+
+No painel, o botão **Configurações** (na lateral, também no celular) abre a página com **perfil** (nome e e-mail; trocar o e-mail exige a senha atual), **alterar senha**, plano e sair. O administrador vê também o atalho para **Administração**, onde pode dar ou tirar o Pró e **excluir contas comuns**: é preciso digitar o e-mail da conta para confirmar, a exclusão apaga também o portfólio e o histórico de pedidos dela, e contas de administrador não podem ser excluídas por ali.
+
 ## Teste grátis do Pró
 
 Contas do plano Grátis que nunca assinaram podem iniciar **30 dias de Pró sem cartão**, pelo botão em `/planos`, pelo aviso no painel ou pelo botão da página inicial. Cada conta tem direito a um teste. No fim, a conta volta para o Grátis, sem cobrança. Se a pessoa assinar durante o teste, o plano soma ao tempo que resta. Os lembretes de 7 e 1 dia avisam que o teste está acabando. A duração vem de `TRIAL_DAYS` (padrão 30). Há limite de 3 testes por dia por endereço de IP; como o cadastro ainda não confirma o e-mail, não há como impedir de vez quem cria várias contas.

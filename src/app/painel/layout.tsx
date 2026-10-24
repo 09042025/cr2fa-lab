@@ -46,7 +46,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
               {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-muted"> {user.onTrial ? "(teste) " : ""}até {date(user.planExpiresAt)}</span> : null}
             </p>
             <div className="mt-3 space-y-2">
-              <Link href="/trocar-senha" className="btn btn-ghost w-full">Trocar senha</Link>
+              <Link href="/painel/configuracoes" className="btn btn-ghost w-full">Configurações</Link>
               <LogoutButton />
             </div>
           </div>
