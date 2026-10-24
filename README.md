@@ -23,7 +23,7 @@ Antes dos cinco blocos vem a reserva de emergência (12 meses de salário), sepa
 - Portfólio com rebalanceamento para os 20% de cada bloco (Pró)
 - Login com e-mail e senha, usuário **admin** e painel administrativo
 - Planos **Grátis** e **Pró**
-- Pagamento por **Pix e cartão de crédito** (Mercado Pago) e por **cripto**: Bitcoin, Ethereum, Arbitrum, Base, Polygon, Optimism e Solana (USDC/USDT e SOL), com verificação direta na blockchain
+- Pagamento por **Pix e cartão de crédito** (Mercado Pago) e por **Bitcoin**, com verificação direta na blockchain (o código também suporta redes EVM e Solana, ativadas só se o endereço for configurado)
 
 ## Rodando localmente
 
