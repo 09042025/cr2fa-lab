@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getUser, rateLimit } from "@/lib/auth";
-import { addMessage, canPost, deleteMessage, findChannel, isBanned, MAX_BODY } from "@/lib/community";
+import { addMessage, canPost, deleteMessage, editMessage, findChannel, isBanned, MAX_BODY } from "@/lib/community";
 import { fail, json, sameOrigin } from "@/lib/http";
 
 const schema = z.object({
@@ -33,4 +33,15 @@ export async function DELETE(req: Request) {
   const id = Number(new URL(req.url).searchParams.get("id"));
   if (!Number.isInteger(id)) return fail("Mensagem inválida.");
   return deleteMessage(id, user) ? json({ ok: true }) : fail("Não foi possível apagar.", 404);
+}
+
+export async function PATCH(req: Request) {
+  if (!sameOrigin(req)) return fail("Origem inválida.", 403);
+  const user = await getUser();
+  if (!user) return fail("Faça login.", 401);
+  if (user.plan !== "pro") return fail("A Comunidade é exclusiva do plano Pró.", 403);
+  if (isBanned(user.id)) return fail("Você foi suspenso da comunidade pela moderação.", 403);
+  const parsed = z.object({ id: z.number().int().positive(), body: z.string().trim().min(1).max(MAX_BODY) }).safeParse(await req.json().catch(() => null));
+  if (!parsed.success || !editMessage(parsed.data.id, user.id, parsed.data.body)) return fail("Só é possível editar suas próprias mensagens.", 403);
+  return json({ ok: true });
 }

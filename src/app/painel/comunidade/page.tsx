@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { canPost, findChannel, isBanned, listMessages, MAX_BODY, REACTIONS, splitMentions, VOICE, visibleCategories } from "@/lib/community";
-import { AutoRefresh, BanButton, ChatForm, DeleteMessage, Reactions } from "@/components/CommunityChat";
+import { canPost, findChannel, isBanned, listBlocked, listMessages, listReports, MAX_BODY, REACTIONS, REPORT_REASONS, splitMentions, VOICE, visibleCategories } from "@/lib/community";
+import { AutoRefresh, BanButton, BlockButton, ChatForm, DeleteMessage, DismissReport, EditMessage, Reactions, ReportButton } from "@/components/CommunityChat";
 import { Locked, PageTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +25,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const banned = !isAdmin && isBanned(user.id);
   const writable = canPost(ch, user) && !banned;
   const replying = messages.find((m) => String(m.id) === sp.r);
+  const blocked = listBlocked(user.id);
+  const reports = isAdmin && ch.slug === "moderador" ? listReports() : [];
   const firstName = user.name.split(" ")[0].toLowerCase();
 
   return (
@@ -51,6 +53,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
               </p>
             ))}
           </div>
+          {blocked.length > 0 && (
+            <div className="mt-3 border-t border-line pt-3">
+              <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Bloqueados</p>
+              {blocked.map((b) => (
+                <p key={b.id} className="flex items-center justify-between gap-2 px-2 py-1 text-xs text-muted"><span className="truncate">{b.name}</span><BlockButton userId={b.id} blocked /></p>
+              ))}
+            </div>
+          )}
         </nav>
 
         <section className="card flex min-h-[28rem] flex-col p-4">
@@ -63,6 +73,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
               {ch.intro.map((l, i) => <p key={i} className={i === 0 || l.startsWith("🚨") ? "font-semibold text-gold-soft" : "text-muted"}>{l}</p>)}
             </div>
           )}
+          {isAdmin && ch.slug === "moderador" && (
+            <div className="mb-3 rounded-lg border border-down/40 bg-panel-2 p-3">
+              <h3 className="mb-2 text-sm font-semibold">Denúncias ({reports.length})</h3>
+              {reports.length === 0 && <p className="text-xs text-muted">Nenhuma denúncia pendente.</p>}
+              <ul className="space-y-3">
+                {reports.map((r) => (
+                  <li key={r.id} className="text-xs">
+                    <p className="text-muted"><strong className="text-white">{r.reason}</strong> · denunciado por {r.reporter} · {when(r.createdAt)}</p>
+                    <p className="my-1 break-words rounded bg-ink p-2 text-sm text-muted"><strong className="text-white">{r.author}</strong> em #{r.channel}: {r.body || "(imagem)"}</p>
+                    <p className="flex flex-wrap gap-x-3"><DeleteMessage id={r.messageId} /><BanButton userId={r.authorId} banned={r.authorBanned} /><DismissReport id={r.id} /></p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <ul className="flex max-h-[32rem] flex-1 flex-col gap-3 overflow-y-auto pr-1">
             {messages.length === 0 && <li className="text-sm text-muted">Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</li>}
             {messages.map((m) => (
@@ -71,9 +96,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
                   <span className="font-semibold">{m.author}</span>
                   {m.banned && <span className="rounded bg-down/20 px-1.5 text-[10px] font-semibold uppercase text-down">Suspenso</span>}
                   {m.isAdmin && <span className="rounded bg-gold/20 px-1.5 text-[10px] font-semibold uppercase text-gold-soft">Admin</span>}
-                  <span className="text-xs text-muted">{when(m.createdAt)}</span>
-                  {(isAdmin || m.userId === user.id) && <DeleteMessage id={m.id} />}
-                  {isAdmin && !m.isAdmin && m.userId !== user.id && <BanButton userId={m.userId} banned={m.banned} />}
+                  <span className="text-xs text-muted">{when(m.createdAt)}{m.edited && " (editado)"}</span>
                 </p>
                 {m.reply && <p className="mb-1 truncate border-l-2 border-gold/40 pl-2 text-xs text-muted">↪ <strong>{m.reply.author}</strong>: {m.reply.body}</p>}
                 {m.body && (
@@ -90,7 +113,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
                   </a>
                 )}
                 <Reactions id={m.id} items={m.reactions} all={REACTIONS} />
-                {writable && <Link href={`/painel/comunidade?c=${ch.slug}&r=${m.id}`} className="mr-3 text-xs text-muted underline hover:text-white">responder</Link>}
+                <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {writable && <Link href={`/painel/comunidade?c=${ch.slug}&r=${m.id}`} className="text-xs text-muted underline hover:text-white">responder</Link>}
+                  {m.userId === user.id && !banned && <EditMessage id={m.id} body={m.body} />}
+                  {(isAdmin || m.userId === user.id) && <DeleteMessage id={m.id} />}
+                  {m.userId !== user.id && <ReportButton messageId={m.id} reasons={REPORT_REASONS} />}
+                  {m.userId !== user.id && !m.isAdmin && <BlockButton userId={m.userId} />}
+                  {isAdmin && !m.isAdmin && m.userId !== user.id && <BanButton userId={m.userId} banned={m.banned} />}
+                </p>
               </li>
             ))}
             <AutoRefresh count={messages.length} />
