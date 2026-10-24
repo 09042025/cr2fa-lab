@@ -8,6 +8,8 @@ import { expireStaleOrders, listOrdersForUser } from "@/lib/orders";
 import { Disclaimer, Logo, PageTitle } from "@/components/ui";
 import { date, dateTime } from "@/lib/format";
 import { now } from "@/lib/db";
+import { TrialButton } from "@/components/TrialButton";
+import { trialDays } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Planos e pagamento" };
@@ -34,11 +36,19 @@ export default async function PlansPage() {
         <p className="text-sm text-muted">Seu plano</p>
         <p className="text-xl font-bold text-gold-soft">
           {user.plan === "pro" ? "Pró" : "Grátis"}
-          {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-sm font-normal text-muted"> · ativo até {date(user.planExpiresAt)}</span> : null}
+          {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-sm font-normal text-muted"> · {user.onTrial ? "teste grátis até" : "ativo até"} {date(user.planExpiresAt)}</span> : null}
           {user.role === "admin" ? <span className="text-sm font-normal text-muted"> · acesso total (administrador)</span> : null}
         </p>
         <ul className="mt-3 grid gap-1 text-sm text-muted sm:grid-cols-2">{PLAN_FEATURES.pro.map((f) => <li key={f}>✓ {f}</li>)}</ul>
       </div>
+
+      {user.trialAvailable && (
+        <div className="card mb-6 border-gold/50 p-5">
+          <h2 className="font-semibold text-gold-soft">Teste o Pró por {trialDays()} dias, sem pagar</h2>
+          <p className="mb-3 mt-1 text-sm text-muted">Libera todos os recursos do Pró agora. Não pedimos cartão e nada é cobrado no fim: o plano volta para o Grátis, e você assina só se quiser.</p>
+          <TrialButton days={trialDays()} />
+        </div>
+      )}
 
       <Checkout
         prices={{ monthly: formatBRL(priceCents("monthly")), yearly: formatBRL(priceCents("yearly")) }}

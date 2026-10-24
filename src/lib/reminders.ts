@@ -1,4 +1,5 @@
 import { db, now, type UserRow } from "./db";
+import { onTrial } from "./trial";
 import { mailEnabled, renewalEmail, sendMail } from "./mail";
 
 const DAY = 24 * 60 * 60;
@@ -38,7 +39,7 @@ export async function runReminders(send: Sender = (to, m) => sendMail({ to, ...m
   let sent = 0;
   for (const { user, stage, daysLeft } of dueReminders(t)) {
     try {
-      await send(user.email, renewalEmail(user.name, daysLeft, new Date(user.plan_expires_at! * 1000), `${base}/planos`));
+      await send(user.email, renewalEmail(user.name, daysLeft, new Date(user.plan_expires_at! * 1000), `${base}/planos`, onTrial(user)));
       db().prepare("UPDATE users SET reminder_expiry = ?, reminder_stage = ? WHERE id = ?").run(user.plan_expires_at, stage, user.id);
       sent += 1;
     } catch (e) {
