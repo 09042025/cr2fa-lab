@@ -7,7 +7,7 @@ const TABS = [
   { href: "/painel/cripto/mercado", label: "Mercado" },
   { href: "/painel/cripto/defi", label: "DeFi" },
   { href: "/painel/cripto/rwa", label: "RWA" },
-  { href: "/painel/cripto/onchain", label: "Análise on-chain" },
+  { href: "/painel/cripto/onchain", label: "Análise" },
 ];
 
 export function CryptoTabs() {
