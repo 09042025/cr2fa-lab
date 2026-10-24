@@ -4,6 +4,7 @@ import { getUser } from "@/lib/auth";
 import { BLOCKS, EMERGENCY_RESERVE_MONTHS } from "@/lib/protocol";
 import { FREE_LIMITS, PLAN_FEATURES, formatBRL, priceCents } from "@/lib/plans";
 import { Disclaimer, Logo } from "@/components/ui";
+import { trialDays } from "@/lib/trial";
 import pizza from "@/assets/protocolo-pizza.webp";
 import autor from "@/assets/emerson-niza.webp";
 import autorAvatar from "@/assets/emerson-niza-avatar.webp";
@@ -158,7 +159,8 @@ export default async function Home() {
                 <li key={f}>✓ {f}</li>
               ))}
             </ul>
-            <Link href={user ? "/planos" : "/cadastrar"} className="btn btn-gold mt-5 w-full">Assinar o Pró</Link>
+            {(!user || user.trialAvailable) && <p className="mt-4 text-sm text-gold-soft">Teste grátis por {trialDays()} dias, sem cartão.</p>}
+            <Link href={user ? "/planos" : "/cadastrar"} className="btn btn-gold mt-3 w-full">{!user || user.trialAvailable ? `Testar ${trialDays()} dias grátis` : "Assinar o Pró"}</Link>
           </div>
         </div>
       </section>

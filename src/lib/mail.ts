@@ -39,12 +39,26 @@ export function resetEmail(name: string, link: string): { subject: string; html:
   };
 }
 
-export function renewalEmail(name: string, daysLeft: number, expiresAt: Date, link: string): { subject: string; html: string; text: string } {
+export function renewalEmail(name: string, daysLeft: number, expiresAt: Date, link: string, trial = false): { subject: string; html: string; text: string } {
   const app = process.env.APP_NAME || "NIZA INVEST";
   const first = name.trim().split(/\s+/)[0] || "";
   const hello = first ? `Olá, ${first}!` : "Olá!";
   const date = expiresAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const when = daysLeft <= 1 ? "vence amanhã" : `vence em ${daysLeft} dias`;
+  if (trial) {
+    const endsWhen = daysLeft <= 1 ? "termina amanhã" : `termina em ${daysLeft} dias`;
+    return {
+      subject: daysLeft <= 1 ? `Seu teste grátis do Pró termina amanhã - ${app}` : `Seu teste grátis do Pró termina em ${daysLeft} dias - ${app}`,
+      text: `${hello}\n\nSeu teste grátis do Pró no ${app} ${endsWhen} (${date}). Para continuar com o acesso completo, assine pelo link:\n\n${link}\n\nO tempo que ainda resta do teste é mantido: ao assinar, o plano começa a contar depois dele. Se não assinar, sua conta volta para o plano Grátis, sem nenhuma cobrança.`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1a1a1a">
+<h2 style="color:#b8860b">${escapeHtml(app)}</h2>
+<p>${escapeHtml(hello)}</p>
+<p>Seu <strong>teste grátis do Pró</strong> ${escapeHtml(endsWhen)} (<strong>${escapeHtml(date)}</strong>). Para continuar com o acesso completo, assine pelo botão abaixo.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#d4a82f;color:#111;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Assinar o Pró</a></p>
+<p style="font-size:13px;color:#555">O tempo que ainda resta do teste é mantido: ao assinar, o plano começa a contar depois dele. Se não assinar, sua conta volta para o plano Grátis, sem nenhuma cobrança.</p>
+</div>`,
+    };
+  }
   return {
     subject: daysLeft <= 1 ? `Seu plano Pró vence amanhã - ${app}` : `Seu plano Pró vence em ${daysLeft} dias - ${app}`,
     text: `${hello}\n\nSeu plano Pró no ${app} ${when} (${date}). Para continuar com o acesso completo, renove pelo link:\n\n${link}\n\nA renovação soma ao tempo que ainda resta, então você não perde nada ao antecipar. Se já renovou, ignore este e-mail.`,

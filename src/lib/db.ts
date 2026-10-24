@@ -82,6 +82,8 @@ function migrate(db: Database.Database) {
   const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
   if (!userCols.some((c) => c.name === "reminder_expiry")) db.exec("ALTER TABLE users ADD COLUMN reminder_expiry INTEGER");
   if (!userCols.some((c) => c.name === "reminder_stage")) db.exec("ALTER TABLE users ADD COLUMN reminder_stage INTEGER NOT NULL DEFAULT 0");
+  // Teste grátis do Pró: guarda quando ele termina. Preenchido = o teste já foi usado (cada conta tem direito a um).
+  if (!userCols.some((c) => c.name === "trial_ends_at")) db.exec("ALTER TABLE users ADD COLUMN trial_ends_at INTEGER");
 }
 
 export function db(): Database.Database {
@@ -104,6 +106,7 @@ export interface UserRow {
   created_at: number;
   reminder_expiry: number | null;
   reminder_stage: number;
+  trial_ends_at: number | null;
 }
 
 export interface OrderRow {

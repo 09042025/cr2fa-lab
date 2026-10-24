@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, effectivePlan, type PlanName, type UserRow } from "./db";
+import { onTrial, trialAvailable } from "./trial";
 
 const COOKIE = "cr2fa_session";
 const MAX_AGE = 60 * 60 * 24 * 14; // 14 dias
@@ -61,6 +62,8 @@ export interface SessionUser {
   plan: PlanName;
   planExpiresAt: number | null;
   mustChangePassword: boolean;
+  trialAvailable: boolean;
+  onTrial: boolean;
 }
 
 export async function getUser(): Promise<SessionUser | null> {
@@ -79,6 +82,8 @@ export async function getUser(): Promise<SessionUser | null> {
       plan: effectivePlan(row),
       planExpiresAt: row.plan_expires_at,
       mustChangePassword: row.must_change_password === 1,
+      trialAvailable: trialAvailable(row),
+      onTrial: onTrial(row),
     };
   } catch {
     return null;

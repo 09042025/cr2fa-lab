@@ -77,6 +77,10 @@ Na tela de login há o link **Esqueci minha senha**. O usuário informa o e-mail
 
 Sem essas variáveis, o pedido não envia e-mail e o servidor registra um aviso no log.
 
+## Teste grátis do Pró
+
+Contas do plano Grátis que nunca assinaram podem iniciar **30 dias de Pró sem cartão**, pelo botão em `/planos`, pelo aviso no painel ou pelo botão da página inicial. Cada conta tem direito a um teste. No fim, a conta volta para o Grátis, sem cobrança. Se a pessoa assinar durante o teste, o plano soma ao tempo que resta. Os lembretes de 7 e 1 dia avisam que o teste está acabando. A duração vem de `TRIAL_DAYS` (padrão 30). Há limite de 3 testes por dia por endereço de IP; como o cadastro ainda não confirma o e-mail, não há como impedir de vez quem cria várias contas.
+
 ## Lembrete de renovação
 
 Como os pagamentos são avulsos (Pró por 31 ou 366 dias), o servidor envia e-mails de lembrete para quem tem o Pró perto de vencer: um **7 dias antes** e outro **1 dia antes**, com botão para renovar em `/planos`. A renovação soma ao tempo que resta. Cada etapa sai uma vez por vencimento, e o ciclo recomeça quando o usuário renova. A verificação roda ao iniciar e a cada 6 horas, e exige as mesmas variáveis do e-mail (`RESEND_API_KEY` e `MAIL_FROM`). Administradores não recebem.
