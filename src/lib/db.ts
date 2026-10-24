@@ -94,6 +94,27 @@ function migrate(db: Database.Database) {
   if (!userCols.some((c) => c.name === "reminder_stage")) db.exec("ALTER TABLE users ADD COLUMN reminder_stage INTEGER NOT NULL DEFAULT 0");
   // Teste grátis do Pró: guarda quando ele termina. Preenchido = o teste já foi usado (cada conta tem direito a um).
   if (!userCols.some((c) => c.name === "trial_ends_at")) db.exec("ALTER TABLE users ADD COLUMN trial_ends_at INTEGER");
+  // Comunidade: membro banido não escreve (só o administrador altera).
+  if (!userCols.some((c) => c.name === "community_banned")) db.exec("ALTER TABLE users ADD COLUMN community_banned INTEGER NOT NULL DEFAULT 0");
+  // Comunidade: resposta a outra mensagem e imagem anexada (guardada no próprio banco).
+  const msgCols = db.prepare("PRAGMA table_info(community_messages)").all() as { name: string }[];
+  if (!msgCols.some((c) => c.name === "reply_to")) db.exec("ALTER TABLE community_messages ADD COLUMN reply_to INTEGER");
+  if (!msgCols.some((c) => c.name === "image_id")) db.exec("ALTER TABLE community_messages ADD COLUMN image_id INTEGER");
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS community_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      mime TEXT NOT NULL,
+      data BLOB NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS community_reactions (
+      message_id INTEGER NOT NULL REFERENCES community_messages(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      emoji TEXT NOT NULL,
+      PRIMARY KEY (message_id, user_id, emoji)
+    );
+  `);
 }
 
 export function db(): Database.Database {
