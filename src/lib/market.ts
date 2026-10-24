@@ -142,18 +142,18 @@ export function getGlobalMarket() {
   });
 }
 
-export interface FearGreed { value: number; label: string; history: { value: number; ts: number }[] }
+export interface FearGreed { value: number; label: string; history: { value: number; ts: number; label?: string }[] }
 
-/** Índice de Medo e Ganância (alternative.me), com os últimos 30 dias. */
-export function getFearGreed() {
-  return cached<FearGreed>("altme:fng:v1", 60 * 60, async () => {
-    const raw = await fetchJson<{ data?: { value: string; value_classification: string; timestamp: string }[] }>("https://api.alternative.me/fng/?limit=30");
+/** Índice de Medo e Ganância (alternative.me), com o histórico dos últimos `days` dias (padrão 30). */
+export function getFearGreed(days = 30) {
+  const n = Math.min(Math.max(Math.floor(days) || 30, 2), 730);
+  return cached<FearGreed>(`altme:fng:${n}:v2`, 60 * 60, async () => {
+    const raw = await fetchJson<{ data?: { value: string; value_classification: string; timestamp: string }[] }>(`https://api.alternative.me/fng/?limit=${n}`);
     const rows = (raw.data ?? []).map((r) => ({ value: Number(r.value), ts: Number(r.timestamp), cls: r.value_classification })).filter((r) => Number.isFinite(r.value));
     if (!rows.length) throw new Error("sem dados do índice");
-    return { value: rows[0].value, label: rows[0].cls, history: rows.map((r) => ({ value: r.value, ts: r.ts })) };
+    return { value: rows[0].value, label: rows[0].cls, history: rows.map((r) => ({ value: r.value, ts: r.ts, label: r.cls })) };
   });
 }
-
 
 export interface CoinDetail {
   id: string; symbol: string; name: string; image: string | null; rank: number | null;
