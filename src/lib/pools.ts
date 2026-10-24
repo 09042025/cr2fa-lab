@@ -12,9 +12,32 @@ export interface PoolFilters {
   /** Volume mínimo de 24h em US$ (só pools de DEX). */
   vol?: string;
   stable?: string;
+  /** Tipo de pool: cripto, rwa, stable ou outros. */
+  categoria?: string;
   ordem?: string;
   /** Valor hipotético em US$ para estimar o retorno. */
   valor?: string;
+}
+
+export const POOL_KINDS = [
+  { id: "cripto", label: "Cripto" },
+  { id: "rwa", label: "RWA (ativos do mundo real)" },
+  { id: "stable", label: "Stablecoins" },
+  { id: "outros", label: "Outros" },
+] as const;
+export type PoolKind = (typeof POOL_KINDS)[number]["id"];
+
+const RWA_PROJECT = /(ondo|maple|centrifuge|goldfinch|clearpool|truefi|credix|backed|openeden|superstate|franklin|matrixdock|securitize|midas|dinari|realt|lofty|spiko|hashnote|plume|mountain|paxos|swarm|tokeny|libre|ether\.fi-liquid-?rwa)/i;
+const RWA_SYMBOL = /(^|[-_ ])(BUIDL|USDY|OUSG|USTB|USYC|BENJI|STBT|XAUT|PAXG|USDM|TBILL|BCSPX|CSPX|EUTBL|USTBL|WTGXX|JTRSY|JAAA|OUSD)([-_ ]|$)/i;
+/** Ativos de referência do mercado cripto: um pool com algum deles (e que não seja só stablecoin) conta como "Cripto". */
+const MAJOR = /(^|[-_ /+])(W?BTC|CBBTC|TBTC|ETH|WETH|STETH|WSTETH|CBETH|RETH|WEETH|SOL|WSOL|JITOSOL|MSOL|BNB|WBNB|AVAX|WAVAX|POL|MATIC|ARB|OP|LINK|UNI|AAVE|CRV|LDO|MKR|ATOM|DOT|ADA|XRP|DOGE|TON|SUI|APT|NEAR|HYPE|CAKE|AERO|VELO|GMX)([-_ /+]|$)/i;
+
+/** Classifica um pool em cripto, RWA, stablecoin ou outros (heurística por protocolo e símbolo). */
+export function poolKind(p: DefiPool): PoolKind {
+  if (RWA_PROJECT.test(p.project) || RWA_SYMBOL.test(p.symbol)) return "rwa";
+  if (p.stablecoin) return "stable";
+  if (MAJOR.test(p.symbol)) return "cripto";
+  return "outros";
 }
 
 export const POOL_SORTS = ["tvl", "apy", "vol", "taxas", "eficiencia"] as const;
@@ -57,6 +80,7 @@ export function filterPools(pools: DefiPool[], sp: PoolFilters): DefiPool[] {
   if (sp.dex) out = out.filter((p) => p.project === sp.dex);
   if (minVol > 0) out = out.filter((p) => (p.volumeUsd1d ?? 0) >= minVol);
   if (sp.stable === "1") out = out.filter((p) => p.stablecoin);
+  if (POOL_KINDS.some((k) => k.id === sp.categoria)) out = out.filter((p) => poolKind(p) === sp.categoria);
   if (q) out = out.filter((p) => p.symbol.toLowerCase().includes(q) || p.project.toLowerCase().includes(q) || (p.poolMeta ?? "").toLowerCase().includes(q));
   const ordem = POOL_SORTS.includes(sp.ordem as (typeof POOL_SORTS)[number]) ? (sp.ordem as string) : "tvl";
   return [...out].sort((a, b) => sortValue(b, ordem) - sortValue(a, ordem));

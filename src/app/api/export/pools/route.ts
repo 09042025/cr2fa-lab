@@ -19,6 +19,7 @@ export async function GET(req: Request) {
     q: url.searchParams.get("q") || undefined,
     min: url.searchParams.get("min") || undefined,
     stable: url.searchParams.get("stable") || undefined,
+    categoria: url.searchParams.get("categoria") || undefined,
     ordem: url.searchParams.get("ordem") || undefined,
   }).slice(0, 2000);
 
