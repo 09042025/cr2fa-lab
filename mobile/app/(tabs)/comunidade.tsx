@@ -14,15 +14,52 @@ const CANAIS = [
 ];
 const TEMAS = ["Cripto", "Ações", "Fundos imobiliários", "Renda fixa", "Economia Brasil", "Economia mundial"];
 
-function Chips({ items, value, onChange, badge }: { items: readonly string[]; value: string; onChange: (v: string) => void; badge?: (v: string) => boolean }) {
+/** Abas principais: 4 colunas do mesmo tamanho, alinhadas. */
+function SegTabs({ items, value, onChange, badge }: { items: readonly string[]; value: string; onChange: (v: string) => void; badge: (v: string) => boolean }) {
+  return (
+    <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: C.line }}>
+      {items.map((t) => {
+        const on = value === t;
+        return (
+          <Pressable key={t} onPress={() => onChange(t)} style={{ flex: 1, alignItems: "center", gap: 3, paddingTop: 8, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: on ? C.gold : "transparent", marginBottom: -1 }}>
+            <Text numberOfLines={1} style={{ color: on ? C.goldSoft : C.muted, fontWeight: "600", fontSize: 14 }}>{t}</Text>
+            <View style={{ height: 16, justifyContent: "center" }}>{badge(t) ? <ProBadge /> : null}</View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Lista vertical: todas as linhas com a mesma largura e altura (selo PRÓ sempre à direita). */
+function ListPick({ items, value, onChange, badge, prefix = "" }: { items: readonly string[]; value: string; onChange: (v: string) => void; badge?: (v: string) => boolean; prefix?: string }) {
+  return (
+    <View style={{ gap: 8 }}>
+      {items.map((t) => {
+        const on = value === t;
+        return (
+          <Pressable key={t} onPress={() => onChange(t)} style={{ height: 46, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: 12, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? "rgba(217,165,32,0.15)" : C.panel, paddingHorizontal: 14 }}>
+            <Text numberOfLines={1} style={{ flex: 1, color: on ? C.goldSoft : C.white, fontWeight: "600" }}>{prefix}{t}</Text>
+            {badge?.(t) ? <ProBadge /> : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Grade de 2 colunas com células iguais. */
+function GridPick({ items, value, onChange }: { items: readonly string[]; value: string; onChange: (v: string) => void }) {
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-      {items.map((t) => (
-        <Pressable key={t} onPress={() => onChange(t)} style={{ borderRadius: 999, borderWidth: 1, borderColor: value === t ? C.gold : C.line, backgroundColor: value === t ? "rgba(217,165,32,0.15)" : C.panel, paddingHorizontal: 12, paddingVertical: 7, flexDirection: "row", gap: 6, alignItems: "center" }}>
-          <Text style={{ color: value === t ? C.goldSoft : C.muted, fontWeight: "600" }}>{t}</Text>
-          {badge?.(t) ? <ProBadge /> : null}
-        </Pressable>
-      ))}
+      {items.map((t) => {
+        const on = value === t;
+        return (
+          <Pressable key={t} onPress={() => onChange(t)} style={{ width: "48.5%", height: 44, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? "rgba(217,165,32,0.15)" : C.panel, paddingHorizontal: 8 }}>
+            <Text numberOfLines={1} style={{ color: on ? C.goldSoft : C.white, fontWeight: "600" }}>{t}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -34,10 +71,10 @@ export default function Comunidade() {
   const pro = CANAIS.find((c) => c.nome === canal)?.pro ?? false;
   return (
     <Screen title="Comunidade">
-      <Chips items={TABS} value={tab} onChange={setTab} badge={(t) => t === "Lives VIP"} />
+      <SegTabs items={TABS} value={tab} onChange={setTab} badge={(t) => t === "Lives VIP"} />
       {tab === "Chat" && (
         <>
-          <Chips items={CANAIS.map((c) => c.nome)} value={canal} onChange={setCanal} badge={(n) => !!CANAIS.find((c) => c.nome === n)?.pro} />
+          <ListPick prefix="# " items={CANAIS.map((c) => c.nome)} value={canal} onChange={setCanal} badge={(n) => !!CANAIS.find((c) => c.nome === n)?.pro} />
           {pro ? (
             <ProGate feature={`${canal} (exclusivo do plano Pró)`}><Card><H2>#{canal}</H2><Muted>Mensagens do canal aparecem aqui.</Muted></Card></ProGate>
           ) : (
@@ -48,7 +85,7 @@ export default function Comunidade() {
       {tab === "Feed" && <Card><H2>Feed da comunidade</H2><Muted>Publicações dos membros. Livre para todos.</Muted></Card>}
       {tab === "Notícias" && (
         <>
-          <Chips items={TEMAS} value={tema} onChange={setTema} />
+          <GridPick items={TEMAS} value={tema} onChange={setTema} />
           <Card><H2>Notícias · {tema}</H2><Muted>As manchetes do tema aparecem aqui. Livre para todos.</Muted></Card>
         </>
       )}
