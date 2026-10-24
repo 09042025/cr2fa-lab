@@ -8,9 +8,22 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0a0d1a",
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": true },
-    "ios": { "supportsTablet": false, "bundleIdentifier": "br.com.nizainvest.app" },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita o acesso às fotos para enviar imagens na comunidade."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "br.com.nizainvest.app"
+    },
     "android": {
       "package": "br.com.nizainvest.app",
       "adaptiveIcon": {
@@ -21,6 +34,9 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": { "favicon": "./assets/favicon.png", "bundler": "metro" }
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    }
   }
 }
