@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { canPost, findChannel, listMessages, MAX_BODY, VOICE, visibleCategories } from "@/lib/community";
-import { AutoRefresh, ChatForm, DeleteMessage } from "@/components/CommunityChat";
+import { canPost, findChannel, isBanned, listMessages, MAX_BODY, REACTIONS, splitMentions, VOICE, visibleCategories } from "@/lib/community";
+import { AutoRefresh, BanButton, ChatForm, DeleteMessage, Reactions } from "@/components/CommunityChat";
 import { Locked, PageTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 const when = (t: number) => new Date(t * 1000).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ c?: string; r?: string }> }) {
   const user = await requireUser();
   if (user.plan !== "pro") {
     return (
@@ -21,8 +21,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const isAdmin = user.role === "admin";
   const sp = await searchParams;
   const ch = findChannel(sp.c, isAdmin);
-  const messages = listMessages(ch.slug);
-  const writable = canPost(ch, user);
+  const messages = listMessages(ch.slug, user.id);
+  const banned = !isAdmin && isBanned(user.id);
+  const writable = canPost(ch, user) && !banned;
+  const replying = messages.find((m) => String(m.id) === sp.r);
+  const firstName = user.name.split(" ")[0].toLowerCase();
 
   return (
     <>
@@ -66,16 +69,33 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
               <li key={m.id} className="text-sm">
                 <p className="flex flex-wrap items-baseline gap-2">
                   <span className="font-semibold">{m.author}</span>
+                  {m.banned && <span className="rounded bg-down/20 px-1.5 text-[10px] font-semibold uppercase text-down">Suspenso</span>}
                   {m.isAdmin && <span className="rounded bg-gold/20 px-1.5 text-[10px] font-semibold uppercase text-gold-soft">Admin</span>}
                   <span className="text-xs text-muted">{when(m.createdAt)}</span>
                   {(isAdmin || m.userId === user.id) && <DeleteMessage id={m.id} />}
+                  {isAdmin && !m.isAdmin && m.userId !== user.id && <BanButton userId={m.userId} banned={m.banned} />}
                 </p>
-                <p className="whitespace-pre-wrap break-words text-muted">{m.body}</p>
+                {m.reply && <p className="mb-1 truncate border-l-2 border-gold/40 pl-2 text-xs text-muted">↪ <strong>{m.reply.author}</strong>: {m.reply.body}</p>}
+                {m.body && (
+                  <p className="whitespace-pre-wrap break-words text-muted">
+                    {splitMentions(m.body).map((t, i) =>
+                      t.mention ? <span key={i} className={`rounded px-0.5 font-medium ${t.text.slice(1).toLowerCase() === firstName ? "bg-gold/25 text-gold-soft" : "text-gold-soft"}`}>{t.text}</span> : <span key={i}>{t.text}</span>,
+                    )}
+                  </p>
+                )}
+                {m.imageId && (
+                  <a href={`/api/community/image?id=${m.imageId}`} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/api/community/image?id=${m.imageId}`} alt={`Imagem enviada por ${m.author}`} loading="lazy" className="mt-1 max-h-72 max-w-full rounded-lg border border-line" />
+                  </a>
+                )}
+                <Reactions id={m.id} items={m.reactions} all={REACTIONS} />
+                {writable && <Link href={`/painel/comunidade?c=${ch.slug}&r=${m.id}`} className="mr-3 text-xs text-muted underline hover:text-white">responder</Link>}
               </li>
             ))}
             <AutoRefresh count={messages.length} />
           </ul>
-          {writable ? <ChatForm channel={ch.slug} max={MAX_BODY} /> : <p className="mt-3 rounded-lg bg-panel-2 p-3 text-xs text-muted">Canal somente leitura: só a equipe publica aqui.</p>}
+          {writable ? <ChatForm channel={ch.slug} max={MAX_BODY} replyTo={replying ? { id: replying.id, author: replying.author, body: replying.body.slice(0, 80) || "imagem" } : null} /> : <p className="mt-3 rounded-lg bg-panel-2 p-3 text-xs text-muted">{banned ? "Você foi suspenso da comunidade pela moderação e não pode escrever. Fale com o suporte se achar que foi um engano." : "Canal somente leitura: só a equipe publica aqui."}</p>}
         </section>
       </div>
       <p className="mt-3 text-xs text-muted">Conteúdo da comunidade é opinião dos membros, não recomendação de investimento. Denuncie abusos à moderação.</p>
