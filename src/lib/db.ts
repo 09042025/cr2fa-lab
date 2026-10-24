@@ -59,6 +59,16 @@ function migrate(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_holdings_user ON holdings(user_id);
 
+    -- Links de recuperação de senha. Guardamos só o hash do token (SHA-256); o token puro vai apenas por e-mail.
+    CREATE TABLE IF NOT EXISTS password_resets (
+      token_hash TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at INTEGER NOT NULL,
+      used_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_resets_user ON password_resets(user_id);
+
     CREATE TABLE IF NOT EXISTS cache (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
