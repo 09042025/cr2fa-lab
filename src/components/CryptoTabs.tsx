@@ -7,6 +7,8 @@ const TABS = [
   { href: "/painel/cripto/mercado", label: "Mercado" },
   { href: "/painel/cripto/defi", label: "DeFi" },
   { href: "/painel/cripto/rwa", label: "RWA" },
+  { href: "/painel/cripto/futuros", label: "Futuros" },
+  { href: "/painel/cripto/etf", label: "ETFs" },
   { href: "/painel/cripto/onchain", label: "Análise" },
 ];
 
