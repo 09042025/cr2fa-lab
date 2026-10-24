@@ -30,15 +30,20 @@ export async function updateProfile(userId: number, input: z.infer<typeof profil
 export type DeleteResult = { ok: true; paidOrders: number } | { ok: false; error: string; status: number };
 
 /**
- * Exclui uma conta (ação do administrador). Só contas comuns: administradores não podem ser excluídos por aqui.
+ * Exclui uma conta (ação do administrador). Também vale para outro administrador (por exemplo, uma conta duplicada),
+ * mas nunca a conta de quem está excluindo e nunca o último administrador.
  * Exige o e-mail da conta digitado de novo, para evitar exclusão por engano.
  * Os dados da conta (pedidos, posições da carteira, links de senha) são apagados junto.
  */
-export function deleteUserAccount(targetId: number, confirmEmail: string): DeleteResult {
+export function deleteUserAccount(targetId: number, confirmEmail: string, actingAdminId?: number): DeleteResult {
   const d = db();
   const user = d.prepare("SELECT * FROM users WHERE id = ?").get(targetId) as UserRow | undefined;
   if (!user) return { ok: false, error: "Usuário não encontrado.", status: 404 };
-  if (user.role !== "user") return { ok: false, error: "Contas de administrador não podem ser excluídas por aqui.", status: 403 };
+  if (actingAdminId !== undefined && user.id === actingAdminId) return { ok: false, error: "Você não pode excluir a sua própria conta.", status: 403 };
+  if (user.role === "admin") {
+    const otherAdmins = (d.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND id <> ?").get(targetId) as { n: number }).n;
+    if (otherAdmins < 1) return { ok: false, error: "Este é o último administrador e não pode ser excluído.", status: 403 };
+  }
   if (confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) return { ok: false, error: "O e-mail digitado não confere com o da conta. Nada foi excluído.", status: 400 };
   const paidOrders = (d.prepare("SELECT COUNT(*) AS n FROM orders WHERE user_id = ? AND status = 'paid'").get(targetId) as { n: number }).n;
   d.prepare("DELETE FROM users WHERE id = ?").run(targetId);

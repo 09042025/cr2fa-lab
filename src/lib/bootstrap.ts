@@ -24,7 +24,8 @@ export function ensureAdmin(log: (msg: string) => void = console.log): { created
   const existing = d.prepare("SELECT 1 FROM users WHERE role = 'admin' LIMIT 1").get();
   if (existing) return { created: false };
 
-  const email = (process.env.ADMIN_EMAIL || "admin@exemplo.com").trim().toLowerCase();
+  // Tolera o e-mail copiado no formato "<nome@dominio.com>" (com os sinais < e >).
+  const email = (process.env.ADMIN_EMAIL || "admin@exemplo.com").trim().replace(/^<|>$/g, "").trim().toLowerCase();
   const name = (process.env.ADMIN_NAME || "Administrador").trim();
   const configured = process.env.ADMIN_INITIAL_PASSWORD?.trim();
 

@@ -35,3 +35,11 @@ test("senha curta é recusada e sem senha gera uma aleatória no log", () => {
   assert.ok(logs.some((l) => l.includes("Senha inicial")));
   assert.equal(admins()[0].must_change_password, 1);
 });
+
+test("e-mail do admin com < > é limpo", () => {
+  db().prepare("DELETE FROM users WHERE role = 'admin'").run();
+  process.env.ADMIN_EMAIL = " <Dono2@Exemplo.com> ";
+  process.env.ADMIN_INITIAL_PASSWORD = "SenhaInicial2026";
+  assert.equal(ensureAdmin(() => {}).email, "dono2@exemplo.com");
+  assert.equal(admins()[0].email, "dono2@exemplo.com");
+});

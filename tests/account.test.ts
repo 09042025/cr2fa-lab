@@ -62,11 +62,21 @@ test("administrador exclui uma conta comum com o e-mail certo, e os dados dela v
   assert.equal((db().prepare("SELECT COUNT(*) AS n FROM holdings WHERE user_id = ?").get(id) as { n: number }).n, 0);
 });
 
-test("não exclui administrador nem usuário inexistente", async () => {
-  const admin = Number(db().prepare("INSERT INTO users (email, name, password_hash, role) VALUES ('d2@t.com', 'Adm', 'x', 'admin')").run().lastInsertRowid);
-  const r = deleteUserAccount(admin, "d2@t.com");
-  assert.ok(!r.ok && r.status === 403);
-  assert.ok(row(admin));
-  const nada = deleteUserAccount(999999, "x@t.com");
+test("administrador exclui outro administrador (duplicado), mas não a si mesmo nem o último", async () => {
+  const mk = (email: string) => Number(db().prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, 'Adm', 'x', 'admin')").run(email).lastInsertRowid);
+  const real = mk("d2@t.com");
+  const duplicado = mk("<d2@t.com>");
+  const proprio = deleteUserAccount(real, "d2@t.com", real);
+  assert.ok(!proprio.ok && proprio.status === 403);
+  const r = deleteUserAccount(duplicado, "<d2@t.com>", real);
+  assert.ok(r.ok);
+  assert.equal(row(duplicado), undefined);
+  assert.ok(row(real));
+  // sem outro administrador (os de outros testes são removidos aqui), o último não sai
+  db().prepare("DELETE FROM users WHERE role = 'admin' AND id <> ?").run(real);
+  const ultimo = deleteUserAccount(real, "d2@t.com", 999999);
+  assert.ok(!ultimo.ok && ultimo.status === 403);
+  assert.ok(row(real));
+  const nada = deleteUserAccount(999999, "x@t.com", real);
   assert.ok(!nada.ok && nada.status === 404);
 });
