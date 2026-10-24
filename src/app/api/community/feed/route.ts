@@ -15,7 +15,6 @@ const schema = z.discriminatedUnion("action", [
 async function member() {
   const user = await getUser();
   if (!user) return { error: fail("Faça login.", 401) };
-  if (user.plan !== "pro") return { error: fail("A Comunidade é exclusiva do plano Pró.", 403) };
   return { user };
 }
 

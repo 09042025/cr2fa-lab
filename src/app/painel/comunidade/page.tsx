@@ -2,9 +2,9 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { listPostReports } from "@/lib/feed";
 import { DismissPostReport, DeleteItem } from "@/components/FeedClient";
-import { canPost, findChannel, isBanned, listBlocked, listMessages, listReports, MAX_BODY, REACTIONS, REPORT_REASONS, VOICE, visibleCategories } from "@/lib/community";
+import { canPost, canView, findChannel, isBanned, listBlocked, listMessages, listReports, MAX_BODY, REACTIONS, REPORT_REASONS, VOICE, visibleCategories } from "@/lib/community";
 import { AutoRefresh, BanButton, BlockButton, ChatForm, DeleteMessage, DismissReport, EditMessage, Reactions, ReportButton } from "@/components/CommunityChat";
-import { PageTitle } from "@/components/ui";
+import { Locked, PageTitle } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 import { RichText } from "@/components/RichText";
 import { ChannelIcon } from "@/components/ChannelIcon";
@@ -18,7 +18,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const isAdmin = user.role === "admin";
   const sp = await searchParams;
   const ch = findChannel(sp.c, isAdmin);
-  const messages = listMessages(ch.slug, user.id);
+  const allowed = canView(ch, user);
+  const messages = allowed ? listMessages(ch.slug, user.id) : [];
   const banned = !isAdmin && isBanned(user.id);
   const writable = canPost(ch, user) && !banned;
   const replying = messages.find((m) => String(m.id) === sp.r);
@@ -29,16 +30,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 
   return (
     <>
-      <PageTitle title="Chat" subtitle="Canais de conversa dos assinantes Pró, moderados pela equipe." />
+      <PageTitle title="Chat" subtitle="Canais de conversa da comunidade, moderados pela equipe. Alguns canais são exclusivos do plano Pró." />
       <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
         <nav className="card p-3 text-sm" aria-label="Canais">
           {visibleCategories(isAdmin).map((cat) => (
             <div key={cat.id} className="mb-3">
               <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{cat.label}</p>
               {cat.channels.map((c) => (
-                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${c.slug === ch.slug ? "bg-panel-2 font-semibold text-gold-soft" : "text-muted hover:bg-panel-2 hover:text-white"}`}>
+                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} title={canView(c, user) ? undefined : "Exclusivo do plano Pró"} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${c.slug === ch.slug ? "bg-panel-2 font-semibold text-gold-soft" : "text-muted hover:bg-panel-2 hover:text-white"}`}>
                   <ChannelIcon name={c.icon} />
                   <span className="truncate">{c.name}</span>
+                  {!canView(c, user) && <span className="ml-auto rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Pró</span>}
                 </Link>
               ))}
             </div>
@@ -93,6 +95,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
               </ul>
             </div>
           )}
+          {!allowed ? <Locked feature={`${ch.name} (exclusivo do plano Pró)`} text="Este espaço da comunidade faz parte do plano Pró. No Grátis você participa do Feed, das Notícias e do chat-geral." /> : <>
           <ul className="flex max-h-[32rem] flex-1 flex-col gap-3 overflow-y-auto pr-1">
             {messages.length === 0 && <li className="text-sm text-muted">Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</li>}
             {messages.map((m) => (
@@ -133,6 +136,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
             <AutoRefresh count={messages.length} />
           </ul>
           {writable ? <ChatForm channel={ch.slug} max={MAX_BODY} replyTo={replying ? { id: replying.id, author: replying.author, body: replying.body.slice(0, 80) || "imagem" } : null} /> : <p className="mt-3 rounded-lg bg-panel-2 p-3 text-xs text-muted">{banned ? "Você foi suspenso da comunidade pela moderação e não pode escrever. Fale com o suporte se achar que foi um engano." : "Canal somente leitura: só a equipe publica aqui."}</p>}
+          </>}
         </section>
       </div>
       <p className="mt-3 text-xs text-muted">Conteúdo da comunidade é opinião dos membros, não recomendação de investimento. Denuncie abusos à moderação.</p>

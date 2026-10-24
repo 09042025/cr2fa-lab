@@ -55,14 +55,14 @@ export function DataStatus({ result, source }: { result: Cached<unknown>; source
   );
 }
 
-export function Locked({ feature }: { feature: string }) {
+export function Locked({ feature, text }: { feature: string; text?: string }) {
   return (
     <div className="card flex flex-col items-start gap-3 p-6">
       <div className="flex items-center gap-2">
         <ProBadge />
         <h3 className="font-semibold">{feature}</h3>
       </div>
-      <p className="text-sm text-muted">Este recurso faz parte do plano Pro. Assine para liberar a lista completa, filtros, exportação e o portfólio com rebalanceamento.</p>
+      <p className="text-sm text-muted">{text ?? "Este recurso faz parte do plano Pro. Assine para liberar a lista completa, filtros, exportação e o portfólio com rebalanceamento."}</p>
       <Link href="/planos" className="btn btn-gold">
         Ver planos
       </Link>

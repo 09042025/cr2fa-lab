@@ -12,6 +12,8 @@ export interface Channel {
   description: string;
   post: "pro" | "admin";
   admin?: boolean;
+  /** Canal aberto também para o plano Grátis. */
+  free?: boolean;
   /** Texto fixo no topo do canal (regras, avisos de segurança). */
   intro?: string[];
 }
@@ -46,7 +48,7 @@ export const CATEGORIES: Category[] = [
         ],
       },
       { slug: "anuncios", name: "anuncios-do-canal", icon: "bell", post: "admin", description: "Avisos oficiais do Emerson e da equipe.", intro: SECURITY },
-      { slug: "chat-geral", name: "chat-geral", icon: "users", post: "pro", description: "Bate-papo geral entre os membros Pró." },
+      { slug: "chat-geral", name: "chat-geral", icon: "users", post: "pro", free: true, description: "Bate-papo geral entre os membros." },
     ],
   },
   {
@@ -77,9 +79,33 @@ export function findChannel(slug: string | undefined, isAdmin: boolean): Channel
   return all.find((c) => c.slug === slug) ?? all.find((c) => c.slug === "chat-geral")!;
 }
 
+/** Quem pode ler o canal: Pró vê todos; Grátis só os canais marcados como livres. */
+export function canView(ch: Channel, user: { role: string; plan: string }): boolean {
+  return user.role === "admin" || user.plan === "pro" || !!ch.free;
+}
+
 export function canPost(ch: Channel, user: { role: string; plan: string }): boolean {
   if (user.role === "admin") return true;
-  return !ch.admin && ch.post === "pro" && user.plan === "pro";
+  return !ch.admin && ch.post === "pro" && canView(ch, user);
+}
+
+const FREE_SLUGS = () => CATEGORIES.flatMap((c) => c.channels).filter((c) => c.free).map((c) => c.slug);
+
+/** Verdadeiro se a mensagem está em um canal aberto ao plano Grátis. */
+export function messageIsFree(messageId: number): boolean {
+  const m = db().prepare("SELECT channel FROM community_messages WHERE id = ?").get(messageId) as { channel: string } | undefined;
+  return !!m && FREE_SLUGS().includes(m.channel);
+}
+
+/** Imagem/áudio visíveis ao plano Grátis: só os de mensagens de canais livres ou de publicações do feed. */
+export function mediaIsFree(kind: "image" | "audio", id: number): boolean {
+  if (!Number.isInteger(id)) return false;
+  const col = kind === "image" ? "image_id" : "audio_id";
+  const slugs = FREE_SLUGS();
+  const inChat = db().prepare(`SELECT 1 FROM community_messages WHERE ${col} = ? AND channel IN (${slugs.map(() => "?").join(",")})`).get(id, ...slugs);
+  if (inChat) return true;
+  if (kind !== "image") return false;
+  return !!db().prepare("SELECT 1 FROM community_posts WHERE image_id = ? UNION SELECT 1 FROM users WHERE avatar_id = ? OR banner_id = ?").get(id, id, id);
 }
 
 export const REACTIONS = ["👍", "🔥", "🚀", "💰", "👏", "😂"] as const;

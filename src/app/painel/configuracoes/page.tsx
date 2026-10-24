@@ -12,7 +12,7 @@ export const metadata = { title: "Configurações" };
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const me = user.plan === "pro" ? getMember(user.id) : null;
+  const me = getMember(user.id);
   return (
     <div className="max-w-2xl">
       <PageTitle title="Configurações" subtitle="Gerencie seu perfil, sua senha e seu plano." />
@@ -22,7 +22,7 @@ export default async function SettingsPage() {
         <ProfileForm name={user.name} email={user.email} />
       </section>
 
-      {user.plan === "pro" && (
+      {(
         <section className="card mb-6 p-5">
           <h2 className="mb-1 font-semibold">Perfil da comunidade</h2>
           <p className="mb-4 text-sm text-muted">Capa, foto e bio curta que os outros membros veem no chat, no feed e no seu perfil. <Link href={`/painel/comunidade/membro/${user.id}`} className="text-gold-soft underline">Ver meu perfil</Link></p>
