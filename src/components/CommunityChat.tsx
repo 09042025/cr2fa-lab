@@ -24,14 +24,6 @@ async function shrink(f: File): Promise<File> {
   }
 }
 
-const ImageIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <rect x="3" y="4" width="18" height="16" rx="3" />
-    <circle cx="9" cy="10" r="1.8" />
-    <path d="m4 18 5-5 4 4 3-3 4 4" />
-  </svg>
-);
-
 export function ChatForm({ channel, max, replyTo }: { channel: string; max: number; replyTo?: { id: number; author: string; body: string } | null }) {
   const router = useRouter();
   const [body, setBody] = useState("");
@@ -55,6 +47,20 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
     if (!res.ok || !data?.id) return setErr(data?.error ?? "Não foi possível enviar a imagem.");
     setImage((old) => { if (old) URL.revokeObjectURL(old.preview); return { id: data.id!, name: f.name || "print", preview: URL.createObjectURL(small) }; });
   }
+
+  // Cola print em qualquer lugar da página (não só com o cursor no campo), exceto dentro de outros campos de texto, como a edição de mensagem.
+  const uploadRef = useRef(upload);
+  uploadRef.current = upload;
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA") && !t.hasAttribute("data-chat-input")) return;
+      const f = Array.from(e.clipboardData?.files ?? []).find((x) => x.type.startsWith("image/"));
+      if (f) { e.preventDefault(); void uploadRef.current(f); }
+    }
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, []);
 
   function clearImage() {
     if (image) URL.revokeObjectURL(image.preview);
@@ -97,8 +103,8 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
       )}
       <div className="flex items-end gap-2">
         <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
-        <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-line text-gold-soft hover:bg-panel-2 disabled:opacity-50" title="Anexar imagem" aria-label="Anexar imagem" onClick={() => file.current?.click()} disabled={busy}>
-          <ImageIcon />
+        <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-line outline-none focus:outline-none focus-visible:outline-none hover:bg-panel-2 disabled:opacity-50" title="Anexar imagem ou print (você também pode colar com Ctrl+V)" aria-label="Anexar imagem" onClick={() => file.current?.click()} disabled={busy}>
+          <span aria-hidden className="text-4xl font-black leading-none text-gold">+</span>
         </button>
         <textarea
           value={body}
@@ -106,12 +112,9 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
           rows={1}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-          onPaste={(e) => {
-            const f = Array.from(e.clipboardData.files).find((x) => x.type.startsWith("image/"));
-            if (f) { e.preventDefault(); void upload(f); }
-          }}
+          data-chat-input
           placeholder="Escreva uma mensagem ou cole um print (Ctrl+V). Use @nome para mencionar."
-          className="h-12 min-w-0 flex-1 resize-none rounded-lg border border-line bg-ink px-3 py-3 text-sm leading-6"
+          className="h-12 min-w-0 flex-1 resize-none rounded-lg border border-line bg-ink px-3 py-3 text-sm leading-6 outline-none focus:outline-none focus:ring-0"
         />
         <button type="button" className="btn btn-gold h-12 shrink-0 !py-0" onClick={send} disabled={busy}>{busy ? "…" : "Enviar"}</button>
       </div>
