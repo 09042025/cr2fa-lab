@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getAllPools } from "@/lib/market";
 import { llamaUrl, poolLink } from "@/lib/poollinks";
-import { estimateMonthly, filterPools, turnover, type PoolFilters } from "@/lib/pools";
+import { POOL_KINDS, estimateMonthly, filterPools, poolKind, turnover, type PoolFilters } from "@/lib/pools";
 import { DataStatus, Disclaimer, Locked, PageTitle, ProBadge } from "@/components/ui";
 import { FREE_LIMITS } from "@/lib/plans";
 import { pct, usd, usdCompact } from "@/lib/format";
@@ -69,6 +69,13 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
               </select>
             </div>
             <div>
+              <label className="label" htmlFor="categoria">Tipo de pool</label>
+              <select id="categoria" name="categoria" defaultValue={sp.categoria || ""} className="input">
+                <option value="">Todos</option>
+                {POOL_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="label" htmlFor="ordem">Ordenar por</label>
               <select id="ordem" name="ordem" defaultValue={sp.ordem || "tvl"} className="input">
                 <option value="tvl">TVL</option>
@@ -113,7 +120,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
                   );
                   return isDex ? (
                     <tr key={p.id}>
-                      <td>{open}{p.poolMeta && <span className="ml-1 rounded border border-line px-1 text-xs text-muted">{p.poolMeta}</span>}{p.stablecoin && <span className="ml-1 text-xs text-up">stable</span>}</td>
+                      <td>{open}{p.poolMeta && <span className="ml-1 rounded border border-line px-1 text-xs text-muted">{p.poolMeta}</span>}{p.stablecoin && <span className="ml-1 text-xs text-up">stable</span>}{poolKind(p) === "rwa" && <span className="ml-1 rounded border border-gold/50 px-1 text-xs text-gold-soft">RWA</span>}</td>
                       <td className="text-muted">{p.project}</td>
                       <td>{p.chain}</td>
                       <td className="num">{usdCompact(p.tvlUsd)}</td>
@@ -128,7 +135,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
                     </tr>
                   ) : (
                     <tr key={p.id}>
-                      <td>{open}{p.stablecoin && <span className="ml-1 text-xs text-up">stable</span>}</td>
+                      <td>{open}{p.stablecoin && <span className="ml-1 text-xs text-up">stable</span>}{poolKind(p) === "rwa" && <span className="ml-1 rounded border border-gold/50 px-1 text-xs text-gold-soft">RWA</span>}</td>
                       <td className="text-muted">{p.project}</td>
                       <td>{p.chain}</td>
                       <td className="num">{usdCompact(p.tvlUsd)}</td>

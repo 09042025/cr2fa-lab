@@ -133,3 +133,15 @@ test("DexPaprika: descarta dados incompletos e limpa símbolos", () => {
   assert.equal(odd.poolRef, null);
   assert.equal(poolLink(odd).kind, "home");
 });
+
+import { poolKind } from "../src/lib/pools";
+test("poolKind separa RWA, stablecoins, cripto e outros", () => {
+  const base = { id: "x", chain: "Ethereum", project: "uniswap-v3", symbol: "ETH-USDC", poolMeta: null, tvlUsd: 1, apy: 1, apyBase: 1, apyReward: 0, apyMean30d: 1, volumeUsd1d: 1, volumeUsd7d: 1, il7d: 0, ilRisk: false, stablecoin: false, tokens: [], dex: true } as never;
+  const mk = (o: object) => ({ ...(base as object), ...o }) as never;
+  assert.equal(poolKind(mk({})), "cripto");
+  assert.equal(poolKind(mk({ symbol: "USDC-USDT", stablecoin: true })), "stable");
+  assert.equal(poolKind(mk({ project: "ondo-yield-assets", symbol: "OUSG" })), "rwa");
+  assert.equal(poolKind(mk({ symbol: "BUIDL-USDC" })), "rwa");
+  assert.equal(poolKind(mk({ symbol: "PEPE-USDC" })), "outros");
+  assert.equal(poolKind(mk({ symbol: "WBTC-WETH" })), "cripto");
+});
