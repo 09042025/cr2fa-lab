@@ -96,6 +96,56 @@ export function getCryptoMarkets() {
   });
 }
 
+/** Uma página do ranking (por valor de mercado), opcionalmente de uma categoria da CoinGecko (ex.: "tokenized-stock"). */
+export function getCryptoPage(page: number, category?: string, perPage = 100) {
+  const pg = Math.min(Math.max(Math.floor(page) || 1, 1), 20);
+  const cat = category && /^[a-z0-9-]{2,60}$/.test(category) ? category : "";
+  return cached<CryptoCoin[]>(`coingecko:markets:${cat || "all"}:${perPage}:${pg}`, 5 * 60, async () => {
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${pg}&sparkline=false&price_change_percentage=24h,7d${cat ? `&category=${cat}` : ""}`;
+    const raw = await fetchJson<GeckoCoin[]>(url, { headers: geckoHeaders() });
+    return raw.map((c) => ({
+      id: c.id, symbol: c.symbol.toUpperCase(), name: c.name, priceUsd: c.current_price, marketCapUsd: c.market_cap, volumeUsd: c.total_volume,
+      change24h: c.price_change_percentage_24h_in_currency ?? null, change7d: c.price_change_percentage_7d_in_currency ?? null,
+    }));
+  });
+}
+
+export interface GlobalMarket {
+  totalCapUsd: number | null;
+  totalVolumeUsd: number | null;
+  capChange24h: number | null;
+  btcDominance: number | null;
+  ethDominance: number | null;
+  activeCoins: number | null;
+}
+
+/** Números globais do mercado cripto (CoinGecko). */
+export function getGlobalMarket() {
+  return cached<GlobalMarket>("coingecko:global:v1", 5 * 60, async () => {
+    const raw = await fetchJson<{ data?: { total_market_cap?: { usd?: number }; total_volume?: { usd?: number }; market_cap_change_percentage_24h_usd?: number; market_cap_percentage?: { btc?: number; eth?: number }; active_cryptocurrencies?: number } }>(
+      "https://api.coingecko.com/api/v3/global", { headers: geckoHeaders() });
+    const d = raw.data;
+    if (!d) throw new Error("resposta vazia da CoinGecko");
+    const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    return {
+      totalCapUsd: n(d.total_market_cap?.usd), totalVolumeUsd: n(d.total_volume?.usd), capChange24h: n(d.market_cap_change_percentage_24h_usd),
+      btcDominance: n(d.market_cap_percentage?.btc), ethDominance: n(d.market_cap_percentage?.eth), activeCoins: n(d.active_cryptocurrencies),
+    };
+  });
+}
+
+export interface FearGreed { value: number; label: string; history: { value: number; ts: number }[] }
+
+/** Índice de Medo e Ganância (alternative.me), com os últimos 30 dias. */
+export function getFearGreed() {
+  return cached<FearGreed>("altme:fng:v1", 60 * 60, async () => {
+    const raw = await fetchJson<{ data?: { value: string; value_classification: string; timestamp: string }[] }>("https://api.alternative.me/fng/?limit=30");
+    const rows = (raw.data ?? []).map((r) => ({ value: Number(r.value), ts: Number(r.timestamp), cls: r.value_classification })).filter((r) => Number.isFinite(r.value));
+    if (!rows.length) throw new Error("sem dados do índice");
+    return { value: rows[0].value, label: rows[0].cls, history: rows.map((r) => ({ value: r.value, ts: r.ts })) };
+  });
+}
+
 /** Cotação simples em BRL (para converter planos em cripto). */
 export async function getSpotBrl(coinId: "bitcoin" | "ethereum" | "solana" | "usd-coin" | "tether"): Promise<number> {
   const res = await cached<Record<string, { brl: number }>>("coingecko:spot-brl", 60, async () => {

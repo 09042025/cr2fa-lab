@@ -9,8 +9,7 @@ import { trialDays } from "@/lib/trial";
 const NAV: { href: string; label: string; pro?: boolean; sub?: boolean }[] = [
   { href: "/painel", label: "Visão geral" },
   { href: "/painel/protocolo", label: "Protocolo CR2FA" },
-  { href: "/painel/cripto", label: "Cripto e DeFi" },
-  { href: "/painel/cripto/onchain", label: "On-chain do Bitcoin", sub: true },
+  { href: "/painel/cripto", label: "Cripto" },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
   { href: "/painel/acoes", label: "Ações" },
   { href: "/painel/renda-fixa", label: "Renda fixa" },

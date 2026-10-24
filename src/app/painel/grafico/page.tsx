@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 type SP = { tipo?: string; ativo?: string; nome?: string; id?: string; de?: string };
 
 const BACK: Record<string, { href: string; label: string }> = {
-  cripto: { href: "/painel/cripto", label: "Voltar para Cripto e DeFi" },
+  cripto: { href: "/painel/cripto", label: "Voltar para Cripto" },
   acoes: { href: "/painel/acoes", label: "Voltar para Ações" },
   fiis: { href: "/painel/fiis", label: "Voltar para Fundos imobiliários" },
 };
@@ -24,7 +24,7 @@ export default async function ChartPage({ searchParams }: { searchParams: Promis
     return (
       <>
         <PageTitle title="Gráfico" subtitle="Escolha um ativo nas páginas de Cripto, Ações ou Fundos imobiliários." />
-        <Link className="text-gold-soft underline" href="/painel/cripto">Ir para Cripto e DeFi</Link>
+        <Link className="text-gold-soft underline" href="/painel/cripto">Ir para Cripto</Link>
       </>
     );
   }

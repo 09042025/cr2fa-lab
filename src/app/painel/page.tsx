@@ -49,7 +49,7 @@ export default async function Overview() {
         <section className="card p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-semibold">Pools DeFi com maior TVL</h2>
-            <Link href="/painel/cripto#pools" className="text-xs text-gold-soft underline">ver mais</Link>
+            <Link href="/painel/cripto/defi" className="text-xs text-gold-soft underline">ver mais</Link>
           </div>
           {pools.data ? (
             <table className="data">
