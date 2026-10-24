@@ -36,7 +36,13 @@ export function parseFarside(html: string): EtfFlows {
   const head = rows.find((r) => r.some((c) => /^total$/i.test(c)));
   if (!head) throw new Error("tabela de fluxos não encontrada");
   const totalIdx = head.findIndex((c) => /^total$/i.test(c));
-  const funds = head.slice(1, totalIdx).map((c) => c.split(" ")[0]);
+  // O nome do fundo pode estar numa linha acima do "Total" (a Farside usa uma linha de emissor e outra de código).
+  // Para cada coluna, vale o primeiro texto que pareça um código de fundo (3 a 5 letras maiúsculas); senão o primeiro texto não vazio.
+  const headRows = rows.slice(0, rows.indexOf(head) + 2).filter((r) => !parseDate(r[0]) && r.length > totalIdx);
+  const funds = head.slice(1, totalIdx).map((_, i) => {
+    const col = headRows.map((r) => (r[i + 1] ?? "").trim().split(" ")[0]).filter(Boolean);
+    return col.find((c) => /^[A-Z]{3,5}$/.test(c)) ?? col[0] ?? `Fundo ${i + 1}`;
+  });
   const out: EtfRow[] = [];
   for (const r of rows) {
     const date = parseDate(r[0]);
@@ -49,7 +55,7 @@ export function parseFarside(html: string): EtfFlows {
 
 /** Fluxo diário líquido dos ETFs à vista dos EUA (US$ milhões), fonte Farside Investors. Cache de 3 horas. */
 export function getEtfFlows(asset: "btc" | "eth") {
-  return cached<EtfFlows>(`farside:${asset}:v1`, 3 * 60 * 60, async () => {
+  return cached<EtfFlows>(`farside:${asset}:v2`, 3 * 60 * 60, async () => {
     const res = await fetch(`https://farside.co.uk/${asset}/`, { headers: { "user-agent": "Mozilla/5.0 (compatible; NizaInvest/1.0)", accept: "text/html" }, signal: AbortSignal.timeout(20000) });
     if (!res.ok) throw new Error(`HTTP ${res.status} em farside.co.uk`);
     return parseFarside(await res.text());

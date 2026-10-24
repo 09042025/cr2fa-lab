@@ -145,3 +145,13 @@ test("poolKind separa RWA, stablecoins, cripto e outros", () => {
   assert.equal(poolKind(mk({ symbol: "PEPE-USDC" })), "outros");
   assert.equal(poolKind(mk({ symbol: "WBTC-WETH" })), "cripto");
 });
+
+import { poolKind as pk } from "../src/lib/pools";
+test("ações tokenizadas viram RWA", () => {
+  const base = { id: "x", chain: "Solana", project: "raydium-amm", symbol: "TSLAX-USDC", poolMeta: null, tvlUsd: 1, apy: null, apyBase: null, apyReward: null, apyMean30d: null, volumeUsd1d: null, volumeUsd7d: null, il7d: null, ilRisk: false, stablecoin: false, tokens: [], dex: true } as never;
+  assert.equal(pk(base), "rwa");
+  assert.equal(pk({ ...(base as object), symbol: "NVDAON-USDC" } as never), "rwa");
+  assert.equal(pk({ ...(base as object), chain: "Robinhood Chain", symbol: "TSLA-USDG" } as never), "rwa");
+  assert.equal(pk({ ...(base as object), symbol: "TSLA-USDC" } as never), "outros");
+  assert.equal(pk({ ...(base as object), symbol: "WETH-USDC" } as never), "cripto");
+});
