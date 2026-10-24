@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 type Mode = "login" | "register" | "change" | "forgot" | "reset";
 
-export function AuthForm({ mode, token }: { mode: Mode; token?: string }) {
+export function AuthForm({ mode, token, after }: { mode: Mode; token?: string; after?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,9 @@ export function AuthForm({ mode, token }: { mode: Mode; token?: string }) {
         setDone(data.message || "Se este e-mail tiver cadastro, enviamos um link para criar uma nova senha.");
         return;
       }
-      router.push(data.next || "/painel");
+      // Depois de entrar ou criar a conta, volta para o convite VIP que a pessoa estava abrindo.
+      const back = after && /^\/convite\/[A-Za-z0-9_-]{20,64}$/.test(after) && data.next !== "/trocar-senha" ? after : null;
+      router.push(back || data.next || "/painel");
       router.refresh();
     } catch {
       setError("Sem conexão com o servidor. Tente novamente.");

@@ -71,3 +71,23 @@ export function renewalEmail(name: string, daysLeft: number, expiresAt: Date, li
 </div>`,
   };
 }
+
+export function inviteEmail(name: string, days: number, link: string, note: string): { subject: string; html: string; text: string } {
+  const app = process.env.APP_NAME || "NIZA INVEST";
+  const first = name.trim().split(/\s+/)[0] || "";
+  const hello = first ? `Olá, ${first}!` : "Olá!";
+  const periodo = days >= 365 && days % 365 === 0 ? `${days / 365} ${days === 365 ? "ano" : "anos"}` : `${days} dias`;
+  return {
+    subject: `Você recebeu um convite VIP do ${app}`,
+    text: `${hello}\n\nVocê foi convidado(a) para o ${app} com acesso VIP ao plano Pró por ${periodo}, sem custo.${note ? `\n\n${note}` : ""}\n\nAbra o link para ativar (crie sua conta ou entre, e confirme):\n\n${link}\n\nO convite é pessoal e de uso único.`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1a1a1a">
+<h2 style="color:#b8860b">${escapeHtml(app)}</h2>
+<p>${escapeHtml(hello)}</p>
+<p>Você foi convidado(a) com <strong>acesso VIP ao plano Pró por ${escapeHtml(periodo)}</strong>, sem custo.</p>
+${note ? `<p style="background:#faf5e4;border-radius:8px;padding:10px 14px">${escapeHtml(note)}</p>` : ""}
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#d4a82f;color:#111;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ativar meu acesso VIP</a></p>
+<p style="font-size:13px;color:#555">Se o botão não abrir, copie este endereço no navegador:<br>${escapeHtml(link)}</p>
+<p style="font-size:13px;color:#555">O convite é pessoal e de uso único.</p>
+</div>`,
+  };
+}

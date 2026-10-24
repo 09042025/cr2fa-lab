@@ -3,13 +3,15 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { AuthForm } from "@/components/AuthForm";
 import { Logo } from "@/components/ui";
+import { CODE_RE } from "@/lib/invites";
 
 export const metadata = { title: "Entrar" };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ senha?: string }> }) {
-  const { senha } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ senha?: string; convite?: string }> }) {
+  const { senha, convite } = await searchParams;
+  const after = convite && CODE_RE.test(convite) ? `/convite/${convite}` : undefined;
   const user = await getUser();
-  if (user) redirect(user.mustChangePassword ? "/trocar-senha" : "/painel");
+  if (user) redirect(user.mustChangePassword ? "/trocar-senha" : after ?? "/painel");
   return (
     <main className="mx-auto grid min-h-screen max-w-md place-items-center px-5">
       <div className="w-full">
@@ -19,12 +21,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {senha === "redefinida" && (
             <p role="status" className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold-soft">Senha alterada. Entre com a nova senha.</p>
           )}
-          <AuthForm mode="login" />
+          <AuthForm mode="login" after={after} />
           <p className="mt-3 text-center text-sm">
             <Link href="/esqueci-senha" className="text-gold-soft underline">Esqueci minha senha</Link>
           </p>
           <p className="mt-4 text-center text-sm text-muted">
-            Ainda não tem conta? <Link href="/cadastrar" className="text-gold-soft underline">Criar conta grátis</Link>
+            Ainda não tem conta? <Link href={after ? `/cadastrar?convite=${convite}` : "/cadastrar"} className="text-gold-soft underline">Criar conta grátis</Link>
           </p>
         </div>
       </div>

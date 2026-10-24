@@ -79,6 +79,22 @@ function migrate(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_community_channel ON community_messages(channel, id);
 
+    -- Convites VIP: link de uso único que libera o Pró por um período, criado pelo administrador.
+    CREATE TABLE IF NOT EXISTS vip_invites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL UNIQUE,
+      email TEXT COLLATE NOCASE,
+      note TEXT NOT NULL DEFAULT '',
+      days INTEGER NOT NULL CHECK (days BETWEEN 1 AND 3660),
+      expires_at INTEGER NOT NULL,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      revoked_at INTEGER,
+      redeemed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      redeemed_at INTEGER,
+      emailed_at INTEGER
+    );
+
     CREATE TABLE IF NOT EXISTS cache (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
