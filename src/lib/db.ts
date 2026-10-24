@@ -78,6 +78,10 @@ function migrate(db: Database.Database) {
   // Origem da posição: 'manual' (digitada) ou 'b3' (importada da planilha da B3). Bancos antigos ganham a coluna aqui.
   const cols = db.prepare("PRAGMA table_info(holdings)").all() as { name: string }[];
   if (!cols.some((c) => c.name === "source")) db.exec("ALTER TABLE holdings ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'");
+  // Controle dos lembretes de renovação: para qual vencimento já avisamos e em que etapa (1 = 7 dias antes, 2 = 1 dia antes).
+  const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (!userCols.some((c) => c.name === "reminder_expiry")) db.exec("ALTER TABLE users ADD COLUMN reminder_expiry INTEGER");
+  if (!userCols.some((c) => c.name === "reminder_stage")) db.exec("ALTER TABLE users ADD COLUMN reminder_stage INTEGER NOT NULL DEFAULT 0");
 }
 
 export function db(): Database.Database {
@@ -98,6 +102,8 @@ export interface UserRow {
   plan_expires_at: number | null;
   must_change_password: number;
   created_at: number;
+  reminder_expiry: number | null;
+  reminder_stage: number;
 }
 
 export interface OrderRow {

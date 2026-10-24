@@ -77,6 +77,10 @@ Na tela de login há o link **Esqueci minha senha**. O usuário informa o e-mail
 
 Sem essas variáveis, o pedido não envia e-mail e o servidor registra um aviso no log.
 
+## Lembrete de renovação
+
+Como os pagamentos são avulsos (Pró por 31 ou 366 dias), o servidor envia e-mails de lembrete para quem tem o Pró perto de vencer: um **7 dias antes** e outro **1 dia antes**, com botão para renovar em `/planos`. A renovação soma ao tempo que resta. Cada etapa sai uma vez por vencimento, e o ciclo recomeça quando o usuário renova. A verificação roda ao iniciar e a cada 6 horas, e exige as mesmas variáveis do e-mail (`RESEND_API_KEY` e `MAIL_FROM`). Administradores não recebem.
+
 ## Pagamentos
 
 ### Pix e cartão (Mercado Pago)
