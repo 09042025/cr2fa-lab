@@ -6,10 +6,10 @@ const TABS = [
   { href: "/painel/comunidade", label: "Chat" },
   { href: "/painel/comunidade/feed", label: "Feed" },
   { href: "/painel/comunidade/noticias", label: "Notícias" },
-  { href: "/painel/comunidade/lives", label: "Lives" },
+  { href: "/painel/comunidade/lives", label: "Lives", pro: true },
 ];
 
-export function CommunityTabs() {
+export function CommunityTabs({ pro = true }: { pro?: boolean }) {
   const path = usePathname() || "";
   return (
     <nav className="mb-6 flex gap-1 overflow-x-auto border-b border-line" aria-label="Seções da comunidade">
@@ -18,7 +18,7 @@ export function CommunityTabs() {
         return (
           <Link key={t.href} href={t.href} aria-current={active ? "page" : undefined}
             className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition ${active ? "border-gold text-gold-soft" : "border-transparent text-muted hover:text-white"}`}>
-            {t.label}
+            {t.label}{t.pro && !pro && <span className="ml-1.5 rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Pró</span>}
           </Link>
         );
       })}

@@ -14,7 +14,11 @@ test("canal de moderação só aparece para admin", () => {
 test("permissões de escrita", () => {
   const pro = { role: "user", plan: "pro" }, free = { role: "user", plan: "free" }, adm = { role: "admin", plan: "pro" };
   assert.equal(canPost(findChannel("chat-geral", false), pro), true);
-  assert.equal(canPost(findChannel("chat-geral", false), free), false);
+  assert.equal(canPost(findChannel("chat-geral", false), free), true);
+  assert.equal(canPost(findChannel("geral", false), free), false);
+  assert.equal(canView(findChannel("geral", false), free), false);
+  assert.equal(canView(findChannel("chat-geral", false), free), true);
+  assert.equal(canView(findChannel("geral", false), pro), true);
   assert.equal(canPost(findChannel("anuncios", false), pro), false);
   assert.equal(canPost(findChannel("anuncios", true), adm), true);
 });
@@ -100,7 +104,7 @@ test("denunciar e bloquear", () => {
   assert.equal(listMessages("geral", b).some((x) => x.id === m), true);
 });
 
-import { shortUrl, splitRich } from "../src/lib/community";
+import { canView, shortUrl, splitRich } from "../src/lib/community";
 test("links no texto: clicáveis, sem a pontuação final e só http(s)", () => {
   const t = splitRich("veja https://www.youtube.com/channel/UCUSH?sub=1, e @Ana javascript:alert(1) http://x.com).");
   const links = t.filter((x) => x.type === "link");
