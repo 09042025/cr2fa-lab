@@ -30,7 +30,12 @@ interface Props {
   i1: number;
   onZoom: (i0: number, i1: number) => void;
   onReset: () => void;
+  /** Avisa qual dia está sob o cursor (ou o último do período), para o painel mostrar os valores. */
+  onCursor?: (index: number) => void;
 }
+
+/** Quantos eixos à direita são desenhados; os demais indicadores usam a escala própria, sem rótulos. */
+const MAX_VISIBLE_AXES = 2;
 
 export const PRICE_COLOR = "#f3d27a";
 const MUTED = "#93a0c4";
@@ -47,7 +52,7 @@ const makeScale = (lo: number, hi: number, log: boolean, top: number, height: nu
 
 const fmtDate = (day: number) => dayToDate(day).toLocaleDateString("pt-BR", { timeZone: "UTC" });
 
-export function OnchainChart({ start, price, lines, halvings, showHalvings, logPrice, i0, i1, onZoom, onReset }: Props) {
+export function OnchainChart({ start, price, lines, halvings, showHalvings, logPrice, i0, i1, onZoom, onReset, onCursor }: Props) {
   const uid = useId().replace(/:/g, "");
   const wrap = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -74,7 +79,8 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
 
   const geo = useMemo(() => {
     const ownIds = [...new Set(lines.filter((l) => l.axisId !== "price").map((l) => l.axisId))];
-    const padR = ownIds.length > 0 ? 4 + ownIds.length * axisW : 16;
+    const visibleAxes = Math.min(ownIds.length, MAX_VISIBLE_AXES);
+    const padR = visibleAxes > 0 ? 4 + visibleAxes * axisW : 16;
     const plotW = Math.max(120, w - padL - padR);
     const plotH = h - padT - padB;
     const span = Math.max(1, i1 - i0);
@@ -97,6 +103,7 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
         color: group[0].color,
         fmt: group[0].fmt,
         x0: padL + plotW + k * axisW,
+        hidden: k >= MAX_VISIBLE_AXES,
         y: makeScale(lo, hi, log, padT, plotH),
         ticks: log ? logTicks(lo, hi) : linearTicks(lo, hi, 5),
         lo,
@@ -142,6 +149,7 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
   const day = start + cur;
   const yAt = (l: ChartLine, v: number) => (l.axisId === "price" ? geo.yPrice(v) : geo.axes.find((a) => a.id === l.axisId)?.y(v) ?? null);
   const priceNow = price[cur];
+  useEffect(() => { onCursor?.(cur); }, [cur, onCursor]);
 
   return (
     <div>
@@ -152,16 +160,7 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
           <span className="text-muted">Preço BTC</span>
           <span className="font-semibold" style={{ color: PRICE_COLOR }}>{priceNow === null || priceNow === undefined ? "—" : formatValue("usd", priceNow)}</span>
         </span>
-        {lines.map((l) => {
-          const v = l.values[cur];
-          return (
-            <span key={l.key} className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-4 border-t-2" style={{ borderColor: l.color, borderStyle: l.dashed ? "dashed" : "solid" }} />
-              <span className="text-muted">{l.label}</span>
-              <span className="font-semibold" style={{ color: l.color }}>{v === null || v === undefined ? "—" : formatValue(l.fmt, v)}</span>
-            </span>
-          );
-        })}
+        {lines.length > 0 && <span className="text-muted">Valores de cada indicador no painel à direita.</span>}
       </div>
 
       <div ref={wrap} className="w-full select-none">
@@ -194,7 +193,7 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
           <line x1={padL} x2={padL + geo.plotW} y1={padT + geo.plotH} y2={padT + geo.plotH} stroke={GRID} />
 
           {/* eixos dos indicadores (um por indicador, à direita) */}
-          {geo.axes.map((a) => (
+          {geo.axes.filter((a) => !a.hidden).map((a) => (
             <g key={`a${a.id}`}>
               <line x1={a.x0} x2={a.x0} y1={padT} y2={padT + geo.plotH} stroke={a.color} opacity={0.8} />
               {a.ticks.map((t) => {
@@ -226,7 +225,7 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
             {lines.map((l) => {
               if (!l.refs || l.axisId === "price") return null;
               const ax = geo.axes.find((a) => a.id === l.axisId);
-              if (!ax) return null;
+              if (!ax || ax.hidden) return null;
               return l.refs.map((r) => {
                 const y = ax.y(r);
                 if (y === null || y < padT || y > padT + geo.plotH) return null;
