@@ -37,7 +37,7 @@ export default async function AdminPage() {
                 <tr key={u.id}>
                   <td>{u.name}</td><td className="text-muted">{u.email}</td><td>{u.role === "admin" ? "admin" : "usuário"}</td>
                   <td>{effectivePlan(u) === "pro" ? "Pró" : "Grátis"}</td><td>{u.role === "admin" ? "—" : date(u.plan_expires_at)}</td><td>{date(u.created_at)}</td>
-                  <td>{u.role !== "admin" && <AdminPlanButtons userId={u.id} isPro={effectivePlan(u) === "pro"} />}</td>
+                  <td>{u.role !== "admin" && <AdminPlanButtons userId={u.id} isPro={effectivePlan(u) === "pro"} email={u.email} />}</td>
                 </tr>
               ))}
             </tbody>
