@@ -13,7 +13,7 @@ export default function Mercado() {
   return (
     <Screen title="Mercado" subtitle="Criptomoedas por valor de mercado, em dólar.">
       <Status loading={loading} error={error ?? (data?.failed ? "Não foi possível carregar as cotações agora." : null)} onRetry={reload} />
-      {data?.coins.map((c) => (
+      {data?.coins?.map((c) => (
         <Card key={c.id}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             {c.image ? <Image source={{ uri: c.image }} style={{ width: 32, height: 32, borderRadius: 16 }} /> : <View style={{ width: 32 }} />}

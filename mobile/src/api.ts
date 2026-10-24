@@ -56,3 +56,18 @@ export async function get<T>(path: string): Promise<{ data: T } | { error: strin
     return { error: "Sem conexão com o servidor. Confira a internet." };
   }
 }
+
+/** Envia uma ação (publicar, curtir, comentar, mandar mensagem...). Devolve null se deu certo, ou o texto do erro. */
+export async function send(path: string, body: unknown, method: "POST" | "PATCH" | "DELETE" = "POST"): Promise<string | null> {
+  const token = await getToken();
+  try {
+    const r = await call(path, { method, body: JSON.stringify(body), headers: token ? { authorization: `Bearer ${token}` } : {} });
+    if (r.ok) return null;
+    return r.status === 401 ? "Sessão expirada. Entre de novo." : r.body.error || "Não foi possível concluir.";
+  } catch {
+    return "Sem conexão com o servidor. Confira a internet.";
+  }
+}
+
+/** Endereço de uma imagem da comunidade (fotos e anexos). Precisa do token no cabeçalho. */
+export const imageUri = (id: number) => `${API}/api/community/image?id=${id}`;

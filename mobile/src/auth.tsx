@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { clearToken, login as apiLogin, me, type Plan, type User } from "./api";
+import { resetImageToken } from "./Avatar";
 
 export type { Plan, User };
 
@@ -38,11 +39,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn: async (email, password) => {
       const r = await apiLogin(email.trim(), password);
       if ("error" in r) return r.error;
+      resetImageToken();
       setUser(r.user);
       setOffline(false);
       return null;
     },
-    signOut: async () => { await clearToken(); setUser(null); },
+    signOut: async () => { await clearToken(); resetImageToken(); setUser(null); },
     signInDemo: (plan) => setUser(demo(plan)),
     setPlan: (plan) => setUser((u) => (u ? { ...u, plan } : u)),
   }), [user, loading, offline]);

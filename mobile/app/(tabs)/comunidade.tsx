@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { ChatTab } from "../../src/ChatTab";
+import { FeedTab } from "../../src/FeedTab";
 import { NoticiasTab } from "../../src/NoticiasTab";
 import { C } from "../../src/theme";
 import { Card, H2, Muted, ProBadge, ProGate, Screen } from "../../src/ui";
@@ -59,13 +61,13 @@ export default function Comunidade() {
         <>
           <ListPick prefix="# " items={CANAIS.map((c) => c.nome)} value={canal} onChange={setCanal} badge={(n) => !!CANAIS.find((c) => c.nome === n)?.pro} />
           {pro ? (
-            <ProGate feature={`${canal} (exclusivo do plano Pró)`}><Card><H2>#{canal}</H2><Muted>Mensagens do canal aparecem aqui.</Muted></Card></ProGate>
+            <ProGate feature={`${canal} (exclusivo do plano Pró)`}><ChatTab channel={canal} /></ProGate>
           ) : (
-            <Card><H2>#{canal}</H2><Muted>Mensagens do chat-geral aparecem aqui. Livre para todos.</Muted></Card>
+            <ChatTab channel="chat-geral" />
           )}
         </>
       )}
-      {tab === "Feed" && <Card><H2>Feed da comunidade</H2><Muted>Publicações dos membros. Livre para todos.</Muted></Card>}
+      {tab === "Feed" && <FeedTab />}
       {tab === "Notícias" && <NoticiasTab />}
       {tab === "Lives VIP" && <ProGate feature="Lives VIP (exclusivo do plano Pró)"><Card><H2>Ao vivo</H2><Muted>A live do canal @EMERSON-NIZA aparece aqui.</Muted></Card></ProGate>}
     </Screen>
