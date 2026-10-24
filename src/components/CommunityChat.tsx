@@ -51,22 +51,23 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
           <button className="underline" onClick={() => setImage(null)}>remover</button>
         </p>
       )}
-      <div className="flex gap-2">
+      <div className="flex items-end gap-2">
+        <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
+        <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-line text-xl leading-none hover:bg-panel-2 disabled:opacity-50" title="Anexar imagem (até 2 MB)" aria-label="Anexar imagem" onClick={() => file.current?.click()} disabled={busy}>
+          🖼️
+        </button>
         <textarea
           value={body}
           maxLength={max}
           rows={2}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-          placeholder="Conversar neste canal… Use @nome para mencionar. (Enter envia, Shift+Enter quebra a linha)"
-          className="min-h-[3rem] flex-1 resize-none rounded-lg border border-line bg-ink px-3 py-2 text-sm"
+          placeholder="Conversar neste canal… Use @nome para mencionar."
+          className="h-12 min-w-0 flex-1 resize-none rounded-lg border border-line bg-ink px-3 py-2 text-sm"
         />
-        <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
-        <div className="flex w-24 shrink-0 flex-col justify-end gap-2">
-          <button type="button" className="btn btn-ghost !px-0 !py-0 h-10 w-full text-lg leading-none" title="Anexar imagem (até 2 MB)" aria-label="Anexar imagem" onClick={() => file.current?.click()} disabled={busy}>🖼️</button>
-          <button type="button" className="btn btn-gold !py-0 h-10 w-full" onClick={send} disabled={busy}>Enviar</button>
-        </div>
+        <button type="button" className="btn btn-gold h-12 shrink-0 !py-0" onClick={send} disabled={busy}>Enviar</button>
       </div>
+      <p className="mt-1 text-[11px] text-muted">Enter envia · Shift+Enter quebra a linha · imagens até 2 MB</p>
       {err && <p className="mt-1 text-xs text-down">{err}</p>}
     </div>
   );
