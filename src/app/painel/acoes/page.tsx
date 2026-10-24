@@ -6,14 +6,16 @@ import { FREE_LIMITS } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ setor?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ setor?: string; q?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const isPro = user.plan === "pro";
   const result = await getStocks();
   const all = result.data ?? [];
-  const sectors = [...new Set(all.map((q) => q.sector))];
-  const filtered = isPro && sp.setor ? all.filter((q) => q.sector === sp.setor) : all;
+  const sectors = [...new Set(all.map((q) => q.sector))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const term = (sp.q || "").trim().toUpperCase().slice(0, 30);
+  const bySector = isPro && sp.setor ? all.filter((q) => q.sector === sp.setor) : all;
+  const filtered = isPro && term ? bySector.filter((q) => q.symbol.includes(term) || q.name.toUpperCase().includes(term)) : bySector;
   const rows = isPro ? filtered : filtered.slice(0, FREE_LIMITS.stocks);
 
   return (
@@ -31,16 +33,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
                   {sectors.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="label" htmlFor="q">Buscar ativo</label>
+                <input id="q" name="q" defaultValue={sp.q || ""} placeholder="Ex.: KNCR11" className="input" maxLength={30} />
+              </div>
               <button className="btn btn-gold">Filtrar</button>
             </form>
           ) : (
-            <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa e filtro por setor no plano Pró.</div>
+            <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por segmento e busca no plano Pró.</div>
           )}
+          {isPro && <p className="mb-2 text-xs text-muted">{rows.length} de {all.length} ativos. Clique no código para abrir gráfico e informações.</p>}
           <QuotesTable rows={rows} origem="acoes" />
           {!isPro && all.length > rows.length && <div className="mt-4"><Locked feature={`Lista completa (${all.length} ativos)`} /></div>}
         </section>
       )}
-      <p className="mt-4 text-xs text-muted">Os códigos listados são exemplos de cada setor, escolhidos para ilustrar a estrutura, e não são recomendação de compra. A escolha das empresas é sua, depois de estudar cada uma.</p>
+      <p className="mt-4 text-xs text-muted">Lista completa de ações da B3. A estratégia acima é a estrutura do Protocolo, e não recomendação de compra. A escolha das empresas é sua, depois de estudar cada uma.</p>
       <Disclaimer />
     </>
   );

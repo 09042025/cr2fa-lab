@@ -6,14 +6,16 @@ import { FREE_LIMITS } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ setor?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ setor?: string; q?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const isPro = user.plan === "pro";
   const result = await getFiis();
   const all = result.data ?? [];
-  const sectors = [...new Set(all.map((q) => q.sector))];
-  const filtered = isPro && sp.setor ? all.filter((q) => q.sector === sp.setor) : all;
+  const sectors = [...new Set(all.map((q) => q.sector))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const term = (sp.q || "").trim().toUpperCase().slice(0, 30);
+  const bySector = isPro && sp.setor ? all.filter((q) => q.sector === sp.setor) : all;
+  const filtered = isPro && term ? bySector.filter((q) => q.symbol.includes(term) || q.name.toUpperCase().includes(term)) : bySector;
   const rows = isPro ? filtered : filtered.slice(0, FREE_LIMITS.fiis);
 
   return (
@@ -25,22 +27,27 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
           {isPro ? (
             <form method="get" className="mb-4 flex flex-wrap items-end gap-3">
               <div>
-                <label className="label" htmlFor="setor">Filtrar por setor</label>
+                <label className="label" htmlFor="setor">Filtrar por segmento</label>
                 <select id="setor" name="setor" defaultValue={sp.setor || ""} className="input">
                   <option value="">Todos</option>
                   {sectors.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="label" htmlFor="q">Buscar ativo</label>
+                <input id="q" name="q" defaultValue={sp.q || ""} placeholder="Ex.: KNCR11" className="input" maxLength={30} />
+              </div>
               <button className="btn btn-gold">Filtrar</button>
             </form>
           ) : (
-            <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa e filtro por setor no plano Pró.</div>
+            <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por segmento e busca no plano Pró.</div>
           )}
+          {isPro && <p className="mb-2 text-xs text-muted">{rows.length} de {all.length} ativos. Clique no código para abrir gráfico e informações.</p>}
           <QuotesTable rows={rows} origem="fiis" />
           {!isPro && all.length > rows.length && <div className="mt-4"><Locked feature={`Lista completa (${all.length} ativos)`} /></div>}
         </section>
       )}
-      <p className="mt-4 text-xs text-muted">Os fundos listados são exemplos de cada segmento para ilustrar a estrutura, e não são recomendação de compra.</p>
+      <p className="mt-4 text-xs text-muted">Lista completa de FIIs da B3. Fundos sem segmento conhecido aparecem em "Outros / não classificado". A estratégia acima é a estrutura do Protocolo, e não recomendação de compra.</p>
       <Disclaimer />
     </>
   );
