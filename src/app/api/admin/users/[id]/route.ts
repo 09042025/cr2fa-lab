@@ -4,7 +4,10 @@ import { db, now } from "@/lib/db";
 import { fail, json, sameOrigin } from "@/lib/http";
 import { deleteUserAccount } from "@/lib/account";
 
-const schema = z.object({ plan: z.enum(["free", "pro"]), days: z.number().int().min(1).max(3660).optional() });
+const schema = z.union([
+  z.object({ plan: z.enum(["free", "pro"]), days: z.number().int().min(1).max(3660).optional() }),
+  z.object({ role: z.enum(["user", "admin"]) }),
+]);
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!sameOrigin(req)) return fail("Origem inválida.", 403);
@@ -19,6 +22,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   const exists = db().prepare("SELECT 1 FROM users WHERE id = ?").get(userId);
   if (!exists) return fail("Usuário não encontrado.", 404);
+
+  if ("role" in parsed.data) {
+    if (userId === admin.id) return fail("Você não pode alterar o seu próprio papel.", 403);
+    db().prepare("UPDATE users SET role = ? WHERE id = ?").run(parsed.data.role, userId);
+    return json({ ok: true });
+  }
 
   if (parsed.data.plan === "free") {
     db().prepare("UPDATE users SET plan = 'free', plan_expires_at = NULL WHERE id = ?").run(userId);
