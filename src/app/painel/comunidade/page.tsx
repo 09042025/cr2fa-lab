@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { listPostReports } from "@/lib/feed";
+import { DismissPostReport, DeleteItem } from "@/components/FeedClient";
 import { canPost, findChannel, isBanned, listBlocked, listMessages, listReports, MAX_BODY, REACTIONS, REPORT_REASONS, splitMentions, VOICE, visibleCategories } from "@/lib/community";
 import { AutoRefresh, BanButton, BlockButton, ChatForm, DeleteMessage, DismissReport, EditMessage, Reactions, ReportButton } from "@/components/CommunityChat";
-import { Locked, PageTitle } from "@/components/ui";
+import { PageTitle } from "@/components/ui";
+import { Avatar } from "@/components/Avatar";
+import { ChannelIcon } from "@/components/ChannelIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -10,14 +14,6 @@ const when = (t: number) => new Date(t * 1000).toLocaleString("pt-BR", { timeZon
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ c?: string; r?: string }> }) {
   const user = await requireUser();
-  if (user.plan !== "pro") {
-    return (
-      <>
-        <PageTitle title="Comunidade" subtitle="Espaço dos assinantes Pró." />
-        <Locked feature="Comunidade (exclusivo do plano Pró)" />
-      </>
-    );
-  }
   const isAdmin = user.role === "admin";
   const sp = await searchParams;
   const ch = findChannel(sp.c, isAdmin);
@@ -27,11 +23,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const replying = messages.find((m) => String(m.id) === sp.r);
   const blocked = listBlocked(user.id);
   const reports = isAdmin && ch.slug === "moderador" ? listReports() : [];
+  const postReports = isAdmin && ch.slug === "moderador" ? listPostReports() : [];
   const firstName = user.name.split(" ")[0].toLowerCase();
 
   return (
     <>
-      <PageTitle title="Comunidade" subtitle="Canais de conversa dos assinantes Pró, moderados pela equipe." />
+      <PageTitle title="Chat" subtitle="Canais de conversa dos assinantes Pró, moderados pela equipe." />
       <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
         <nav className="card p-3 text-sm" aria-label="Canais">
           {visibleCategories(isAdmin).map((cat) => (
@@ -39,7 +36,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
               <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{cat.label}</p>
               {cat.channels.map((c) => (
                 <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${c.slug === ch.slug ? "bg-panel-2 font-semibold text-gold-soft" : "text-muted hover:bg-panel-2 hover:text-white"}`}>
-                  <span aria-hidden className="w-4 text-center">{c.icon}</span>
+                  <ChannelIcon name={c.icon} />
                   <span className="truncate">{c.name}</span>
                 </Link>
               ))}
@@ -48,8 +45,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
           <div>
             <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Canais de voz</p>
             {VOICE.map((v) => (
-              <p key={v} className="flex items-center gap-2 px-2 py-1.5 text-muted/60" title="Em breve">
-                <span aria-hidden className="w-4 text-center">🔊</span>{v}<span className="ml-auto text-[10px]">em breve</span>
+              <p key={v.name} className="flex items-center gap-2 px-2 py-1.5 text-muted/60 [&_svg]:opacity-50" title="Em breve">
+                <ChannelIcon name={v.icon} />{v.name}<span className="ml-auto text-[10px]">em breve</span>
               </p>
             ))}
           </div>
@@ -65,7 +62,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 
         <section className="card flex min-h-[28rem] flex-col p-4">
           <header className="mb-3 border-b border-line pb-3">
-            <h2 className="font-semibold"><span className="text-gold-soft">{ch.icon === "#" ? "#" : ch.icon}</span> {ch.name}</h2>
+            <h2 className="flex items-center gap-2 font-semibold"><ChannelIcon name={ch.icon} size={20} /> {ch.name}</h2>
             <p className="text-xs text-muted">{ch.description}</p>
           </header>
           {ch.intro && (
@@ -75,9 +72,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
           )}
           {isAdmin && ch.slug === "moderador" && (
             <div className="mb-3 rounded-lg border border-down/40 bg-panel-2 p-3">
-              <h3 className="mb-2 text-sm font-semibold">Denúncias ({reports.length})</h3>
-              {reports.length === 0 && <p className="text-xs text-muted">Nenhuma denúncia pendente.</p>}
+              <h3 className="mb-2 text-sm font-semibold">Denúncias ({reports.length + postReports.length})</h3>
+              {reports.length + postReports.length === 0 && <p className="text-xs text-muted">Nenhuma denúncia pendente.</p>}
               <ul className="space-y-3">
+                {postReports.map((r) => (
+                  <li key={`p${r.id}`} className="text-xs">
+                    <p className="text-muted"><strong className="text-white">{r.reason}</strong> · publicação no feed · denunciado por {r.reporter} · {when(r.createdAt)}</p>
+                    <p className="my-1 break-words rounded bg-ink p-2 text-sm text-muted"><strong className="text-white">{r.author}</strong>: {r.body || "(imagem)"}</p>
+                    <p className="flex flex-wrap gap-x-3"><DeleteItem id={r.postId} kind="post" /><BanButton userId={r.authorId} banned={r.authorBanned} /><DismissPostReport id={r.id} /></p>
+                  </li>
+                ))}
                 {reports.map((r) => (
                   <li key={r.id} className="text-xs">
                     <p className="text-muted"><strong className="text-white">{r.reason}</strong> · denunciado por {r.reporter} · {when(r.createdAt)}</p>
@@ -91,9 +95,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
           <ul className="flex max-h-[32rem] flex-1 flex-col gap-3 overflow-y-auto pr-1">
             {messages.length === 0 && <li className="text-sm text-muted">Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</li>}
             {messages.map((m) => (
-              <li key={m.id} className="text-sm">
+              <li key={m.id} className="flex gap-3 text-sm">
+                <Link href={`/painel/comunidade/membro/${m.userId}`} className="mt-0.5 shrink-0"><Avatar name={m.author} id={m.avatarId} size={36} /></Link>
+                <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-baseline gap-2">
-                  <span className="font-semibold">{m.author}</span>
+                  <Link href={`/painel/comunidade/membro/${m.userId}`} className="font-semibold hover:underline">{m.author}</Link>
                   {m.banned && <span className="rounded bg-down/20 px-1.5 text-[10px] font-semibold uppercase text-down">Suspenso</span>}
                   {m.isAdmin && <span className="rounded bg-gold/20 px-1.5 text-[10px] font-semibold uppercase text-gold-soft">Admin</span>}
                   <span className="text-xs text-muted">{when(m.createdAt)}{m.edited && " (editado)"}</span>
@@ -106,6 +112,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
                     )}
                   </p>
                 )}
+                {m.audioId && <audio controls preload="none" src={`/api/community/audio?id=${m.audioId}`} className="mt-1 h-10 w-full max-w-sm" />}
                 {m.imageId && (
                   <a href={`/api/community/image?id=${m.imageId}`} target="_blank" rel="noopener noreferrer">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -121,6 +128,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
                   {m.userId !== user.id && !m.isAdmin && <BlockButton userId={m.userId} />}
                   {isAdmin && !m.isAdmin && m.userId !== user.id && <BanButton userId={m.userId} banned={m.banned} />}
                 </p>
+                </div>
               </li>
             ))}
             <AutoRefresh count={messages.length} />

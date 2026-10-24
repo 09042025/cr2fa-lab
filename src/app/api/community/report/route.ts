@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getUser, rateLimit } from "@/lib/auth";
 import { dismissReport, reportMessage } from "@/lib/community";
+import { dismissPostReport } from "@/lib/feed";
 import { fail, json, sameOrigin } from "@/lib/http";
 
 /** Membro Pró denuncia uma mensagem. */
@@ -20,6 +21,8 @@ export async function DELETE(req: Request) {
   if (!sameOrigin(req)) return fail("Origem inválida.", 403);
   const user = await getUser();
   if (!user || user.role !== "admin") return fail("Somente administradores.", 403);
-  const id = Number(new URL(req.url).searchParams.get("id"));
-  return Number.isInteger(id) && dismissReport(id) ? json({ ok: true }) : fail("Denúncia não encontrada.", 404);
+  const q = new URL(req.url).searchParams;
+  const id = Number(q.get("id"));
+  const ok = q.get("kind") === "post" ? dismissPostReport(id) : dismissReport(id);
+  return Number.isInteger(id) && ok ? json({ ok: true }) : fail("Denúncia não encontrada.", 404);
 }
