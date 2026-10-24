@@ -3,7 +3,8 @@
  * Sem dependências de servidor: usado tanto pela API quanto pela tela.
  */
 
-export const MAX_INDICATORS = 3;
+/** Plano Grátis: quantos indicadores ao mesmo tempo. O Pró não tem limite. */
+export const FREE_MAX_INDICATORS = 2;
 
 export type Fmt = "ratio" | "usd" | "compact" | "pct" | "eh" | "trillion";
 export type BaseKey = "supply" | "rc" | "hash" | "diff" | "addr" | "tx" | "tvol" | "sth" | "lth";
@@ -163,13 +164,13 @@ export const PRESETS: { label: string; ids: string[] }[] = [
   { label: "Modelos de preço", ids: ["power_law", "wma200", "mayer"] },
 ];
 
-/** Lê "a,b,c" e devolve só ids válidos, sem repetição, até o limite. */
-export function parseIds(raw: string | null | undefined): string[] {
+/** Lê "a,b,c" e devolve só ids válidos, sem repetição, até o limite (padrão: o do plano Grátis). */
+export function parseIds(raw: string | null | undefined, max: number = FREE_MAX_INDICATORS): string[] {
   const out: string[] = [];
   for (const part of (raw || "").split(",")) {
     const id = part.trim();
     if (Object.hasOwn(INDICATOR_BY_ID, id) && !out.includes(id)) out.push(id);
-    if (out.length >= MAX_INDICATORS) break;
+    if (out.length >= max) break;
   }
   return out;
 }

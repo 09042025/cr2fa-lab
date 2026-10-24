@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { INDICATORS, INDICATOR_BY_ID, MAX_INDICATORS, epochDay, formatValue, parseIds } from "../src/lib/onchain-defs";
+import { INDICATORS, INDICATOR_BY_ID, FREE_MAX_INDICATORS, epochDay, formatValue, parseIds } from "../src/lib/onchain-defs";
 import {
   alignSeries, buildBase, computeIndicators, expandingStd, hashToEh, issuance, parseHolderRows, powerLaw, sma, unavailableIds,
   type RawOnchain, type Series,
@@ -126,9 +126,10 @@ test("todo indicador devolve uma série por linha definida, com o tamanho dos da
   }
 });
 
-test("parseIds limita a 3, tira repetidos e ids inválidos", () => {
-  assert.deepEqual(parseIds("mvrv,mvrv,xxx,puell,nupl,pi_cycle"), ["mvrv", "puell", "nupl"]);
-  assert.equal(parseIds("mvrv,puell,nupl,pi_cycle").length, MAX_INDICATORS);
+test("parseIds limita a 2 no Grátis, tira repetidos e ids inválidos", () => {
+  assert.deepEqual(parseIds("mvrv,mvrv,xxx,puell,nupl,pi_cycle"), ["mvrv", "puell"]);
+  assert.deepEqual(parseIds("mvrv,mvrv,xxx,puell,nupl,pi_cycle", 10), ["mvrv", "puell", "nupl", "pi_cycle"]);
+  assert.equal(parseIds("mvrv,puell,nupl,pi_cycle").length, FREE_MAX_INDICATORS);
   assert.deepEqual(parseIds(null), []);
   assert.deepEqual(parseIds("__proto__,constructor"), []);
 });
