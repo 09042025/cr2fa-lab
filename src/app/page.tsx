@@ -131,7 +131,7 @@ export default async function Home() {
 
       <section id="planos" className="py-14">
         <h2 className="font-display text-3xl font-bold text-gold-soft">Planos</h2>
-        <p className="mt-1 text-muted">Pagamento por Pix, cartão de crédito ou cripto (Bitcoin, Ethereum, Arbitrum, Base, Polygon, Optimism e Solana).</p>
+        <p className="mt-1 text-muted">Pagamento por Pix, cartão de crédito ou Bitcoin.</p>
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <div className="card p-6">
             <h3 className="text-lg font-semibold">Grátis</h3>
