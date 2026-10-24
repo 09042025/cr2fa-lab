@@ -15,6 +15,8 @@ const NAV: { href: string; label: string; pro?: boolean; sub?: boolean }[] = [
   { href: "/painel/acoes", label: "Ações" },
   { href: "/painel/renda-fixa", label: "Renda fixa" },
   { href: "/painel/portfolio", label: "Portfólio", pro: true },
+  { href: "/painel/cursos", label: "Cursos", pro: true },
+  { href: "/painel/comunidade", label: "Comunidade", pro: true },
   { href: "/planos", label: "Planos e pagamento" },
 ];
 

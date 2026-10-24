@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { chartHref } from "@/lib/charts";
 import type { Quote } from "@/lib/market";
 import { Change } from "@/components/ui";
 import { brl, brlCompact } from "@/lib/format";
@@ -12,7 +11,7 @@ export function QuotesTable({ rows, origem }: { rows: Quote[]; origem: "acoes" |
         <tbody>
           {rows.map((q) => (
             <tr key={q.symbol}>
-              <td className="font-semibold"><Link href={chartHref("b3", q.symbol, { nome: q.name, de: origem })} title="Ver gráfico" className="text-gold-soft underline-offset-2 hover:underline">{q.symbol} <span aria-hidden>📈</span></Link></td>
+              <td className="font-semibold"><Link href={`/painel/ativo/${q.symbol}?de=${origem}`} title="Ver gráfico e informações" className="text-gold-soft underline-offset-2 hover:underline">{q.symbol} <span aria-hidden>📈</span></Link></td>
               <td className="text-muted">{q.name}</td>
               <td>{q.sector}</td>
               <td className="num">{brl(q.price)}</td>

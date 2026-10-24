@@ -365,8 +365,109 @@ async function loadGroup(groups: Record<string, string[]>): Promise<Quote[]> {
   return quotes;
 }
 
-export const getStocks = () => cached<Quote[]>("brapi:stocks", 15 * 60, () => loadGroup(STOCK_SECTORS));
-export const getFiis = () => cached<Quote[]>("brapi:fiis", 15 * 60, () => loadGroup(FII_SEGMENTS));
+/** Segmento de FIIs conhecidos (a brapi não informa segmento de fundos). Fundos fora desta lista caem em "Outros / não classificado". */
+const EXTRA_FII_SEGMENTS: Record<string, string[]> = {
+  "Galpões logísticos": ["LVBI11", "GGRC11", "HSLG11", "BRCO11", "SDIL11", "TRBL11", "ALMI11", "RBRL11", "CPTR11"],
+  "Shopping centers": ["XPML11", "MALL11", "HGBS11", "ABCP11", "FIGS11", "PQDP11", "WPLZ11", "SHPH11"],
+  "Outros imóveis de tijolo": ["HGRE11", "JSRE11", "RECT11", "RBRP11", "TRXF11", "HGRU11", "XPCI11", "RZTR11", "PATL11", "VINO11", "TGAR11", "ALZR11", "BTAL11", "HCTR11", "HGPO11"],
+  "Fundos de papel": ["KNCR11", "KNIP11", "KNHY11", "KNSC11", "CPTS11", "MXRF11", "RECR11", "RBRR11", "VGIR11", "VGHF11", "HGCR11", "IRDM11", "RZAK11", "BTCI11", "BCRI11", "PORD11", "VCRI11", "CVBI11", "DEVA11", "HABT11", "MCCI11", "URPR11", "XPCI11", "SNCI11", "BARI11"],
+  "Fundos de fundos": ["BCFF11", "HFOF11", "KFOF11", "RBRF11", "XPFF11", "MGFF11", "JSAF11", "RFOF11"],
+  "Híbridos": ["BTHF11", "GARE11", "KORE11", "VGIP11", "XPSF11"],
+};
+const FII_SEGMENT_BY_TICKER: Record<string, string> = {};
+for (const g of [EXTRA_FII_SEGMENTS, FII_SEGMENTS]) for (const [seg, list] of Object.entries(g)) for (const t of list) FII_SEGMENT_BY_TICKER[t] = seg;
+
+const SECTOR_PT: Record<string, string> = {
+  Finance: "Financeiro", Utilities: "Energia, saneamento e utilidades", "Energy Minerals": "Petróleo e energia (minerais)", "Non-Energy Minerals": "Mineração e siderurgia",
+  "Retail Trade": "Varejo", Transportation: "Transporte e logística", Communications: "Telecom", "Health Technology": "Saúde (tecnologia)", "Health Services": "Saúde (serviços)",
+  "Consumer Non-Durables": "Consumo não durável", "Consumer Durables": "Consumo durável", "Consumer Services": "Serviços ao consumidor", "Process Industries": "Indústria de processos",
+  "Technology Services": "Tecnologia (serviços)", "Electronic Technology": "Tecnologia (eletrônicos)", "Producer Manufacturing": "Indústria", "Commercial Services": "Serviços comerciais",
+  "Distribution Services": "Distribuição", "Industrial Services": "Serviços industriais", Miscellaneous: "Outros",
+};
+
+interface BrapiListItem { stock: string; name?: string; close?: number | null; change?: number | null; volume?: number | null; market_cap?: number | null; sector?: string | null }
+
+async function fetchBrapiList(params: string): Promise<BrapiListItem[]> {
+  const token = process.env.BRAPI_TOKEN;
+  const url = `https://brapi.dev/api/quote/list?${params}&limit=2000${token ? `&token=${encodeURIComponent(token)}` : ""}`;
+  const res = await fetchJson<{ stocks?: BrapiListItem[] }>(url, {}, 25000);
+  return res.stocks ?? [];
+}
+
+const toQuote = (i: BrapiListItem, sector: string): Quote => ({
+  symbol: i.stock, name: i.name || i.stock, sector, price: i.close ?? null, changePct: i.change ?? null, volume: i.volume ?? null, marketCap: i.market_cap ?? null,
+});
+
+/** Todas as ações da B3 (lista completa da brapi). Se a lista falhar, cai nos exemplos por setor. */
+export const getStocks = () =>
+  cached<Quote[]>("brapi:stocks:all:v1", 15 * 60, async () => {
+    try {
+      const items = (await fetchBrapiList("type=stock")).filter((i) => /^[A-Z]{4}\d{1,2}$/.test(i.stock));
+      if (items.length < 20) throw new Error("lista curta");
+      return items.map((i) => toQuote(i, SECTOR_PT[i.sector || ""] || i.sector || "Outros"));
+    } catch {
+      return loadGroup(STOCK_SECTORS);
+    }
+  });
+
+/** Todos os FIIs da B3, com segmento quando conhecido. Se a lista falhar, cai nos exemplos por segmento. */
+export const getFiis = () =>
+  cached<Quote[]>("brapi:fiis:all:v1", 15 * 60, async () => {
+    try {
+      const items = (await fetchBrapiList("type=fund&subType=fii")).filter((i) => /^[A-Z]{4}1[1-3]$/.test(i.stock));
+      if (items.length < 20) throw new Error("lista curta");
+      return items.map((i) => toQuote(i, FII_SEGMENT_BY_TICKER[i.stock] || "Outros / não classificado"));
+    } catch {
+      return loadGroup(FII_SEGMENTS);
+    }
+  });
+
+/* ===================== Página de um ativo ===================== */
+
+export interface AssetDetail {
+  symbol: string;
+  name: string;
+  logo: string | null;
+  price: number | null;
+  changePct: number | null;
+  dayLow: number | null;
+  dayHigh: number | null;
+  low52: number | null;
+  high52: number | null;
+  volume: number | null;
+  marketCap: number | null;
+  pe: number | null;
+  eps: number | null;
+  dividends: { date: string; value: number; label: string }[];
+}
+
+interface BrapiDetail {
+  symbol: string; shortName?: string; longName?: string; logourl?: string;
+  regularMarketPrice?: number; regularMarketChangePercent?: number; regularMarketDayLow?: number; regularMarketDayHigh?: number;
+  fiftyTwoWeekLow?: number; fiftyTwoWeekHigh?: number; regularMarketVolume?: number; marketCap?: number; priceEarnings?: number; earningsPerShare?: number;
+  dividendsData?: { cashDividends?: { paymentDate?: string; rate?: number; label?: string; relatedTo?: string }[] };
+}
+
+export function getAssetDetail(ticker: string) {
+  return cached<AssetDetail>(`brapi:detail:${ticker}:v1`, 15 * 60, async () => {
+    const token = process.env.BRAPI_TOKEN;
+    const url = `https://brapi.dev/api/quote/${ticker}?fundamental=true&dividends=true${token ? `&token=${encodeURIComponent(token)}` : ""}`;
+    const r = (await fetchJson<{ results?: BrapiDetail[] }>(url, {}, 20000)).results?.[0];
+    if (!r) throw new Error("ativo não encontrado na brapi");
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    const divs = (r.dividendsData?.cashDividends ?? [])
+      .filter((d) => d.paymentDate && typeof d.rate === "number")
+      .sort((a, b) => String(b.paymentDate).localeCompare(String(a.paymentDate)))
+      .slice(0, 24)
+      .map((d) => ({ date: String(d.paymentDate).slice(0, 10), value: d.rate as number, label: d.label || d.relatedTo || "Provento" }));
+    return {
+      symbol: r.symbol, name: r.longName || r.shortName || r.symbol, logo: r.logourl || null,
+      price: num(r.regularMarketPrice), changePct: num(r.regularMarketChangePercent), dayLow: num(r.regularMarketDayLow), dayHigh: num(r.regularMarketDayHigh),
+      low52: num(r.fiftyTwoWeekLow), high52: num(r.fiftyTwoWeekHigh), volume: num(r.regularMarketVolume), marketCap: num(r.marketCap),
+      pe: num(r.priceEarnings), eps: num(r.earningsPerShare), dividends: divs,
+    };
+  });
+}
 
 /* ===================== Taxas (Banco Central, SGS) ===================== */
 
