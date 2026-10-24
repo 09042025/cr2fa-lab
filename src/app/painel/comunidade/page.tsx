@@ -37,10 +37,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
             <div key={cat.id} className="mb-3">
               <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{cat.label}</p>
               {cat.channels.map((c) => (
-                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} title={canView(c, user) ? undefined : "Exclusivo do plano Pró"} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${c.slug === ch.slug ? "bg-panel-2 font-semibold text-gold-soft" : "text-muted hover:bg-panel-2 hover:text-white"}`}>
+                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} title={c.free || c.admin ? undefined : "Exclusivo do plano Pró"} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${c.slug === ch.slug ? "bg-panel-2 font-semibold text-gold-soft" : "text-muted hover:bg-panel-2 hover:text-white"}`}>
                   <ChannelIcon name={c.icon} />
                   <span className="truncate">{c.name}</span>
-                  {!canView(c, user) && <span className="ml-auto rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Pró</span>}
+                  {!c.free && !c.admin && <span className="ml-auto rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Pró</span>}
                 </Link>
               ))}
             </div>
