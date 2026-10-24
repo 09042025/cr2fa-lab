@@ -72,7 +72,11 @@ export function parseFeed(xml: string, source: string, nowSec = Math.floor(Date.
     const ms = Date.parse(dateRaw);
     const at = Number.isFinite(ms) ? Math.floor(ms / 1000) : nowSec;
     let summary = clean(tag(b, "description") ?? tag(b, "summary") ?? tag(b, "content:encoded") ?? "");
-    if (summary.startsWith(title)) summary = summary.slice(title.length).trim();
+    // O Google Notícias repete o título no resumo (às vezes com a fonte no fim): nesse caso não há resumo de verdade.
+    const norm = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    const head = norm(title).slice(0, 40);
+    if (head && norm(summary).startsWith(head)) summary = "";
+    else if (summary.startsWith(title)) summary = summary.slice(title.length).trim();
     if (summary.length > 220) summary = summary.slice(0, 217).replace(/\s+\S*$/, "") + "…";
     const src = clean(tag(b, "source") ?? "") || source;
     out.push({ title, url: link, source: src, at: Math.min(at, nowSec + 3600), summary });

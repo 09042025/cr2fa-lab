@@ -46,3 +46,10 @@ test("videoId reconhece links do YouTube", () => {
   assert.equal(videoId("https://youtu.be/dQw4w9WgXcQ"), "dQw4w9WgXcQ");
   assert.equal(videoId("https://example.com/"), null);
 });
+
+test("resumo que só repete o título é descartado", () => {
+  const xml = `<rss><channel><item><title>Polícia descobre mineração ilegal de bitcoin - DOL</title><link>https://a.com/1</link><description>Polícia descobre mineração ilegal de bitcoin DOL</description></item><item><title>Outro título</title><link>https://a.com/2</link><description>Texto diferente e útil sobre a notícia.</description></item></channel></rss>`;
+  const it = parseFeed(xml, "X", 1_800_000_000);
+  assert.equal(it[0].summary, "");
+  assert.equal(it[1].summary, "Texto diferente e útil sobre a notícia.");
+});
