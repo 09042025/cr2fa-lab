@@ -32,6 +32,15 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
   const [image, setImage] = useState<{ id: number; name: string; preview: string } | null>(null);
   const [drag, setDrag] = useState(false);
   const file = useRef<HTMLInputElement>(null);
+  const area = useRef<HTMLTextAreaElement>(null);
+
+  // O campo cresce com o texto (até 6 linhas) e não mostra barra de rolagem.
+  useEffect(() => {
+    const el = area.current;
+    if (!el) return;
+    el.style.height = "48px";
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 48), 144)}px`;
+  }, [body]);
 
   async function upload(f: File | undefined) {
     if (!f) return;
@@ -104,7 +113,9 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
       <div className="flex items-end gap-2">
         <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
         <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-line outline-none focus:outline-none focus-visible:outline-none hover:bg-panel-2 disabled:opacity-50" title="Anexar imagem ou print (você também pode colar com Ctrl+V)" aria-label="Anexar imagem" onClick={() => file.current?.click()} disabled={busy}>
-          <span aria-hidden className="text-4xl font-black leading-none text-gold">+</span>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden className="text-gold">
+            <path d="M9 3v12M3 9h12" />
+          </svg>
         </button>
         <textarea
           value={body}
@@ -113,8 +124,10 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
           data-chat-input
+          ref={area}
+          style={{ scrollbarWidth: "none" }}
           placeholder="Escreva uma mensagem ou cole um print (Ctrl+V). Use @nome para mencionar."
-          className="h-12 min-w-0 flex-1 resize-none rounded-lg border border-line bg-ink px-3 py-3 text-sm leading-6 outline-none focus:outline-none focus:ring-0"
+          className="min-h-12 min-w-0 flex-1 resize-none rounded-lg border border-line bg-ink px-3 py-3 text-sm leading-6 [&::-webkit-scrollbar]:hidden outline-none focus:outline-none focus:ring-0"
         />
         <button type="button" className="btn btn-gold h-12 shrink-0 !py-0" onClick={send} disabled={busy}>{busy ? "…" : "Enviar"}</button>
       </div>
