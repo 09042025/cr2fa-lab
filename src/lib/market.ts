@@ -60,6 +60,9 @@ export interface CryptoCoin {
   volumeUsd: number;
   change24h: number | null;
   change7d: number | null;
+  change30d?: number | null;
+  /** Logo da moeda (URL da CoinGecko). Ausente em registros antigos do cache. */
+  image?: string | null;
 }
 
 interface GeckoCoin {
@@ -71,6 +74,8 @@ interface GeckoCoin {
   total_volume: number;
   price_change_percentage_24h_in_currency?: number | null;
   price_change_percentage_7d_in_currency?: number | null;
+  price_change_percentage_30d_in_currency?: number | null;
+  image?: string | null;
 }
 
 function geckoHeaders(): Record<string, string> {
@@ -92,6 +97,8 @@ export function getCryptoMarkets() {
       volumeUsd: c.total_volume,
       change24h: c.price_change_percentage_24h_in_currency ?? null,
       change7d: c.price_change_percentage_7d_in_currency ?? null,
+      change30d: c.price_change_percentage_30d_in_currency ?? null,
+      image: c.image ?? null,
     }));
   });
 }
@@ -100,12 +107,13 @@ export function getCryptoMarkets() {
 export function getCryptoPage(page: number, category?: string, perPage = 100) {
   const pg = Math.min(Math.max(Math.floor(page) || 1, 1), 20);
   const cat = category && /^[a-z0-9-]{2,60}$/.test(category) ? category : "";
-  return cached<CryptoCoin[]>(`coingecko:markets:${cat || "all"}:${perPage}:${pg}`, 5 * 60, async () => {
-    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${pg}&sparkline=false&price_change_percentage=24h,7d${cat ? `&category=${cat}` : ""}`;
+  return cached<CryptoCoin[]>(`coingecko:markets:v2:${cat || "all"}:${perPage}:${pg}`, 5 * 60, async () => {
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${pg}&sparkline=false&price_change_percentage=24h,7d,30d${cat ? `&category=${cat}` : ""}`;
     const raw = await fetchJson<GeckoCoin[]>(url, { headers: geckoHeaders() });
     return raw.map((c) => ({
       id: c.id, symbol: c.symbol.toUpperCase(), name: c.name, priceUsd: c.current_price, marketCapUsd: c.market_cap, volumeUsd: c.total_volume,
       change24h: c.price_change_percentage_24h_in_currency ?? null, change7d: c.price_change_percentage_7d_in_currency ?? null,
+      change30d: c.price_change_percentage_30d_in_currency ?? null, image: c.image ?? null,
     }));
   });
 }
@@ -143,6 +151,79 @@ export function getFearGreed() {
     const rows = (raw.data ?? []).map((r) => ({ value: Number(r.value), ts: Number(r.timestamp), cls: r.value_classification })).filter((r) => Number.isFinite(r.value));
     if (!rows.length) throw new Error("sem dados do índice");
     return { value: rows[0].value, label: rows[0].cls, history: rows.map((r) => ({ value: r.value, ts: r.ts })) };
+  });
+}
+
+
+export interface CoinDetail {
+  id: string; symbol: string; name: string; image: string | null; rank: number | null;
+  price: number | null; marketCap: number | null; fdv: number | null; volume: number | null;
+  circulating: number | null; total: number | null; max: number | null;
+  ath: number | null; athDate: string | null; atl: number | null; atlDate: string | null;
+  change24h: number | null; change7d: number | null; change30d: number | null; change1y: number | null;
+  description: string; homepage: string | null; explorers: string[]; twitter: string | null;
+  categories: string[]; contracts: { platform: string; address: string }[];
+}
+
+interface GeckoDetail {
+  id: string; symbol: string; name: string; market_cap_rank?: number | null;
+  image?: { large?: string }; description?: { en?: string; pt?: string };
+  links?: { homepage?: string[]; blockchain_site?: string[]; twitter_screen_name?: string };
+  categories?: string[]; platforms?: Record<string, string>;
+  market_data?: {
+    current_price?: { usd?: number }; market_cap?: { usd?: number }; fully_diluted_valuation?: { usd?: number }; total_volume?: { usd?: number };
+    circulating_supply?: number; total_supply?: number; max_supply?: number;
+    ath?: { usd?: number }; ath_date?: { usd?: string }; atl?: { usd?: number }; atl_date?: { usd?: string };
+    price_change_percentage_24h?: number; price_change_percentage_7d?: number; price_change_percentage_30d?: number; price_change_percentage_1y?: number;
+  };
+}
+
+const COIN_ID_RE = /^[a-z0-9][a-z0-9-]{0,80}$/;
+
+/** Ficha completa de uma moeda/ativo tokenizado (CoinGecko). */
+export function getCoinDetail(id: string) {
+  if (!COIN_ID_RE.test(id)) return Promise.resolve({ data: null, fetchedAt: null, stale: false, error: "ativo inválido" } as Cached<CoinDetail>);
+  return cached<CoinDetail>(`coingecko:coin:${id}:v1`, 5 * 60, async () => {
+    const r = await fetchJson<GeckoDetail>(
+      `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false`, { headers: geckoHeaders() });
+    const m = r.market_data ?? {};
+    const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    const clean = (t: string) => t.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+    const url = (u?: string) => (u && /^https?:\/\//i.test(u) ? u : null);
+    return {
+      id: r.id, symbol: r.symbol.toUpperCase(), name: r.name, image: r.image?.large ?? null, rank: n(r.market_cap_rank),
+      price: n(m.current_price?.usd), marketCap: n(m.market_cap?.usd), fdv: n(m.fully_diluted_valuation?.usd), volume: n(m.total_volume?.usd),
+      circulating: n(m.circulating_supply), total: n(m.total_supply), max: n(m.max_supply),
+      ath: n(m.ath?.usd), athDate: m.ath_date?.usd ?? null, atl: n(m.atl?.usd), atlDate: m.atl_date?.usd ?? null,
+      change24h: n(m.price_change_percentage_24h), change7d: n(m.price_change_percentage_7d), change30d: n(m.price_change_percentage_30d), change1y: n(m.price_change_percentage_1y),
+      description: clean(r.description?.pt || r.description?.en || "").slice(0, 900),
+      homepage: url(r.links?.homepage?.find((h) => h)), explorers: (r.links?.blockchain_site ?? []).map(url).filter((u): u is string => !!u).slice(0, 3),
+      twitter: r.links?.twitter_screen_name && /^[A-Za-z0-9_]{1,15}$/.test(r.links.twitter_screen_name) ? r.links.twitter_screen_name : null,
+      categories: (r.categories ?? []).filter(Boolean).slice(0, 6),
+      contracts: Object.entries(r.platforms ?? {}).filter(([k, v]) => k && v).slice(0, 5).map(([platform, address]) => ({ platform, address })),
+    };
+  });
+}
+
+export interface ChartSeries { prices: [number, number][]; caps: [number, number][]; volumes: [number, number][] }
+
+function thin(rows: [number, number][] | undefined, max = 140): [number, number][] {
+  const a = (rows ?? []).filter((r) => Array.isArray(r) && Number.isFinite(r[0]) && Number.isFinite(r[1]));
+  if (a.length <= max) return a;
+  const step = a.length / max;
+  return Array.from({ length: max }, (_, i) => a[Math.min(a.length - 1, Math.floor(i * step))]);
+}
+
+/** Histórico de preço, valor de mercado e volume (US$) de uma moeda. days: 1 a 365. */
+export function getMarketChart(id: string, days: number) {
+  const d = [7, 30, 90, 365].includes(days) ? days : 30;
+  if (!COIN_ID_RE.test(id)) return Promise.resolve({ data: null, fetchedAt: null, stale: false, error: "ativo inválido" } as Cached<ChartSeries>);
+  return cached<ChartSeries>(`coingecko:chart:${id}:${d}:v1`, 15 * 60, async () => {
+    const r = await fetchJson<{ prices?: [number, number][]; market_caps?: [number, number][]; total_volumes?: [number, number][] }>(
+      `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${d}`, { headers: geckoHeaders() }, 20000);
+    const prices = thin(r.prices);
+    if (prices.length < 2) throw new Error("sem histórico");
+    return { prices, caps: thin(r.market_caps), volumes: thin(r.total_volumes) };
   });
 }
 

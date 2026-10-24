@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { chartHref, cleanTicker } from "@/lib/charts";
 import type { CryptoCoin } from "@/lib/market";
 import { Change } from "@/components/ui";
 import { usd, usdCompact } from "@/lib/format";
@@ -14,11 +13,10 @@ export function CoinTable({ coins, start = 0 }: { coins: CryptoCoin[]; start?: n
             <tr key={c.id}>
               <td className="text-muted">{start + i + 1}</td>
               <td>
-                {cleanTicker(c.symbol) ? (
-                  <Link href={chartHref("cripto", c.symbol, { nome: c.name, id: c.id })} title="Ver gráfico" className="text-gold-soft underline-offset-2 hover:underline">{c.name}</Link>
-                ) : (
-                  <a href={`https://www.coingecko.com/en/coins/${encodeURIComponent(c.id)}`} target="_blank" rel="noopener noreferrer" title="Ver no CoinGecko" className="text-gold-soft underline-offset-2 hover:underline">{c.name} ↗</a>
-                )}{" "}
+                <Link href={`/painel/cripto/ativo/${encodeURIComponent(c.id)}`} title="Ver informações e gráfico" className="inline-flex items-center gap-2 text-gold-soft underline-offset-2 hover:underline">
+                  {c.image ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={c.image} alt="" width={22} height={22} loading="lazy" referrerPolicy="no-referrer" className="h-[22px] w-[22px] rounded-full bg-panel-2" /> : <span aria-hidden className="grid h-[22px] w-[22px] place-items-center rounded-full bg-panel-2 text-[10px] text-muted">{c.symbol.slice(0, 2)}</span>}
+                  {c.name}
+                </Link>{" "}
                 <span className="text-muted">{c.symbol}</span>
               </td>
               <td className="num">{usd(c.priceUsd)}</td>

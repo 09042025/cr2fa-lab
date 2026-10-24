@@ -3,11 +3,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/painel/cripto", label: "Mercado" },
+  { href: "/painel/cripto", label: "Visão de mercado" },
+  { href: "/painel/cripto/mercado", label: "Mercado" },
   { href: "/painel/cripto/defi", label: "DeFi" },
   { href: "/painel/cripto/rwa", label: "RWA" },
   { href: "/painel/cripto/onchain", label: "Análise on-chain" },
-  { href: "/painel/cripto/visao", label: "Visão de mercado" },
 ];
 
 export function CryptoTabs() {

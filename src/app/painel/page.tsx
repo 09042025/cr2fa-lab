@@ -32,7 +32,7 @@ export default async function Overview() {
         <section className="card p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-semibold">Maiores criptomoedas</h2>
-            <Link href="/painel/cripto" className="text-xs text-gold-soft underline">ver mais</Link>
+            <Link href="/painel/cripto/mercado" className="text-xs text-gold-soft underline">ver mais</Link>
           </div>
           {coins.data ? (
             <table className="data">
