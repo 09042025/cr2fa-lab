@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { db } from "../src/lib/db";
 import { addMessage, listMessages, saveAudio, sniffAudio } from "../src/lib/community";
-import { addComment, addPost, cleanWebsite, defaultHandle, deletePost, getMember, listPosts, reportPost, saveCommunityProfile, setFollow, toggleLike } from "../src/lib/feed";
+import { listFollows, pinnedPostId, setPinned, addComment, addPost, cleanWebsite, defaultHandle, deletePost, getMember, listPosts, reportPost, saveCommunityProfile, setFollow, toggleLike } from "../src/lib/feed";
 import { setBlocked } from "../src/lib/community";
 
 const mk = (email: string, name = "Bia", role = "user") => Number(db().prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, ?, 'x', ?)").run(email, name, role).lastInsertRowid);
@@ -99,4 +99,25 @@ test("áudio: só formatos reais, anexado só ao dono", () => {
   assert.equal(listMessages("geral", b).find((m) => m.id === stolen)!.audioId, null);
   const ok = addMessage("geral", a, "", { audioId: id });
   assert.equal(listMessages("geral", a).find((m) => m.id === ok)!.audioId, id);
+});
+
+test("fixar publicação no perfil e listas de seguidores", () => {
+  const a = mk("f12@t.com", "Ana"), b = mk("f13@t.com", "Beto");
+  const p1 = addPost(a, "geral", "primeiro")!, p2 = addPost(a, "geral", "segundo")!;
+  const pb = addPost(b, "geral", "do Beto")!;
+  assert.equal(setPinned(a, pb, true), false); // só post próprio
+  assert.equal(setPinned(a, p1, true), true);
+  assert.equal(setPinned(a, p2, true), true); // só um fixado: troca
+  assert.equal(pinnedPostId(a), p2);
+  assert.equal(listPosts({ viewerId: b, authorId: a, onlyId: p2 }).posts[0].pinned, true);
+  assert.deepEqual(listPosts({ viewerId: b, authorId: a, excludeId: p2 }).posts.map((p) => p.id), [p1]);
+  deletePost(p2, { id: a, role: "user" });
+  assert.equal(pinnedPostId(a), null); // apagou o fixado: solta
+  setPinned(a, p1, true);
+  assert.equal(setPinned(a, p1, false), true);
+  assert.equal(pinnedPostId(a), null);
+  setFollow(b, a, true);
+  assert.deepEqual(listFollows(a, "followers", a).map((f) => f.name), ["Beto"]);
+  assert.deepEqual(listFollows(b, "following", b).map((f) => f.name), ["Ana"]);
+  assert.equal(listFollows(b, "following", b)[0].iFollow, true);
 });

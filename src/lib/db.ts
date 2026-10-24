@@ -122,6 +122,7 @@ function migrate(db: Database.Database) {
   // Perfil estilo rede social: @usuário único, capa, localização e um link.
   if (!userCols.some((c) => c.name === "handle")) db.exec("ALTER TABLE users ADD COLUMN handle TEXT");
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_handle ON users(handle) WHERE handle IS NOT NULL");
+  if (!userCols.some((c) => c.name === "pinned_post_id")) db.exec("ALTER TABLE users ADD COLUMN pinned_post_id INTEGER");
   if (!userCols.some((c) => c.name === "banner_id")) db.exec("ALTER TABLE users ADD COLUMN banner_id INTEGER");
   if (!userCols.some((c) => c.name === "location")) db.exec("ALTER TABLE users ADD COLUMN location TEXT NOT NULL DEFAULT ''");
   if (!userCols.some((c) => c.name === "website")) db.exec("ALTER TABLE users ADD COLUMN website TEXT NOT NULL DEFAULT ''");

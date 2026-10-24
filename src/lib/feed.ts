@@ -27,11 +27,12 @@ export interface Post {
   createdAt: number;
   likes: number;
   liked: boolean;
+  pinned: boolean;
   comments: Comment[];
 }
 export interface Comment { id: number; postId: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; body: string; createdAt: number }
 
-interface ListOpts { viewerId: number; topic?: string; following?: boolean; authorId?: number; before?: number; limit?: number }
+interface ListOpts { viewerId: number; topic?: string; following?: boolean; onlyId?: number; excludeId?: number; authorId?: number; before?: number; limit?: number }
 
 /** Publicações mais novas primeiro. Esconde quem o leitor bloqueou. Cada página traz `limit` itens; use `before` (id) para a seguinte. */
 export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
@@ -40,6 +41,8 @@ export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
   const args: (number | string)[] = [o.viewerId, o.viewerId];
   if (o.topic && TOPICS.some((t) => t.id === o.topic)) { where.push("p.topic = ?"); args.push(o.topic); }
   if (o.following) where.push("p.user_id IN (SELECT followed_id FROM community_follows WHERE follower_id = ?)"), args.push(o.viewerId);
+  if (o.onlyId) { where.push("p.id = ?"); args.push(o.onlyId); }
+  if (o.excludeId) { where.push("p.id != ?"); args.push(o.excludeId); }
   if (o.authorId) { where.push("p.user_id = ?"); args.push(o.authorId); }
   if (o.before) { where.push("p.id < ?"); args.push(o.before); }
   const rows = db()
@@ -47,11 +50,12 @@ export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
       `SELECT p.id, p.user_id userId, u.name author, u.avatar_id authorAvatar, u.role = 'admin' authorIsAdmin, u.community_banned = 1 authorBanned,
               p.topic, p.body, p.image_id imageId, p.created_at createdAt,
               (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id) likes,
-              EXISTS (SELECT 1 FROM community_post_likes l WHERE l.post_id = p.id AND l.user_id = ?) liked
+              EXISTS (SELECT 1 FROM community_post_likes l WHERE l.post_id = p.id AND l.user_id = ?) liked,
+              u.pinned_post_id = p.id pinned
        FROM community_posts p JOIN users u ON u.id = p.user_id
        WHERE ${where.join(" AND ")} ORDER BY p.id DESC LIMIT ?`,
     )
-    .all(o.viewerId, ...args, limit + 1) as (Omit<Post, "comments" | "authorIsAdmin" | "authorBanned" | "liked"> & { authorIsAdmin: number; authorBanned: number; liked: number })[];
+    .all(o.viewerId, ...args, limit + 1) as (Omit<Post, "comments" | "authorIsAdmin" | "authorBanned" | "liked" | "pinned"> & { authorIsAdmin: number; authorBanned: number; liked: number; pinned: number })[];
   const more = rows.length > limit;
   const page = rows.slice(0, limit);
   const ids = page.map((r) => r.id);
@@ -73,6 +77,7 @@ export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
       authorIsAdmin: !!r.authorIsAdmin,
       authorBanned: !!r.authorBanned,
       liked: !!r.liked,
+      pinned: !!r.pinned,
       comments: cs.filter((c) => c.postId === r.id).map((c) => ({ ...c, authorIsAdmin: !!c.authorIsAdmin })),
     })),
   };
@@ -92,6 +97,7 @@ export function addPost(userId: number, topic: string, body: string, imageId?: n
 }
 
 export function deletePost(id: number, user: { id: number; role: string }): boolean {
+  db().prepare("UPDATE users SET pinned_post_id = NULL WHERE pinned_post_id = ?").run(id);
   const r =
     user.role === "admin"
       ? db().prepare("DELETE FROM community_posts WHERE id = ?").run(id)
@@ -215,4 +221,33 @@ export function setFollow(followerId: number, followedId: number, follow: boolea
   if (follow) db().prepare("INSERT OR IGNORE INTO community_follows (follower_id, followed_id) VALUES (?, ?)").run(followerId, followedId);
   else db().prepare("DELETE FROM community_follows WHERE follower_id = ? AND followed_id = ?").run(followerId, followedId);
   return true;
+}
+
+/** Fixa uma publicação no topo do próprio perfil (uma por vez). pin=false desafixa. */
+export function setPinned(userId: number, postId: number, pin: boolean): boolean {
+  if (!pin) return db().prepare("UPDATE users SET pinned_post_id = NULL WHERE id = ? AND pinned_post_id = ?").run(userId, postId).changes > 0;
+  if (!db().prepare("SELECT 1 FROM community_posts WHERE id = ? AND user_id = ?").get(postId, userId)) return false;
+  db().prepare("UPDATE users SET pinned_post_id = ? WHERE id = ?").run(postId, userId);
+  return true;
+}
+
+export function pinnedPostId(userId: number): number | null {
+  return (db().prepare("SELECT pinned_post_id p FROM users WHERE id = ?").get(userId) as { p: number | null } | undefined)?.p ?? null;
+}
+
+export interface FollowItem { id: number; name: string; handle: string; bio: string; avatarId: number | null; iFollow: boolean; isMe: boolean }
+
+/** Quem segue (followers) ou quem é seguido (following) por um membro, com o estado "eu sigo" do leitor. */
+export function listFollows(userId: number, kind: "followers" | "following", viewerId: number): FollowItem[] {
+  const [me, other] = kind === "followers" ? ["followed_id", "follower_id"] : ["follower_id", "followed_id"];
+  const rows = db()
+    .prepare(
+      `SELECT u.id, u.name, u.handle, u.bio, u.avatar_id avatarId,
+              EXISTS (SELECT 1 FROM community_follows f2 WHERE f2.follower_id = ? AND f2.followed_id = u.id) iFollow
+       FROM community_follows f JOIN users u ON u.id = f.${other}
+       WHERE f.${me} = ? AND u.id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?)
+       ORDER BY u.name LIMIT 200`,
+    )
+    .all(viewerId, userId, viewerId) as (Omit<FollowItem, "handle" | "iFollow" | "isMe"> & { handle: string | null; iFollow: number })[];
+  return rows.map((r) => ({ ...r, handle: r.handle ?? defaultHandle(r.name, r.id), iFollow: !!r.iFollow, isMe: r.id === viewerId }));
 }
