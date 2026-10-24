@@ -42,6 +42,27 @@ export async function squareAvatar(f: File, side = 320): Promise<File> {
   }
 }
 
+/** Recorta no centro em faixa 3:1 (capa do perfil), 1200x400 px. */
+export async function bannerCrop(f: File): Promise<File> {
+  try {
+    const bmp = await createImageBitmap(f);
+    const w = 1200, h = 400;
+    const k = Math.max(w / bmp.width, h / bmp.height);
+    const sw = w / k, sh = h / k;
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    if (!ctx) return f;
+    ctx.fillStyle = "#0e1730";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(bmp, (bmp.width - sw) / 2, (bmp.height - sh) / 2, sw, sh, 0, 0, w, h);
+    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.86));
+    return blob ? new File([blob], "capa.jpg", { type: "image/jpeg" }) : f;
+  } catch {
+    return f;
+  }
+}
+
 export interface Uploaded { id: number; name: string; preview: string }
 
 /** Envia uma imagem à comunidade e guarda o id + prévia. `prepare` ajusta o arquivo antes (padrão: reduzir). */

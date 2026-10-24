@@ -12,7 +12,7 @@ export const TOPICS = [
 export const topicLabel = (id: string) => TOPICS.find((t) => t.id === id)?.label ?? "Geral";
 export const MAX_POST = 1500;
 export const MAX_COMMENT = 500;
-export const MAX_BIO = 200;
+export const MAX_BIO = 160;
 
 export interface Post {
   id: number;
@@ -31,7 +31,7 @@ export interface Post {
 }
 export interface Comment { id: number; postId: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; body: string; createdAt: number }
 
-interface ListOpts { viewerId: number; topic?: string; authorId?: number; before?: number; limit?: number }
+interface ListOpts { viewerId: number; topic?: string; following?: boolean; authorId?: number; before?: number; limit?: number }
 
 /** Publicações mais novas primeiro. Esconde quem o leitor bloqueou. Cada página traz `limit` itens; use `before` (id) para a seguinte. */
 export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
@@ -39,6 +39,7 @@ export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
   const where: string[] = ["(p.user_id = ? OR p.user_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?))"];
   const args: (number | string)[] = [o.viewerId, o.viewerId];
   if (o.topic && TOPICS.some((t) => t.id === o.topic)) { where.push("p.topic = ?"); args.push(o.topic); }
+  if (o.following) where.push("p.user_id IN (SELECT followed_id FROM community_follows WHERE follower_id = ?)"), args.push(o.viewerId);
   if (o.authorId) { where.push("p.user_id = ?"); args.push(o.authorId); }
   if (o.before) { where.push("p.id < ?"); args.push(o.before); }
   const rows = db()
@@ -145,24 +146,73 @@ export function dismissPostReport(id: number): boolean {
 
 /* ------------------------------ Perfil público ------------------------------ */
 
-export interface Member { id: number; name: string; bio: string; avatarId: number | null; isAdmin: boolean; banned: boolean; since: number; posts: number }
-
-export function getMember(id: number): Member | null {
-  const r = db()
-    .prepare(
-      `SELECT u.id, u.name, u.bio, u.avatar_id avatarId, u.role = 'admin' isAdmin, u.community_banned = 1 banned, u.created_at since,
-              (SELECT COUNT(*) FROM community_posts p WHERE p.user_id = u.id) posts
-       FROM users u WHERE u.id = ?`,
-    )
-    .get(id) as (Omit<Member, "isAdmin" | "banned"> & { isAdmin: number; banned: number }) | undefined;
-  return r ? { ...r, isAdmin: !!r.isAdmin, banned: !!r.banned } : null;
+export interface Member {
+  id: number; name: string; handle: string; bio: string; avatarId: number | null; bannerId: number | null; location: string; website: string;
+  isAdmin: boolean; banned: boolean; since: number; posts: number; followers: number; following: number; iFollow: boolean;
 }
 
-/** Salva bio e foto. A foto precisa ser uma imagem enviada pela própria pessoa; avatarId null remove. */
-export function saveCommunityProfile(userId: number, bio: string, avatarId: number | null): boolean {
-  const text = bio.trim();
-  if (text.length > MAX_BIO) return false;
-  if (avatarId !== null && !ownImage(userId, avatarId)) return false;
-  db().prepare("UPDATE users SET bio = ?, avatar_id = ? WHERE id = ?").run(text, avatarId, userId);
+const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
+export const handleOk = (h: string) => HANDLE_RE.test(h);
+
+/** Nome de usuário padrão enquanto a pessoa não escolhe um: primeiro nome sem acento + número do membro. */
+export function defaultHandle(name: string, id: number): string {
+  const base = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12) || "membro";
+  return `${base}${id}`;
+}
+
+export function getMember(id: number, viewerId = 0): Member | null {
+  const r = db()
+    .prepare(
+      `SELECT u.id, u.name, u.handle, u.bio, u.avatar_id avatarId, u.banner_id bannerId, u.location, u.website,
+              u.role = 'admin' isAdmin, u.community_banned = 1 banned, u.created_at since,
+              (SELECT COUNT(*) FROM community_posts p WHERE p.user_id = u.id) posts,
+              (SELECT COUNT(*) FROM community_follows f WHERE f.followed_id = u.id) followers,
+              (SELECT COUNT(*) FROM community_follows f WHERE f.follower_id = u.id) following,
+              EXISTS (SELECT 1 FROM community_follows f WHERE f.follower_id = ? AND f.followed_id = u.id) iFollow
+       FROM users u WHERE u.id = ?`,
+    )
+    .get(viewerId, id) as (Omit<Member, "handle" | "isAdmin" | "banned" | "iFollow"> & { handle: string | null; isAdmin: number; banned: number; iFollow: number }) | undefined;
+  return r ? { ...r, handle: r.handle ?? defaultHandle(r.name, r.id), isAdmin: !!r.isAdmin, banned: !!r.banned, iFollow: !!r.iFollow } : null;
+}
+
+/** Aceita só endereços http(s); devolve o endereço limpo ou "" se for inválido. */
+export function cleanWebsite(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return "";
+  try {
+    const u = new URL(/^https?:\/\//i.test(t) ? t : `https://${t}`);
+    if (!/^https?:$/.test(u.protocol) || !u.hostname.includes(".") || t.length > 100) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+export interface ProfileInput { bio: string; avatarId: number | null; bannerId: number | null; handle: string; location: string; website: string }
+
+/** Salva o perfil. Fotos precisam ser da própria pessoa; o @usuário é único. Devolve a mensagem de erro, ou null se deu certo. */
+export function saveCommunityProfile(userId: number, p: ProfileInput): string | null {
+  const bio = p.bio.trim();
+  const location = p.location.trim();
+  const handle = p.handle.trim().replace(/^@/, "").toLowerCase();
+  if (bio.length > MAX_BIO) return `A bio pode ter até ${MAX_BIO} caracteres.`;
+  if (location.length > 40) return "A localização pode ter até 40 caracteres.";
+  if (handle && !handleOk(handle)) return "O @usuário deve ter de 3 a 20 letras minúsculas, números ou _.";
+  const site = cleanWebsite(p.website);
+  if (site === null) return "O link precisa ser um endereço válido (ex.: seusite.com.br).";
+  if (p.avatarId !== null && !ownImage(userId, p.avatarId)) return "A foto precisa ser sua.";
+  if (p.bannerId !== null && !ownImage(userId, p.bannerId)) return "A capa precisa ser sua.";
+  if (handle) {
+    const taken = db().prepare("SELECT 1 FROM users WHERE handle = ? AND id != ?").get(handle, userId);
+    if (taken) return "Este @usuário já está em uso. Escolha outro.";
+  }
+  db().prepare("UPDATE users SET bio = ?, avatar_id = ?, banner_id = ?, location = ?, website = ?, handle = ? WHERE id = ?").run(bio, p.avatarId, p.bannerId, location, site, handle || null, userId);
+  return null;
+}
+
+export function setFollow(followerId: number, followedId: number, follow: boolean): boolean {
+  if (followerId === followedId || !db().prepare("SELECT 1 FROM users WHERE id = ?").get(followedId)) return false;
+  if (follow) db().prepare("INSERT OR IGNORE INTO community_follows (follower_id, followed_id) VALUES (?, ?)").run(followerId, followedId);
+  else db().prepare("DELETE FROM community_follows WHERE follower_id = ? AND followed_id = ?").run(followerId, followedId);
   return true;
 }

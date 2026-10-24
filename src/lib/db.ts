@@ -103,7 +103,18 @@ function migrate(db: Database.Database) {
   // Perfil público na comunidade: foto (id em community_images) e bio.
   if (!userCols.some((c) => c.name === "avatar_id")) db.exec("ALTER TABLE users ADD COLUMN avatar_id INTEGER");
   if (!userCols.some((c) => c.name === "bio")) db.exec("ALTER TABLE users ADD COLUMN bio TEXT NOT NULL DEFAULT ''");
+  // Perfil estilo rede social: @usuário único, capa, localização e um link.
+  if (!userCols.some((c) => c.name === "handle")) db.exec("ALTER TABLE users ADD COLUMN handle TEXT");
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_handle ON users(handle) WHERE handle IS NOT NULL");
+  if (!userCols.some((c) => c.name === "banner_id")) db.exec("ALTER TABLE users ADD COLUMN banner_id INTEGER");
+  if (!userCols.some((c) => c.name === "location")) db.exec("ALTER TABLE users ADD COLUMN location TEXT NOT NULL DEFAULT ''");
+  if (!userCols.some((c) => c.name === "website")) db.exec("ALTER TABLE users ADD COLUMN website TEXT NOT NULL DEFAULT ''");
   db.exec(`
+    CREATE TABLE IF NOT EXISTS community_follows (
+      follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      followed_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (follower_id, followed_id)
+    );
     -- Feed de publicações (estilo rede social), com curtidas, comentários e denúncias.
     CREATE TABLE IF NOT EXISTS community_posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

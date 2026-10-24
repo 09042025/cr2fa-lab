@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { db } from "../src/lib/db";
 import { addMessage, listMessages, saveAudio, sniffAudio } from "../src/lib/community";
-import { addComment, addPost, deletePost, getMember, listPosts, reportPost, saveCommunityProfile, toggleLike } from "../src/lib/feed";
+import { addComment, addPost, cleanWebsite, defaultHandle, deletePost, getMember, listPosts, reportPost, saveCommunityProfile, setFollow, toggleLike } from "../src/lib/feed";
 import { setBlocked } from "../src/lib/community";
 
 const mk = (email: string, name = "Bia", role = "user") => Number(db().prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, ?, 'x', ?)").run(email, name, role).lastInsertRowid);
@@ -54,14 +54,37 @@ test("denúncia de post e perfil (bio e foto)", () => {
   assert.equal(reportPost(p, b, R[0], R), true);
   assert.equal(reportPost(p, b, R[0], R), false);
   const foto = img(a);
-  assert.equal(saveCommunityProfile(a, "Investidor de dividendos", foto), true);
-  assert.equal(saveCommunityProfile(b, "x", foto), false); // foto de outra pessoa
-  assert.equal(saveCommunityProfile(a, "x".repeat(201), null), false);
+  const base = { bio: "Investidor de dividendos", avatarId: foto, bannerId: null, handle: "@Bia_Invest", location: "São Paulo", website: "bia.com.br" };
+  assert.equal(saveCommunityProfile(a, base), null);
+  assert.match(saveCommunityProfile(b, { ...base, handle: "outra" })!, /sua/); // foto de outra pessoa
+  assert.match(saveCommunityProfile(b, { ...base, avatarId: null, handle: "bia_invest" })!, /em uso/);
+  assert.match(saveCommunityProfile(a, { ...base, bio: "x".repeat(161) })!, /160/);
+  assert.match(saveCommunityProfile(a, { ...base, handle: "a b" })!, /usuário/);
+  assert.match(saveCommunityProfile(a, { ...base, website: "javascript:alert(1)" })!, /link/);
   const m = getMember(a)!;
   assert.equal(m.bio, "Investidor de dividendos");
+  assert.equal(m.handle, "bia_invest");
+  assert.equal(m.website, "https://bia.com.br/");
   assert.equal(m.avatarId, foto);
-  assert.equal(saveCommunityProfile(a, "", null), true);
+  assert.equal(saveCommunityProfile(a, { ...base, avatarId: null, handle: "", website: "" }), null);
   assert.equal(getMember(a)!.avatarId, null);
+  assert.equal(getMember(a)!.handle, defaultHandle("Bia", a));
+});
+
+test("seguir: contagens e filtro do feed", () => {
+  const a = mk("f10@t.com"), b = mk("f11@t.com");
+  addPost(a, "geral", "post do A");
+  addPost(b, "geral", "post do B");
+  assert.equal(setFollow(a, a, true), false);
+  assert.equal(setFollow(b, a, true), true);
+  assert.equal(getMember(a, b)!.followers, 1);
+  assert.equal(getMember(a, b)!.iFollow, true);
+  assert.equal(getMember(b, b)!.following, 1);
+  assert.deepEqual(listPosts({ viewerId: b, following: true }).posts.map((p) => p.author), ["Bia"]);
+  setFollow(b, a, false);
+  assert.equal(listPosts({ viewerId: b, following: true }).posts.length, 0);
+  assert.equal(cleanWebsite("https://x.com/a"), "https://x.com/a");
+  assert.equal(cleanWebsite("ftp://x.com"), null);
 });
 
 test("áudio: só formatos reais, anexado só ao dono", () => {

@@ -16,7 +16,7 @@ const PlusIcon = () => (
 export function PostForm({ topics, max, current }: { topics: readonly { id: string; label: string }[]; max: number; current?: string }) {
   const router = useRouter();
   const [body, setBody] = useState("");
-  const [topic, setTopic] = useState(current && current !== "todos" ? current : "geral");
+  const [topic, setTopic] = useState(topics.some((t) => t.id === current) ? current! : "geral");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -151,48 +151,105 @@ export function DismissPostReport({ id }: { id: number }) {
   return <button className={link} onClick={async () => { await fetch(`/api/community/report?kind=post&id=${id}`, { method: "DELETE" }); router.refresh(); }}>dispensar denúncia</button>;
 }
 
-/** Foto e bio do perfil da comunidade (em Configurações). */
-export function CommunityProfileForm({ name, avatarId, bio, max }: { name: string; avatarId: number | null; bio: string; max: number }) {
+/** Perfil da comunidade (em Configurações): capa, foto, @usuário, bio curta, localização e link. */
+export function CommunityProfileForm(props: { name: string; avatarId: number | null; bannerId: number | null; handle: string; bio: string; location: string; website: string; max: number }) {
   const router = useRouter();
-  const [text, setText] = useState(bio);
+  const [bio, setBio] = useState(props.bio);
+  const [handle, setHandle] = useState(props.handle);
+  const [location, setLocation] = useState(props.location);
+  const [website, setWebsite] = useState(props.website);
   const [msg, setMsg] = useState("");
-  const [current, setCurrent] = useState<number | null>(avatarId);
-  const file = useRef<HTMLInputElement>(null);
-  const img = useImageUpload(async (f) => (await import("./imageUpload")).squareAvatar(f));
-  const shown = img.image?.preview ?? (current ? `/api/community/image?id=${current}` : null);
-  const initials = name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+  const [ok, setOk] = useState(false);
+  const [avatar, setAvatar] = useState<number | null>(props.avatarId);
+  const [banner, setBanner] = useState<number | null>(props.bannerId);
+  const avFile = useRef<HTMLInputElement>(null);
+  const bnFile = useRef<HTMLInputElement>(null);
+  const av = useImageUpload(async (f) => (await import("./imageUpload")).squareAvatar(f));
+  const bn = useImageUpload(async (f) => (await import("./imageUpload")).bannerCrop(f));
+  const avShown = av.image?.preview ?? (avatar ? `/api/community/image?id=${avatar}` : null);
+  const bnShown = bn.image?.preview ?? (banner ? `/api/community/image?id=${banner}` : null);
+  const initials = props.name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+  const input = "mt-1 w-full rounded-lg border border-line bg-ink px-3 py-2 text-sm outline-none focus:outline-none";
 
   async function save() {
     setMsg("");
-    const res = await fetch("/api/community/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ bio: text, avatarId: img.image?.id ?? current }) });
+    const res = await fetch("/api/community/profile", {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ bio, handle: handle.replace(/^@/, ""), location, website, avatarId: av.image?.id ?? avatar, bannerId: bn.image?.id ?? banner }),
+    });
+    setOk(res.ok);
     if (!res.ok) return setMsg(await errOf(res, "Não foi possível salvar."));
-    if (img.image) setCurrent(img.image.id);
+    if (av.image) setAvatar(av.image.id);
+    if (bn.image) setBanner(bn.image.id);
     setMsg("Perfil salvo!");
     router.refresh();
   }
 
   return (
     <div>
-      <div className="flex items-center gap-4">
-        {shown ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={shown} alt="Sua foto" className="h-20 w-20 rounded-full border border-line object-cover" />
-        ) : (
-          <span className="flex h-20 w-20 items-center justify-center rounded-full border border-gold/40 bg-panel-2 text-2xl font-semibold text-gold-soft">{initials}</span>
-        )}
-        <div className="flex flex-col items-start gap-1">
-          <input ref={file} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { void img.upload(e.target.files?.[0]); e.target.value = ""; }} />
-          <button type="button" className="btn btn-ghost !py-1.5 text-sm" disabled={img.busy} onClick={() => file.current?.click()}>{img.busy ? "Enviando…" : shown ? "Trocar foto" : "Escolher foto"}</button>
-          {shown && <button type="button" className="text-xs text-muted underline hover:text-white" onClick={() => { img.clear(); setCurrent(null); }}>remover foto</button>}
+      <div className="overflow-hidden rounded-xl border border-line">
+        <div className="relative h-28 bg-gradient-to-r from-panel-2 to-ink sm:h-36">
+          {bnShown && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={bnShown} alt="Capa do perfil" className="h-full w-full object-cover" />
+          )}
+          <div className="absolute right-2 top-2 flex gap-2">
+            <input ref={bnFile} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { void bn.upload(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="rounded-lg bg-black/60 px-3 py-1 text-xs text-white hover:bg-black/80" disabled={bn.busy} onClick={() => bnFile.current?.click()}>{bn.busy ? "Enviando…" : bnShown ? "Trocar capa" : "Adicionar capa"}</button>
+            {bnShown && <button type="button" className="rounded-lg bg-black/60 px-3 py-1 text-xs text-white hover:bg-black/80" onClick={() => { bn.clear(); setBanner(null); }}>Remover</button>}
+          </div>
+        </div>
+        <div className="flex items-end gap-3 px-4 pb-3">
+          <div className="-mt-10 shrink-0">
+            {avShown ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avShown} alt="Sua foto" className="h-20 w-20 rounded-full border-4 border-panel object-cover" />
+            ) : (
+              <span className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-panel bg-panel-2 text-2xl font-semibold text-gold-soft">{initials}</span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pb-1">
+            <input ref={avFile} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { void av.upload(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="btn btn-ghost !py-1.5 text-sm" disabled={av.busy} onClick={() => avFile.current?.click()}>{av.busy ? "Enviando…" : avShown ? "Trocar foto" : "Escolher foto"}</button>
+            {avShown && <button type="button" className="text-xs text-muted underline hover:text-white" onClick={() => { av.clear(); setAvatar(null); }}>remover foto</button>}
+          </div>
         </div>
       </div>
-      <label className="mt-4 block text-sm text-muted" htmlFor="bio">Bio (aparece no seu perfil e nas suas publicações)</label>
-      <textarea id="bio" value={text} maxLength={max} rows={3} onChange={(e) => setText(e.target.value)} placeholder="Ex.: Investidor há 5 anos, foco em dividendos e Bitcoin." className="mt-1 w-full resize-none rounded-lg border border-line bg-ink px-3 py-2 text-sm outline-none focus:outline-none" />
-      <p className="text-right text-[11px] text-muted">{text.length}/{max}</p>
-      <div className="mt-2 flex items-center gap-3">
-        <button className="btn btn-gold" onClick={save}>Salvar foto e bio</button>
-        {(msg || img.err) && <span className={`text-sm ${msg === "Perfil salvo!" ? "text-up" : "text-down"}`}>{msg || img.err}</span>}
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <label className="text-sm text-muted">@usuário
+          <input value={handle} onChange={(e) => setHandle(e.target.value)} maxLength={21} placeholder="ex.: emersonniza" className={input} />
+        </label>
+        <label className="text-sm text-muted">Localização
+          <input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={40} placeholder="ex.: São Paulo, Brasil" className={input} />
+        </label>
+      </div>
+      <label className="mt-4 block text-sm text-muted">Bio (curta e simples)
+        <textarea value={bio} maxLength={props.max} rows={2} onChange={(e) => setBio(e.target.value)} placeholder="Ex.: Investidor há 5 anos. Foco em dividendos e Bitcoin." className={`${input} resize-none`} />
+      </label>
+      <p className="text-right text-[11px] text-muted">{bio.length}/{props.max}</p>
+      <label className="block text-sm text-muted">Link
+        <input value={website} onChange={(e) => setWebsite(e.target.value)} maxLength={100} placeholder="ex.: meusite.com.br ou linktr.ee/voce" className={input} />
+      </label>
+      <div className="mt-4 flex items-center gap-3">
+        <button className="btn btn-gold" onClick={save}>Salvar perfil da comunidade</button>
+        {(msg || av.err || bn.err) && <span className={`text-sm ${ok ? "text-up" : "text-down"}`}>{msg || av.err || bn.err}</span>}
       </div>
     </div>
+  );
+}
+
+export function FollowButton({ userId, following }: { userId: number; following: boolean }) {
+  const router = useRouter();
+  return (
+    <button
+      className={following ? "btn btn-ghost" : "btn btn-gold"}
+      onClick={async () => {
+        await fetch("/api/community/profile", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId, follow: !following }) });
+        router.refresh();
+      }}
+    >
+      {following ? "Seguindo" : "Seguir"}
+    </button>
   );
 }
