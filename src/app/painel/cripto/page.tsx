@@ -10,12 +10,17 @@ import { usdCompact } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-function Item({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-line bg-panel-2 p-3">
+function Item({ label, value, href }: { label: string; value: React.ReactNode; href?: string }) {
+  const body = (
+    <>
       <p className="text-xs text-muted">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
-    </div>
+    </>
+  );
+  return href ? (
+    <Link href={href} className="block rounded-lg border border-line bg-panel-2 p-3 transition hover:border-gold">{body}</Link>
+  ) : (
+    <div className="rounded-lg border border-line bg-panel-2 p-3">{body}</div>
   );
 }
 
@@ -55,22 +60,22 @@ export default async function MarketViewPage({ searchParams }: { searchParams: P
       <DataStatus result={global} source="CoinGecko" />
       {g && (
         <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Item label="Valor de mercado total" value={<>{usdCompact(g.totalCapUsd)} <span className="text-sm"><Change value={g.capChange24h} /></span></>} />
-          <Item label="Volume em 24h" value={usdCompact(g.totalVolumeUsd)} />
-          <Item label="Dominância do Bitcoin" value={g.btcDominance === null ? "—" : `${g.btcDominance.toFixed(1).replace(".", ",")}%`} />
-          <Item label="Criptomoedas ativas" value={g.activeCoins === null ? "—" : g.activeCoins.toLocaleString("pt-BR")} />
+          <Item label="Valor de mercado total" href="/painel/cripto/mercado" value={<>{usdCompact(g.totalCapUsd)} <span className="text-sm"><Change value={g.capChange24h} /></span></>} />
+          <Item label="Volume em 24h" href="/painel/cripto/mercado" value={usdCompact(g.totalVolumeUsd)} />
+          <Item label="Dominância do Bitcoin" href="/painel/cripto/indice/dominancia" value={g.btcDominance === null ? "—" : `${g.btcDominance.toFixed(1).replace(".", ",")}%`} />
+          <Item label="Criptomoedas ativas" href="/painel/cripto/mercado" value={g.activeCoins === null ? "—" : g.activeCoins.toLocaleString("pt-BR")} />
         </section>
       )}
 
       <div className="mb-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <div className="space-y-5">
           <section className="card p-4">
-            <h2 className="font-semibold">Medo e Ganância</h2>
+            <h2 className="flex items-center justify-between font-semibold">Medo e Ganância <Link href="/painel/cripto/indice/medo-ganancia" className="text-xs font-normal text-gold-soft underline">Detalhes →</Link></h2>
             {fng.data ? <Gauge value={fng.data.value} label={FNG_PT[fng.data.label] || fng.data.label} /> : <p className="mt-2 text-sm text-muted">Indisponível no momento.</p>}
             <p className="text-center text-[11px] text-muted">Fonte: alternative.me</p>
           </section>
           <section className="card p-4">
-            <h2 className="font-semibold">Índice de altcoins <span className="text-xs font-normal text-muted">(30 dias)</span></h2>
+            <h2 className="flex items-center justify-between font-semibold"><span>Índice de altcoins <span className="text-xs font-normal text-muted">(30 dias)</span></span> <Link href="/painel/cripto/indice/altcoins" className="text-xs font-normal text-gold-soft underline">Detalhes →</Link></h2>
             {altIndex !== null ? (
               <>
                 <p className="mt-2 text-3xl font-bold">{altIndex}<span className="text-base font-normal text-muted"> /100</span></p>
@@ -83,7 +88,7 @@ export default async function MarketViewPage({ searchParams }: { searchParams: P
             ) : <p className="mt-2 text-sm text-muted">Indisponível no momento.</p>}
           </section>
           <section className="card p-4">
-            <h2 className="font-semibold">Dominância</h2>
+            <h2 className="flex items-center justify-between font-semibold">Dominância <Link href="/painel/cripto/indice/dominancia" className="text-xs font-normal text-gold-soft underline">Detalhes →</Link></h2>
             {g && g.btcDominance !== null && g.ethDominance !== null && others !== null ? (
               <>
                 <div className="mt-3 flex h-3 overflow-hidden rounded-full">
@@ -92,8 +97,8 @@ export default async function MarketViewPage({ searchParams }: { searchParams: P
                   <div style={{ width: `${others}%`, background: "#6b7280" }} />
                 </div>
                 <ul className="mt-3 space-y-1 text-sm">
-                  <li><span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: "#f7931a" }} />Bitcoin <b>{g.btcDominance.toFixed(1).replace(".", ",")}%</b></li>
-                  <li><span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: "#627eea" }} />Ethereum <b>{g.ethDominance.toFixed(1).replace(".", ",")}%</b></li>
+                  <li><Link href="/painel/cripto/ativo/bitcoin" className="hover:underline"><span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: "#f7931a" }} />Bitcoin <b>{g.btcDominance.toFixed(1).replace(".", ",")}%</b></Link></li>
+                  <li><Link href="/painel/cripto/ativo/ethereum" className="hover:underline"><span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: "#627eea" }} />Ethereum <b>{g.ethDominance.toFixed(1).replace(".", ",")}%</b></Link></li>
                   <li><span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: "#6b7280" }} />Outras <b>{others.toFixed(1).replace(".", ",")}%</b></li>
                 </ul>
               </>
@@ -103,7 +108,7 @@ export default async function MarketViewPage({ searchParams }: { searchParams: P
 
         <section className="card p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">Valor de mercado do Bitcoin</h2>
+            <h2 className="font-semibold">Valor de mercado do Bitcoin <Link href="/painel/cripto/ativo/bitcoin" className="ml-2 text-xs font-normal text-gold-soft underline">Detalhes →</Link></h2>
             <div className="flex gap-1 text-sm">
               {PERIODS.map((p) => (isPro || p.d === 30) ? (
                 <Link key={p.d} href={`/painel/cripto?d=${p.d}`} className={`btn ${p.d === days ? "btn-gold" : "btn-ghost"}`}>{p.l}</Link>
