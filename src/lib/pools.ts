@@ -29,12 +29,30 @@ export type PoolKind = (typeof POOL_KINDS)[number]["id"];
 
 const RWA_PROJECT = /(ondo|maple|centrifuge|goldfinch|clearpool|truefi|credix|backed|openeden|superstate|franklin|matrixdock|securitize|midas|dinari|realt|lofty|spiko|hashnote|plume|mountain|paxos|swarm|tokeny|libre|ether\.fi-liquid-?rwa)/i;
 const RWA_SYMBOL = /(^|[-_ ])(BUIDL|USDY|OUSG|USTB|USYC|BENJI|STBT|XAUT|PAXG|USDM|TBILL|BCSPX|CSPX|EUTBL|USTBL|WTGXX|JTRSY|JAAA|OUSD)([-_ ]|$)/i;
+/**
+ * Ações e ETFs tokenizados (xStocks da Backed, Ondo Global Markets, tokens de ações da Robinhood Chain).
+ * O DefiLlama escreve em maiúsculas (TSLAX, NVDAON), por isso a comparação ignora maiúsculas.
+ * Para incluir um ativo novo, basta acrescentar o código dele nesta lista.
+ */
+const STOCK_TICKERS = new Set(
+  ("AAPL AMZN GOOGL GOOG MSFT META NVDA TSLA NFLX AMD INTC PLTR COIN HOOD MSTR CRCL ORCL AVGO BABA DIS JPM WMT NKE MCD PFE LLY UNH JNJ XOM BAC GME AMC UBER SHOP PYPL SQ ABNB SNOW CSCO IBM QCOM MU ARM TSM ASML " +
+    "SPY QQQ IWM VTI VOO DIA GLD SLV TLT ARKK TQQQ SPLG IVV BRK BRKB CRM ADBE").split(" "),
+);
+/** Token de ação tokenizada: TSLAx / TSLAon (qualquer rede) ou o código puro, só na Robinhood Chain. */
+function isStockToken(sym: string, chain: string): boolean {
+  const s = sym.toUpperCase();
+  if (STOCK_TICKERS.has(s)) return chain === "Robinhood Chain";
+  const m = /^([A-Z]{2,5})(X|ON)$/.exec(s);
+  return !!m && STOCK_TICKERS.has(m[1]);
+}
+
 /** Ativos de referência do mercado cripto: um pool com algum deles (e que não seja só stablecoin) conta como "Cripto". */
 const MAJOR = /(^|[-_ /+])(W?BTC|CBBTC|TBTC|ETH|WETH|STETH|WSTETH|CBETH|RETH|WEETH|SOL|WSOL|JITOSOL|MSOL|BNB|WBNB|AVAX|WAVAX|POL|MATIC|ARB|OP|LINK|UNI|AAVE|CRV|LDO|MKR|ATOM|DOT|ADA|XRP|DOGE|TON|SUI|APT|NEAR|HYPE|CAKE|AERO|VELO|GMX)([-_ /+]|$)/i;
 
 /** Classifica um pool em cripto, RWA, stablecoin ou outros (heurística por protocolo e símbolo). */
 export function poolKind(p: DefiPool): PoolKind {
-  if (RWA_PROJECT.test(p.project) || RWA_SYMBOL.test(p.symbol)) return "rwa";
+  if (p.rwaHint || RWA_PROJECT.test(p.project) || RWA_SYMBOL.test(p.symbol)) return "rwa";
+  if (p.symbol.split(/[-_ /+]/).some((t) => isStockToken(t, p.chain))) return "rwa";
   if (p.stablecoin) return "stable";
   if (MAJOR.test(p.symbol)) return "cripto";
   return "outros";

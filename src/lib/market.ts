@@ -1,3 +1,4 @@
+import { poolKind } from "./pools";
 import { db, now } from "./db";
 
 /** Busca JSON com timeout. Lança erro em respostas não-2xx. */
@@ -268,6 +269,8 @@ export interface DefiPool {
   source?: "defillama" | "dexpaprika";
   /** Identificador do pool na própria DEX (Uniswap v4: 32 bytes em hexadecimal). */
   poolRef?: string | null;
+  /** true quando a fonte indica que algum token do pool é um ativo do mundo real (ex.: "Stock Token"). */
+  rwaHint?: boolean;
 }
 
 interface LlamaPool {
@@ -325,13 +328,15 @@ export function toDefiPool(p: LlamaPool): DefiPool {
 
 /** Pools do DefiLlama (gratuito). Cache de 30 min; v2 inclui volume, taxa e perda impermanente. */
 export function getDefiPools() {
-  return cached<DefiPool[]>("defillama:pools:v3", 30 * 60, async () => {
+  return cached<DefiPool[]>("defillama:pools:v4", 30 * 60, async () => {
     const raw = await fetchJson<{ data: LlamaPool[] }>("https://yields.llama.fi/pools", {}, 40000);
     return raw.data
-      .filter((p) => p.tvlUsd >= 300_000 && p.apy !== null && p.apy !== undefined && p.apy < 1000)
+      .filter((p) => p.apy !== null && p.apy !== undefined && p.apy < 1000)
+      .map(toDefiPool)
+      // pools de RWA são menores e entram a partir de US$ 20 mil; os demais, a partir de US$ 300 mil
+      .filter((p) => p.tvlUsd >= 300_000 || (p.tvlUsd >= 20_000 && poolKind(p) === "rwa"))
       .sort((a, b) => b.tvlUsd - a.tvlUsd)
-      .slice(0, 4000)
-      .map(toDefiPool);
+      .slice(0, 5000);
   });
 }
 
@@ -341,6 +346,7 @@ export function getDefiPools() {
  * mostramos liquidez, volume e giro, e não inventamos rendimento. */
 
 interface PaprikaToken { id?: string; symbol?: string; name?: string }
+const RWA_NAME = /(stock token|xstock|tokenized|tokenised|ondo global|robinhood.*(stock|token)|treasury|t-bill)/i;
 export interface PaprikaPool {
   id?: string;
   dex_id?: string;
@@ -381,13 +387,14 @@ export function toPaprikaPool(p: PaprikaPool, chainLabel: string): DefiPool | nu
     dex: true,
     source: "dexpaprika",
     poolRef: /^0x[0-9a-fA-F]{64}$/.test(id) ? id : null,
+    rwaHint: p.tokens.some((t) => typeof t?.name === "string" && RWA_NAME.test(t.name)),
   };
 }
 
 export function getRobinhoodPools() {
-  return cached<DefiPool[]>("dexpaprika:robinhood:v1", 30 * 60, async () => {
+  return cached<DefiPool[]>("dexpaprika:robinhood:v2", 30 * 60, async () => {
     const url =
-      "https://api.dexpaprika.com/networks/robinhood/pools/search?limit=100&order_by=liquidity_usd&sort=desc&liquidity_usd_min=50000&detailed=true";
+      "https://api.dexpaprika.com/networks/robinhood/pools/search?limit=100&order_by=liquidity_usd&sort=desc&liquidity_usd_min=5000&detailed=true";
     const raw = await fetchJson<{ results?: PaprikaPool[] }>(url, {}, 20000);
     return (raw.results ?? []).map((p) => toPaprikaPool(p, "Robinhood Chain")).filter((p): p is DefiPool => p !== null);
   });
