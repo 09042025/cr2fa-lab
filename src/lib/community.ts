@@ -34,7 +34,7 @@ export const CATEGORIES: Category[] = [
     label: "Informações",
     channels: [
       {
-        slug: "boas-vindas-e-regras", name: "boas-vindas-e-regras", icon: "✅", post: "admin",
+        slug: "boas-vindas-e-regras", name: "boas-vindas-e-regras", icon: "shield", post: "admin",
         description: "Regras da comunidade e como ela funciona.",
         intro: [
           "Seja bem-vindo à comunidade NIZA INVEST!",
@@ -45,26 +45,26 @@ export const CATEGORIES: Category[] = [
           ...SECURITY,
         ],
       },
-      { slug: "anuncios", name: "anuncios-do-canal", icon: "📢", post: "admin", description: "Avisos oficiais do Emerson e da equipe.", intro: SECURITY },
-      { slug: "chat-geral", name: "chat-geral", icon: "💬", post: "pro", description: "Bate-papo geral entre os membros Pró." },
+      { slug: "anuncios", name: "anuncios-do-canal", icon: "bell", post: "admin", description: "Avisos oficiais do Emerson e da equipe.", intro: SECURITY },
+      { slug: "chat-geral", name: "chat-geral", icon: "users", post: "pro", description: "Bate-papo geral entre os membros Pró." },
     ],
   },
   {
     id: "texto",
     label: "Canais de texto",
     channels: [
-      { slug: "geral", name: "geral", icon: "#", post: "pro", description: "Mercado, ativos e dúvidas do dia a dia." },
-      { slug: "planejamento-de-reunioes", name: "planejamento-de-reuniões", icon: "#", post: "pro", description: "Sugestões de temas e horários para as reuniões ao vivo." },
+      { slug: "geral", name: "geral", icon: "trend", post: "pro", description: "Mercado, ativos e dúvidas do dia a dia." },
+      { slug: "planejamento-de-reunioes", name: "planejamento-de-reuniões", icon: "calendar", post: "pro", description: "Sugestões de temas e horários para as reuniões ao vivo." },
     ],
   },
   {
     id: "mod",
     label: "Moderação",
-    channels: [{ slug: "moderador", name: "moderator-only", icon: "🔒", post: "admin", admin: true, description: "Canal privado da equipe de moderação." }],
+    channels: [{ slug: "moderador", name: "moderator-only", icon: "lock", post: "admin", admin: true, description: "Canal privado da equipe de moderação." }],
   },
 ];
 
-export const VOICE = ["Lounge", "Sala de reuniões"];
+export const VOICE = [{ name: "Lounge", icon: "headset" }, { name: "Sala de reuniões", icon: "video" }];
 
 export const MAX_BODY = 1000;
 
@@ -91,9 +91,11 @@ export interface CommunityMessage {
   author: string;
   isAdmin: boolean;
   banned: boolean;
+  avatarId: number | null;
   body: string;
   createdAt: number;
   imageId: number | null;
+  audioId: number | null;
   edited: boolean;
   reply: { id: number; author: string; body: string } | null;
   /** emoji -> quantidade, e quais o usuário atual marcou. */
@@ -103,14 +105,14 @@ export interface CommunityMessage {
 export function listMessages(channel: string, viewerId: number, limit = 100): CommunityMessage[] {
   const rows = db()
     .prepare(
-      `SELECT m.id, m.user_id userId, u.name author, u.role role, u.community_banned banned, m.body, m.created_at createdAt, m.image_id imageId, m.edited_at editedAt,
+      `SELECT m.id, m.user_id userId, u.name author, u.role role, u.community_banned banned, u.avatar_id avatarId, m.body, m.created_at createdAt, m.image_id imageId, m.audio_id audioId, m.edited_at editedAt,
               r.id rid, ru.name rauthor, r.body rbody
        FROM community_messages m JOIN users u ON u.id = m.user_id
        LEFT JOIN community_messages r ON r.id = m.reply_to
        LEFT JOIN users ru ON ru.id = r.user_id
        WHERE m.channel = ? AND (m.user_id = ? OR m.user_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?)) ORDER BY m.id DESC LIMIT ?`,
     )
-    .all(channel, viewerId, viewerId, limit) as { id: number; userId: number; author: string; role: string; banned: number; body: string; createdAt: number; imageId: number | null; editedAt: number | null; rid: number | null; rauthor: string | null; rbody: string | null }[];
+    .all(channel, viewerId, viewerId, limit) as { id: number; userId: number; author: string; role: string; banned: number; avatarId: number | null; body: string; createdAt: number; imageId: number | null; audioId: number | null; editedAt: number | null; rid: number | null; rauthor: string | null; rbody: string | null }[];
   rows.reverse();
   const ids = rows.map((r) => r.id);
   const reacts = ids.length
@@ -119,7 +121,7 @@ export function listMessages(channel: string, viewerId: number, limit = 100): Co
         .all(viewerId, ...ids) as { mid: number; emoji: string; c: number; mine: number }[])
     : [];
   return rows.map((r) => ({
-    id: r.id, userId: r.userId, author: r.author, isAdmin: r.role === "admin", banned: r.banned === 1, body: r.body, createdAt: r.createdAt, imageId: r.imageId, edited: r.editedAt !== null,
+    id: r.id, userId: r.userId, author: r.author, isAdmin: r.role === "admin", banned: r.banned === 1, avatarId: r.avatarId, body: r.body, createdAt: r.createdAt, imageId: r.imageId, audioId: r.audioId, edited: r.editedAt !== null,
     reply: r.rid ? { id: r.rid, author: r.rauthor ?? "?", body: (r.rbody ?? "").slice(0, 120) } : null,
     reactions: reacts.filter((x) => x.mid === r.id).map((x) => ({ emoji: x.emoji, count: x.c, mine: x.mine > 0 })),
   }));
@@ -151,19 +153,46 @@ export function saveImage(userId: number, buf: Buffer): number | null {
   return Number(db().prepare("INSERT INTO community_images (user_id, mime, data) VALUES (?, ?, ?)").run(userId, mime, buf).lastInsertRowid);
 }
 
+export const MAX_AUDIO_BYTES = 3 * 1024 * 1024;
+
+/** Confere o tipo real do áudio pelos primeiros bytes (webm/opus do Chrome e Firefox, ogg, mp4/aac do Safari, mp3, wav). */
+export function sniffAudio(buf: Buffer): string | null {
+  if (buf.length < 12) return null;
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return "audio/webm";
+  if (buf.toString("latin1", 0, 4) === "OggS") return "audio/ogg";
+  if (buf.toString("latin1", 4, 8) === "ftyp") return "audio/mp4";
+  if (buf.toString("latin1", 0, 3) === "ID3" || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0)) return "audio/mpeg";
+  if (buf.toString("latin1", 0, 4) === "RIFF" && buf.toString("latin1", 8, 12) === "WAVE") return "audio/wav";
+  return null;
+}
+
+export function saveAudio(userId: number, buf: Buffer): number | null {
+  const mime = sniffAudio(buf);
+  if (!mime || buf.length > MAX_AUDIO_BYTES) return null;
+  return Number(db().prepare("INSERT INTO community_audios (user_id, mime, data) VALUES (?, ?, ?)").run(userId, mime, buf).lastInsertRowid);
+}
+
+export function getAudio(id: number): { mime: string; data: Buffer } | null {
+  return (db().prepare("SELECT mime, data FROM community_audios WHERE id = ?").get(id) as { mime: string; data: Buffer } | undefined) ?? null;
+}
+
 export function getImage(id: number): { mime: string; data: Buffer } | null {
   return (db().prepare("SELECT mime, data FROM community_images WHERE id = ?").get(id) as { mime: string; data: Buffer } | undefined) ?? null;
 }
 
 /** Cria a mensagem. Resposta só vale para mensagem do mesmo canal; imagem só se for do próprio autor e ainda não usada. */
-export function addMessage(channel: string, userId: number, body: string, opts: { replyTo?: number | null; imageId?: number | null } = {}): number {
+export function addMessage(channel: string, userId: number, body: string, opts: { replyTo?: number | null; imageId?: number | null; audioId?: number | null } = {}): number {
   let reply: number | null = null;
   if (opts.replyTo) reply = (db().prepare("SELECT id FROM community_messages WHERE id = ? AND channel = ?").get(opts.replyTo, channel) as { id: number } | undefined)?.id ?? null;
   let image: number | null = null;
   if (opts.imageId) {
     image = (db().prepare("SELECT id FROM community_images WHERE id = ? AND user_id = ? AND id NOT IN (SELECT image_id FROM community_messages WHERE image_id IS NOT NULL)").get(opts.imageId, userId) as { id: number } | undefined)?.id ?? null;
   }
-  return Number(db().prepare("INSERT INTO community_messages (channel, user_id, body, reply_to, image_id) VALUES (?, ?, ?, ?, ?)").run(channel, userId, body, reply, image).lastInsertRowid);
+  let audio: number | null = null;
+  if (opts.audioId) {
+    audio = (db().prepare("SELECT id FROM community_audios WHERE id = ? AND user_id = ? AND id NOT IN (SELECT audio_id FROM community_messages WHERE audio_id IS NOT NULL)").get(opts.audioId, userId) as { id: number } | undefined)?.id ?? null;
+  }
+  return Number(db().prepare("INSERT INTO community_messages (channel, user_id, body, reply_to, image_id, audio_id) VALUES (?, ?, ?, ?, ?, ?)").run(channel, userId, body, reply, image, audio).lastInsertRowid);
 }
 
 /** Marca ou desmarca uma reação. Devolve false para emoji fora da lista ou mensagem inexistente. */

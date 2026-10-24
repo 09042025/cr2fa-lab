@@ -100,6 +100,52 @@ function migrate(db: Database.Database) {
   const msgCols = db.prepare("PRAGMA table_info(community_messages)").all() as { name: string }[];
   if (!msgCols.some((c) => c.name === "reply_to")) db.exec("ALTER TABLE community_messages ADD COLUMN reply_to INTEGER");
   if (!msgCols.some((c) => c.name === "image_id")) db.exec("ALTER TABLE community_messages ADD COLUMN image_id INTEGER");
+  // Perfil público na comunidade: foto (id em community_images) e bio.
+  if (!userCols.some((c) => c.name === "avatar_id")) db.exec("ALTER TABLE users ADD COLUMN avatar_id INTEGER");
+  if (!userCols.some((c) => c.name === "bio")) db.exec("ALTER TABLE users ADD COLUMN bio TEXT NOT NULL DEFAULT ''");
+  db.exec(`
+    -- Feed de publicações (estilo rede social), com curtidas, comentários e denúncias.
+    CREATE TABLE IF NOT EXISTS community_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      topic TEXT NOT NULL DEFAULT 'geral',
+      body TEXT NOT NULL,
+      image_id INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_posts_id ON community_posts(id);
+    CREATE TABLE IF NOT EXISTS community_post_likes (
+      post_id INTEGER NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (post_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS community_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_id INTEGER NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_comments_post ON community_comments(post_id, id);
+    CREATE TABLE IF NOT EXISTS community_post_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_id INTEGER NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+      reporter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reason TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE (post_id, reporter_id)
+    );
+  `);
+  if (!msgCols.some((c) => c.name === "audio_id")) db.exec("ALTER TABLE community_messages ADD COLUMN audio_id INTEGER");
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS community_audios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      mime TEXT NOT NULL,
+      data BLOB NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+  `);
   if (!msgCols.some((c) => c.name === "edited_at")) db.exec("ALTER TABLE community_messages ADD COLUMN edited_at INTEGER");
   db.exec(`
     -- Denúncias de mensagens (a moderação vê no canal moderator-only) e bloqueios entre membros.

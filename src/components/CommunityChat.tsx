@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChannelIcon } from "./ChannelIcon";
 
 /** Reduz prints grandes (telas retina passam de 2 MB) para no máximo 1600 px, em JPEG. GIFs e imagens já pequenas seguem como estão. */
 async function shrink(f: File): Promise<File> {
@@ -33,6 +34,48 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
   const [drag, setDrag] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const area = useRef<HTMLTextAreaElement>(null);
+  const [audio, setAudio] = useState<{ id: number; url: string } | null>(null);
+  const [rec, setRec] = useState<{ secs: number } | null>(null);
+  const recorder = useRef<{ mr: MediaRecorder; stream: MediaStream; chunks: Blob[]; timer: ReturnType<typeof setInterval>; cancelled: boolean } | null>(null);
+
+  async function startRec() {
+    setErr("");
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return setErr("Seu navegador não permite gravar áudio.");
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      return setErr("Não consegui acessar o microfone. Permita o uso do microfone no navegador e tente de novo.");
+    }
+    const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported(t));
+    const mr = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 });
+    const r = { mr, stream, chunks: [] as Blob[], cancelled: false, timer: setInterval(() => {
+      setRec((o) => { if (o && o.secs + 1 >= 120) stopRec(); return o ? { secs: o.secs + 1 } : o; });
+    }, 1000) };
+    recorder.current = r;
+    mr.ondataavailable = (e) => { if (e.data.size) r.chunks.push(e.data); };
+    mr.onstop = async () => {
+      clearInterval(r.timer);
+      r.stream.getTracks().forEach((t) => t.stop());
+      setRec(null);
+      recorder.current = null;
+      if (r.cancelled || !r.chunks.length) return;
+      const blob = new Blob(r.chunks, { type: mr.mimeType || "audio/webm" });
+      setBusy(true);
+      const fd = new FormData();
+      fd.append("file", blob, "audio");
+      const res = await fetch("/api/community/audio", { method: "POST", body: fd });
+      setBusy(false);
+      const data = (await res.json().catch(() => null)) as { id?: number; error?: string } | null;
+      if (!res.ok || !data?.id) return setErr(data?.error ?? "Não foi possível enviar o áudio.");
+      setAudio((old) => { if (old) URL.revokeObjectURL(old.url); return { id: data.id!, url: URL.createObjectURL(blob) }; });
+    };
+    mr.start();
+    setRec({ secs: 0 });
+  }
+  function stopRec() { if (recorder.current?.mr.state === "recording") recorder.current.mr.stop(); }
+  function cancelRec() { if (recorder.current) { recorder.current.cancelled = true; stopRec(); } }
+  useEffect(() => () => { if (recorder.current) { recorder.current.cancelled = true; clearInterval(recorder.current.timer); recorder.current.stream.getTracks().forEach((t) => t.stop()); } }, []);
 
   // O campo cresce com o texto (até 6 linhas) e não mostra barra de rolagem.
   useEffect(() => {
@@ -77,14 +120,15 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
   }
 
   async function send() {
-    if ((!body.trim() && !image) || busy) return;
+    if ((!body.trim() && !image && !audio) || busy || rec) return;
     setBusy(true);
     setErr("");
-    const res = await fetch("/api/community", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ channel, body, replyTo: replyTo?.id ?? null, imageId: image?.id ?? null }) });
+    const res = await fetch("/api/community", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ channel, body, replyTo: replyTo?.id ?? null, imageId: image?.id ?? null, audioId: audio?.id ?? null }) });
     setBusy(false);
     if (!res.ok) return setErr(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? "Não foi possível enviar.");
     setBody("");
     clearImage();
+    if (audio) { URL.revokeObjectURL(audio.url); setAudio(null); }
     if (replyTo) router.replace(`/painel/comunidade?c=${channel}`);
     router.refresh();
   }
@@ -110,6 +154,12 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
           <button className="underline hover:text-white" onClick={clearImage}>remover</button>
         </div>
       )}
+      {audio && (
+        <div className="mb-2 flex items-center gap-3 rounded-lg bg-panel-2 p-2">
+          <audio controls src={audio.url} className="h-10 min-w-0 flex-1" />
+          <button className="text-xs text-muted underline hover:text-white" onClick={() => { URL.revokeObjectURL(audio.url); setAudio(null); }}>remover</button>
+        </div>
+      )}
       <div className="flex items-end gap-2">
         <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
         <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-line outline-none focus:outline-none focus-visible:outline-none hover:bg-panel-2 disabled:opacity-50" title="Anexar imagem ou print (você também pode colar com Ctrl+V)" aria-label="Anexar imagem" onClick={() => file.current?.click()} disabled={busy}>
@@ -117,6 +167,14 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
             <path d="M9 3v12M3 9h12" />
           </svg>
         </button>
+        {rec ? (
+          <div className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-lg border border-down/50 bg-ink px-3 text-sm">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-down" aria-hidden />
+            <span className="tabular-nums">Gravando… {Math.floor(rec.secs / 60)}:{String(rec.secs % 60).padStart(2, "0")}</span>
+            <button type="button" className="ml-auto text-xs text-muted underline hover:text-white" onClick={cancelRec}>cancelar</button>
+            <button type="button" className="btn btn-gold !py-1 text-xs" onClick={stopRec}>Parar</button>
+          </div>
+        ) : (
         <textarea
           value={body}
           maxLength={max}
@@ -129,7 +187,11 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
           placeholder="Escreva uma mensagem ou cole um print (Ctrl+V). Use @nome para mencionar."
           className="min-h-12 min-w-0 flex-1 resize-none rounded-lg border border-line bg-ink px-3 py-3 text-sm leading-6 [&::-webkit-scrollbar]:hidden outline-none focus:outline-none focus:ring-0"
         />
-        <button type="button" className="btn btn-gold h-12 shrink-0 !py-0" onClick={send} disabled={busy}>{busy ? "…" : "Enviar"}</button>
+        )}
+        <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-line text-gold outline-none hover:bg-panel-2 disabled:opacity-50" title="Gravar áudio" aria-label="Gravar áudio" disabled={busy || !!rec || !!audio} onClick={startRec}>
+          <ChannelIcon name="mic" size={20} />
+        </button>
+        <button type="button" className="btn btn-gold h-12 shrink-0 !py-0" onClick={send} disabled={busy || !!rec}>{busy ? "…" : "Enviar"}</button>
       </div>
       <p className="mt-1 text-[11px] text-muted">Enter envia · Shift+Enter quebra a linha · cole prints com Ctrl+V (⌘+V no Mac) ou arraste a imagem para cá</p>
       {err && <p className="mt-1 text-xs text-down">{err}</p>}
