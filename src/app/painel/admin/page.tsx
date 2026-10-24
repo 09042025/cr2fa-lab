@@ -4,6 +4,9 @@ import { PageTitle } from "@/components/ui";
 import { AdminPlanButtons } from "@/components/AdminPlanButtons";
 import { date, dateTime } from "@/lib/format";
 import { formatBRL } from "@/lib/plans";
+import { listInvites, inviteStatus } from "@/lib/invites";
+import { mailEnabled } from "@/lib/mail";
+import { InvitesPanel } from "@/components/InviteClient";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Administração" };
@@ -18,14 +21,18 @@ export default async function AdminPage() {
   const revenue = paid.reduce((a, o) => a + o.amount_cents, 0);
   const pros = users.filter((u) => effectivePlan(u) === "pro" && u.role !== "admin").length;
 
+  const invites = listInvites().map((i) => ({ id: i.id, code: i.code, email: i.email, note: i.note, days: i.days, status: inviteStatus(i), expiresAt: date(i.expiresAt), createdAt: date(i.createdAt), redeemedBy: i.redeemedByName, emailed: i.emailedAt !== null }));
+
   return (
     <>
-      <PageTitle title="Administração" subtitle="Usuários, planos e pedidos." />
+      <PageTitle title="Administração" subtitle="Usuários, planos, convites VIP e pedidos." />
       <section className="mb-6 grid gap-4 sm:grid-cols-4">
         {[["Usuários", users.length], ["Assinantes Pró", pros], ["Pedidos pagos", paid.length], ["Receita (BRL, pedidos listados)", formatBRL(revenue)]].map(([l, v]) => (
           <div key={l as string} className="card p-4"><p className="text-xs text-muted">{l}</p><p className="mt-1 text-2xl font-bold text-gold-soft">{v}</p></div>
         ))}
       </section>
+
+      <InvitesPanel invites={invites} mailOn={mailEnabled()} />
 
       <section className="card mb-6 p-4">
         <h2 className="mb-3 font-semibold">Usuários</h2>
