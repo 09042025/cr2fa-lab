@@ -1,11 +1,12 @@
+import { PortfolioTab } from "../../src/PortfolioTab";
 import { Card, H2, Muted, ProGate, Screen } from "../../src/ui";
 
 export default function Portfolio() {
   return (
-    <Screen title="Portfólio" subtitle="Consolidador da sua carteira e Carteiras Recomendadas.">
+    <Screen title="Portfólio" subtitle="Registre suas posições e veja quanto comprar ou vender em cada bloco.">
       <ProGate feature="Portfólio (exclusivo do plano Pró)">
-        <Card><H2>Consolidador</H2><Muted>Gráficos de Ações, FIIs, Renda Fixa e Cripto.</Muted></Card>
-        <Card><H2>Carteiras Recomendadas</H2><Muted>Teses e aportes do Emerson.</Muted></Card>
+        <PortfolioTab />
+        <Card><H2>Carteiras Recomendadas</H2><Muted>Em breve: as teses e aportes do Emerson.</Muted></Card>
       </ProGate>
     </Screen>
   );
