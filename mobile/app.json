@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "NIZA INVEST",
+    "slug": "niza-invest",
+    "scheme": "nizainvest",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0d1a",
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true },
+    "ios": { "supportsTablet": false, "bundleIdentifier": "br.com.nizainvest.app" },
+    "android": {
+      "package": "br.com.nizainvest.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0d1a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": { "favicon": "./assets/favicon.png", "bundler": "metro" }
+  }
+}
