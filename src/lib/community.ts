@@ -266,3 +266,39 @@ export function setBlocked(blockerId: number, blockedId: number, blocked: boolea
 export function listBlocked(blockerId: number): { id: number; name: string }[] {
   return db().prepare("SELECT u.id, u.name FROM community_blocks b JOIN users u ON u.id = b.blocked_id WHERE b.blocker_id = ? ORDER BY u.name").all(blockerId) as { id: number; name: string }[];
 }
+
+export type RichToken = { type: "text" | "mention"; text: string } | { type: "link"; text: string; href: string };
+
+const URL_RE = /(https?:\/\/[^\s<>"']+)/gi;
+
+/** Quebra o texto em pedaços comuns, menções (@nome) e links http(s). Pontuação no fim do link (.,;:!?)) fica fora dele. */
+export function splitRich(body: string): RichToken[] {
+  const out: RichToken[] = [];
+  for (const part of body.split(URL_RE)) {
+    if (!part) continue;
+    if (/^https?:\/\//i.test(part)) {
+      const m = /^(.*?)([.,;:!?)\]]*)$/.exec(part)!;
+      const url = m[1];
+      try {
+        const u = new URL(url);
+        if (u.protocol === "http:" || u.protocol === "https:") {
+          out.push({ type: "link", text: url, href: u.toString() });
+          if (m[2]) out.push({ type: "text", text: m[2] });
+          continue;
+        }
+      } catch {
+        /* não é um endereço válido: segue como texto */
+      }
+      out.push({ type: "text", text: part });
+    } else {
+      for (const t of splitMentions(part)) out.push({ type: t.mention ? "mention" : "text", text: t.text });
+    }
+  }
+  return out;
+}
+
+/** Texto curto para mostrar no lugar de um link comprido: domínio e começo do caminho. */
+export function shortUrl(url: string, max = 48): string {
+  const t = url.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+}

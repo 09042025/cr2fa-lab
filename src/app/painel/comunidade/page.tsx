@@ -2,10 +2,11 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { listPostReports } from "@/lib/feed";
 import { DismissPostReport, DeleteItem } from "@/components/FeedClient";
-import { canPost, findChannel, isBanned, listBlocked, listMessages, listReports, MAX_BODY, REACTIONS, REPORT_REASONS, splitMentions, VOICE, visibleCategories } from "@/lib/community";
+import { canPost, findChannel, isBanned, listBlocked, listMessages, listReports, MAX_BODY, REACTIONS, REPORT_REASONS, VOICE, visibleCategories } from "@/lib/community";
 import { AutoRefresh, BanButton, BlockButton, ChatForm, DeleteMessage, DismissReport, EditMessage, Reactions, ReportButton } from "@/components/CommunityChat";
 import { PageTitle } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
+import { RichText } from "@/components/RichText";
 import { ChannelIcon } from "@/components/ChannelIcon";
 
 export const dynamic = "force-dynamic";
@@ -107,9 +108,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
                 {m.reply && <p className="mb-1 truncate border-l-2 border-gold/40 pl-2 text-xs text-muted">↪ <strong>{m.reply.author}</strong>: {m.reply.body}</p>}
                 {m.body && (
                   <p className="whitespace-pre-wrap break-words text-muted">
-                    {splitMentions(m.body).map((t, i) =>
-                      t.mention ? <span key={i} className={`rounded px-0.5 font-medium ${t.text.slice(1).toLowerCase() === firstName ? "bg-gold/25 text-gold-soft" : "text-gold-soft"}`}>{t.text}</span> : <span key={i}>{t.text}</span>,
-                    )}
+                    <RichText body={m.body} first={firstName} />
                   </p>
                 )}
                 {m.audioId && <audio controls preload="none" src={`/api/community/audio?id=${m.audioId}`} className="mt-1 h-10 w-full max-w-sm" />}
