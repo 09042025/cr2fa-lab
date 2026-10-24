@@ -100,7 +100,22 @@ function migrate(db: Database.Database) {
   const msgCols = db.prepare("PRAGMA table_info(community_messages)").all() as { name: string }[];
   if (!msgCols.some((c) => c.name === "reply_to")) db.exec("ALTER TABLE community_messages ADD COLUMN reply_to INTEGER");
   if (!msgCols.some((c) => c.name === "image_id")) db.exec("ALTER TABLE community_messages ADD COLUMN image_id INTEGER");
+  if (!msgCols.some((c) => c.name === "edited_at")) db.exec("ALTER TABLE community_messages ADD COLUMN edited_at INTEGER");
   db.exec(`
+    -- Denúncias de mensagens (a moderação vê no canal moderator-only) e bloqueios entre membros.
+    CREATE TABLE IF NOT EXISTS community_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id INTEGER NOT NULL REFERENCES community_messages(id) ON DELETE CASCADE,
+      reporter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reason TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE (message_id, reporter_id)
+    );
+    CREATE TABLE IF NOT EXISTS community_blocks (
+      blocker_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      blocked_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (blocker_id, blocked_id)
+    );
     CREATE TABLE IF NOT EXISTS community_images (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

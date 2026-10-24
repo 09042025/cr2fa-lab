@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { db } from "../src/lib/db";
-import { addMessage, canPost, deleteMessage, findChannel, isBanned, listMessages, saveImage, setBanned, sniffImage, splitMentions, toggleReaction, visibleCategories } from "../src/lib/community";
+import { addMessage, editMessage, listBlocked, listReports, reportMessage, setBlocked, canPost, deleteMessage, findChannel, isBanned, listMessages, saveImage, setBanned, sniffImage, splitMentions, toggleReaction, visibleCategories } from "../src/lib/community";
 
 const mk = (email: string, role = "user") => Number(db().prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, 'Ana', 'x', ?)").run(email, role).lastInsertRowid);
 
@@ -68,4 +68,34 @@ test("banir: só admin, não bane admin nem a si mesmo", () => {
 
 test("menções são destacadas", () => {
   assert.deepEqual(splitMentions("oi @Ana, tudo?").map((t) => t.mention), [false, true, false]);
+});
+
+test("editar: só o autor", () => {
+  const a = mk("c9@t.com"), b = mk("c10@t.com");
+  const m = addMessage("geral", a, "texto");
+  assert.equal(editMessage(m, b, "hack"), false);
+  assert.equal(editMessage(m, a, "novo"), true);
+  const row = listMessages("geral", a).find((x) => x.id === m)!;
+  assert.equal(row.body, "novo");
+  assert.equal(row.edited, true);
+  assert.equal(editMessage(m, a, "   "), false);
+});
+
+test("denunciar e bloquear", () => {
+  const a = mk("c11@t.com"), b = mk("c12@t.com"), adm = mk("c13@t.com", "admin");
+  const m = addMessage("geral", a, "spam aqui");
+  assert.equal(reportMessage(m, a, "Spam ou divulgação"), false); // não denuncia a si mesmo
+  assert.equal(reportMessage(m, b, "motivo inventado"), false);
+  assert.equal(reportMessage(m, b, "Spam ou divulgação"), true);
+  assert.equal(reportMessage(m, b, "Spam ou divulgação"), false); // uma por pessoa
+  assert.ok(listReports().some((r) => r.messageId === m && r.reporter === "Ana"));
+  assert.equal(listMessages("geral", b).some((x) => x.id === m), true);
+  assert.equal(setBlocked(b, a, true), true);
+  assert.equal(listMessages("geral", b).some((x) => x.id === m), false); // some só para quem bloqueou
+  assert.equal(listMessages("geral", adm).some((x) => x.id === m), true);
+  assert.equal(listBlocked(b).length, 1);
+  assert.equal(setBlocked(b, adm, true), false); // admin não é bloqueável
+  assert.equal(setBlocked(b, b, true), false);
+  setBlocked(b, a, false);
+  assert.equal(listMessages("geral", b).some((x) => x.id === m), true);
 });

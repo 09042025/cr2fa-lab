@@ -94,6 +94,7 @@ export interface CommunityMessage {
   body: string;
   createdAt: number;
   imageId: number | null;
+  edited: boolean;
   reply: { id: number; author: string; body: string } | null;
   /** emoji -> quantidade, e quais o usuário atual marcou. */
   reactions: { emoji: string; count: number; mine: boolean }[];
@@ -102,14 +103,14 @@ export interface CommunityMessage {
 export function listMessages(channel: string, viewerId: number, limit = 100): CommunityMessage[] {
   const rows = db()
     .prepare(
-      `SELECT m.id, m.user_id userId, u.name author, u.role role, u.community_banned banned, m.body, m.created_at createdAt, m.image_id imageId,
+      `SELECT m.id, m.user_id userId, u.name author, u.role role, u.community_banned banned, m.body, m.created_at createdAt, m.image_id imageId, m.edited_at editedAt,
               r.id rid, ru.name rauthor, r.body rbody
        FROM community_messages m JOIN users u ON u.id = m.user_id
        LEFT JOIN community_messages r ON r.id = m.reply_to
        LEFT JOIN users ru ON ru.id = r.user_id
-       WHERE m.channel = ? ORDER BY m.id DESC LIMIT ?`,
+       WHERE m.channel = ? AND (m.user_id = ? OR m.user_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?)) ORDER BY m.id DESC LIMIT ?`,
     )
-    .all(channel, limit) as { id: number; userId: number; author: string; role: string; banned: number; body: string; createdAt: number; imageId: number | null; rid: number | null; rauthor: string | null; rbody: string | null }[];
+    .all(channel, viewerId, viewerId, limit) as { id: number; userId: number; author: string; role: string; banned: number; body: string; createdAt: number; imageId: number | null; editedAt: number | null; rid: number | null; rauthor: string | null; rbody: string | null }[];
   rows.reverse();
   const ids = rows.map((r) => r.id);
   const reacts = ids.length
@@ -118,7 +119,7 @@ export function listMessages(channel: string, viewerId: number, limit = 100): Co
         .all(viewerId, ...ids) as { mid: number; emoji: string; c: number; mine: number }[])
     : [];
   return rows.map((r) => ({
-    id: r.id, userId: r.userId, author: r.author, isAdmin: r.role === "admin", banned: r.banned === 1, body: r.body, createdAt: r.createdAt, imageId: r.imageId,
+    id: r.id, userId: r.userId, author: r.author, isAdmin: r.role === "admin", banned: r.banned === 1, body: r.body, createdAt: r.createdAt, imageId: r.imageId, edited: r.editedAt !== null,
     reply: r.rid ? { id: r.rid, author: r.rauthor ?? "?", body: (r.rbody ?? "").slice(0, 120) } : null,
     reactions: reacts.filter((x) => x.mid === r.id).map((x) => ({ emoji: x.emoji, count: x.c, mine: x.mine > 0 })),
   }));
@@ -186,4 +187,53 @@ export function deleteMessage(id: number, user: { id: number; role: string }): b
 /** Quebra o texto em pedaços comuns e menções (@nome). */
 export function splitMentions(body: string): { text: string; mention: boolean }[] {
   return body.split(/(@[\p{L}\p{N}_.-]+)/u).filter(Boolean).map((t) => ({ text: t, mention: /^@[\p{L}\p{N}_.-]+$/u.test(t) }));
+}
+
+/** Só o autor edita a própria mensagem (administradores podem apagar, mas não reescrever o que outro disse). */
+export function editMessage(id: number, userId: number, body: string): boolean {
+  const text = body.trim();
+  if (!text || text.length > MAX_BODY) return false;
+  return db().prepare("UPDATE community_messages SET body = ?, edited_at = unixepoch() WHERE id = ? AND user_id = ?").run(text, id, userId).changes > 0;
+}
+
+export const REPORT_REASONS = ["Spam ou divulgação", "Golpe ou pedido de dinheiro", "Ofensa ou assédio", "Outro motivo"] as const;
+
+/** Denúncia de uma mensagem de outro membro. Uma por pessoa e mensagem. */
+export function reportMessage(messageId: number, reporterId: number, reason: string): boolean {
+  if (!(REPORT_REASONS as readonly string[]).includes(reason)) return false;
+  const m = db().prepare("SELECT user_id FROM community_messages WHERE id = ?").get(messageId) as { user_id: number } | undefined;
+  if (!m || m.user_id === reporterId) return false;
+  return db().prepare("INSERT OR IGNORE INTO community_reports (message_id, reporter_id, reason) VALUES (?, ?, ?)").run(messageId, reporterId, reason).changes > 0;
+}
+
+export interface ReportItem { id: number; reason: string; createdAt: number; reporter: string; messageId: number; body: string; authorId: number; author: string; authorBanned: boolean; channel: string }
+
+export function listReports(): ReportItem[] {
+  return db()
+    .prepare(
+      `SELECT r.id, r.reason, r.created_at createdAt, rp.name reporter, m.id messageId, m.body, m.channel, a.id authorId, a.name author, a.community_banned = 1 authorBanned
+       FROM community_reports r JOIN community_messages m ON m.id = r.message_id
+       JOIN users rp ON rp.id = r.reporter_id JOIN users a ON a.id = m.user_id
+       ORDER BY r.id DESC LIMIT 100`,
+    )
+    .all() as ReportItem[];
+}
+
+export function dismissReport(id: number): boolean {
+  return db().prepare("DELETE FROM community_reports WHERE id = ?").run(id).changes > 0;
+}
+
+/** Bloqueia ou desbloqueia um membro: as mensagens dele somem só para quem bloqueou. */
+export function setBlocked(blockerId: number, blockedId: number, blocked: boolean): boolean {
+  if (blockerId === blockedId) return false;
+  if (!db().prepare("SELECT 1 FROM users WHERE id = ?").get(blockedId)) return false;
+  // administradores não podem ser bloqueados: as regras e os avisos oficiais têm que chegar a todos
+  if (blocked && db().prepare("SELECT 1 FROM users WHERE id = ? AND role = 'admin'").get(blockedId)) return false;
+  if (blocked) db().prepare("INSERT OR IGNORE INTO community_blocks (blocker_id, blocked_id) VALUES (?, ?)").run(blockerId, blockedId);
+  else db().prepare("DELETE FROM community_blocks WHERE blocker_id = ? AND blocked_id = ?").run(blockerId, blockedId);
+  return true;
+}
+
+export function listBlocked(blockerId: number): { id: number; name: string }[] {
+  return db().prepare("SELECT u.id, u.name FROM community_blocks b JOIN users u ON u.id = b.blocked_id WHERE b.blocker_id = ? ORDER BY u.name").all(blockerId) as { id: number; name: string }[];
 }
