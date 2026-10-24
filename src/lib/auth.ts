@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, effectivePlan, type PlanName, type UserRow } from "./db";
 import { onTrial, trialAvailable } from "./trial";
@@ -33,12 +33,13 @@ export function validatePasswordStrength(password: string): string | null {
   return null;
 }
 
+/** Assina o token de sessão (o mesmo vale como cookie no site e como "Bearer" no app). */
+export async function signToken(userId: number, seconds = MAX_AGE): Promise<string> {
+  return new SignJWT({ uid: userId }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime(`${seconds}s`).sign(secret());
+}
+
 export async function createSession(userId: number): Promise<void> {
-  const token = await new SignJWT({ uid: userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${MAX_AGE}s`)
-    .sign(secret());
+  const token = await signToken(userId);
   const jar = await cookies();
   jar.set(COOKIE, token, {
     httpOnly: true,
@@ -66,10 +67,20 @@ export interface SessionUser {
   onTrial: boolean;
 }
 
+/** Token do app: cabeçalho "Authorization: Bearer ...". Não depende de cookie, então não sofre CSRF. */
+export function bearerToken(h: { get(name: string): string | null }): string | null {
+  const m = (h.get("authorization") ?? "").match(/^Bearer\s+([\w-]+\.[\w-]+\.[\w-]+)$/i);
+  return m ? m[1] : null;
+}
+
 export async function getUser(): Promise<SessionUser | null> {
   const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
+  const token = jar.get(COOKIE)?.value ?? bearerToken(await headers());
   if (!token) return null;
+  return userFromToken(token);
+}
+
+export async function userFromToken(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, secret());
     const row = db().prepare("SELECT * FROM users WHERE id = ?").get(Number(payload.uid)) as UserRow | undefined;

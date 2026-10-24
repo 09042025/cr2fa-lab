@@ -7,7 +7,7 @@ import { Card, GoldButton, H2, Muted, ProBadge, Screen } from "../../src/ui";
 export default function Inicio() {
   const { user, isPro } = useAuth();
   return (
-    <Screen title={`Olá, ${user?.name.split(" ")[0]}`} subtitle="Resumo do seu hub de investimentos.">
+    <Screen title={`Olá, ${user?.name.split(" ")[0] ?? ""}`} subtitle="Resumo do seu hub de investimentos.">
       {!isPro && (
         <Card style={{ borderColor: C.gold }}>
           <Text style={{ color: C.goldSoft, fontWeight: "700" }}>Teste o Pró por 30 dias, sem pagar.</Text>
