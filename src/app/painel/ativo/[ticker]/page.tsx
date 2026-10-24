@@ -43,7 +43,6 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
         { label: "Relatórios gerenciais e documentos (Investidor10)", url: `https://investidor10.com.br/fiis/${lower}/` },
         { label: "Funds Explorer", url: `https://www.fundsexplorer.com.br/funds/${lower}` },
         { label: "Status Invest", url: `https://statusinvest.com.br/fundos-imobiliarios/${lower}` },
-        { label: "FNET / B3 (documentos oficiais do fundo)", url: "https://fnet.bmfbovespa.com.br/fnet/publico/abrirGerenciadorDocumentosCVM" },
       ]
     : [
         { label: "Investidor10", url: `https://investidor10.com.br/acoes/${lower}/` },
@@ -108,7 +107,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
         <ul className="space-y-2 text-sm">
           {docs.map((l) => <li key={l.url + l.label}><a className="text-gold-soft underline" href={l.url} target="_blank" rel="noopener noreferrer">{l.label} ↗</a></li>)}
         </ul>
-        {isFii && <p className="mt-3 text-xs text-muted">Os relatórios gerenciais mais recentes ficam nestes sites, direto da fonte oficial (B3/FNET). No FNET, filtre pelo nome do fundo e pelo tipo "Relatório Gerencial".</p>}
+        {isFii && <p className="mt-3 text-xs text-muted">Os relatórios gerenciais mais recentes ficam nestes sites, na página de cada fundo.</p>}
       </div>
 
       {links.length > 0 && (
