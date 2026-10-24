@@ -1,5 +1,6 @@
 import { getUser } from "@/lib/auth";
 import { fail, json } from "@/lib/http";
+import { REPORT_REASONS } from "@/lib/community";
 import { listPosts, TOPICS } from "@/lib/feed";
 
 /** Feed para o app: ?t=cripto | seguindo | (vazio = tudo), ?antes=<id> para a página seguinte. Livre para todos os planos. */
@@ -16,6 +17,7 @@ export async function GET(req: Request) {
   });
   return json({
     topics: TOPICS,
+    reportReasons: REPORT_REASONS,
     me: { id: user.id, admin: user.role === "admin" },
     posts: posts.map((p) => ({
       id: p.id, userId: p.userId, author: p.author, authorAvatar: p.authorAvatar, authorIsAdmin: p.authorIsAdmin, topic: p.topic, body: p.body, imageId: p.imageId,

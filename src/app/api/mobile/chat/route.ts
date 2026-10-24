@@ -1,5 +1,5 @@
 import { getUser } from "@/lib/auth";
-import { canPost, canView, findChannel, isBanned, listMessages } from "@/lib/community";
+import { canPost, canView, findChannel, isBanned, listMessages, REACTIONS, REPORT_REASONS } from "@/lib/community";
 import { fail, json } from "@/lib/http";
 
 /** Mensagens de um canal para o app. Grátis só lê os canais livres (chat-geral); o resto é Pró. */
@@ -15,10 +15,12 @@ export async function GET(req: Request) {
     channel: { slug: ch.slug, name: ch.name, description: ch.description },
     canPost: canPost(ch, user) && !banned,
     banned,
-    me: { id: user.id },
+    me: { id: user.id, admin: user.role === "admin" },
+    reactions: REACTIONS,
+    reportReasons: REPORT_REASONS,
     messages: listMessages(ch.slug, user.id).map((m) => ({
       id: m.id, userId: m.userId, author: m.author, isAdmin: m.isAdmin, avatarId: m.avatarId, body: m.body, createdAt: m.createdAt,
-      imageId: m.imageId, audioId: m.audioId, edited: m.edited, reply: m.reply,
+      imageId: m.imageId, audioId: m.audioId, edited: m.edited, reply: m.reply, reactions: m.reactions,
     })),
   });
 }
