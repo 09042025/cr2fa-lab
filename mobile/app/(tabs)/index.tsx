@@ -10,7 +10,7 @@ import { Card, GoldButton, H2, Muted, ProBadge, Screen } from "../../src/ui";
 export default function Inicio() {
   const { user, isPro } = useAuth();
   const { data, loading } = useApi<MarketData>("/api/mobile/market");
-  const btc = data?.coins.find((c) => c.id === "bitcoin");
+  const btc = data?.coins?.find((c) => c.id === "bitcoin");
   return (
     <Screen title={`Olá, ${user?.name.split(" ")[0] ?? ""}`} subtitle="Resumo do seu hub de investimentos.">
       {!isPro && (
