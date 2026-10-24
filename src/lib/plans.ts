@@ -27,7 +27,7 @@ export const FREE_LIMITS = {
 
 export function priceCents(period: Period): number {
   const env = period === "monthly" ? process.env.PRO_PRICE_BRL_MONTHLY : process.env.PRO_PRICE_BRL_YEARLY;
-  const fallback = period === "monthly" ? "29.90" : "299.00";
+  const fallback = period === "monthly" ? "49.90" : "499.90";
   const value = Number((env || fallback).replace(",", "."));
   if (!Number.isFinite(value) || value <= 0) return Math.round(Number(fallback) * 100);
   return Math.round(value * 100);
