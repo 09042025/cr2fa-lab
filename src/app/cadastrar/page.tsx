@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { AuthForm } from "@/components/AuthForm";
 import { Logo } from "@/components/ui";
+import { trialDays } from "@/lib/trial";
 
 export const metadata = { title: "Criar conta" };
 
@@ -15,6 +16,9 @@ export default async function RegisterPage() {
         <div className="mb-6 flex justify-center"><Logo size="lg" /></div>
         <div className="card p-6">
           <h1 className="mb-4 font-display text-2xl font-bold text-gold-soft">Criar conta grátis</h1>
+          <p className="mb-4 rounded-lg border border-gold/60 bg-gold/10 px-3 py-2 text-sm text-gold-soft">
+            🎁 Ao criar sua conta você pode ativar <strong>{trialDays()} dias de Pró grátis</strong>, sem cartão. Depois, se não assinar, volta para o plano Grátis, sem cobrança.
+          </p>
           <AuthForm mode="register" />
           <p className="mt-4 text-center text-sm text-muted">
             Já tem conta? <Link href="/entrar" className="text-gold-soft underline">Entrar</Link>
