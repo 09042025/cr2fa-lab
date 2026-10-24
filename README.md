@@ -79,7 +79,7 @@ Sem essas variáveis, o pedido não envia e-mail e o servidor registra um aviso 
 
 ## Configurações e administração
 
-No painel, o botão **Configurações** (na lateral, também no celular) abre a página com **perfil** (nome e e-mail; trocar o e-mail exige a senha atual), **alterar senha**, plano e sair. O administrador vê também o atalho para **Administração**, onde pode dar ou tirar o Pró e **excluir contas comuns**: é preciso digitar o e-mail da conta para confirmar, a exclusão apaga também o portfólio e o histórico de pedidos dela, e contas de administrador não podem ser excluídas por ali.
+No painel, o botão **Configurações** (na lateral, também no celular) abre a página com **perfil** (nome e e-mail; trocar o e-mail exige a senha atual), **alterar senha**, plano e sair. O administrador vê também o atalho para **Administração**, onde pode dar ou tirar o Pró e **excluir contas**: é preciso digitar o e-mail da conta para confirmar e a exclusão apaga também o portfólio e o histórico de pedidos dela. Dá para excluir outro administrador (por exemplo, uma conta duplicada), mas nunca a própria conta nem o último administrador.
 
 ## Teste grátis do Pró
 

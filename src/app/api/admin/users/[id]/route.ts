@@ -41,7 +41,7 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
   const body = (await req.json().catch(() => null)) as { confirmEmail?: unknown } | null;
   if (typeof body?.confirmEmail !== "string") return fail("Digite o e-mail da conta para confirmar.");
 
-  const result = deleteUserAccount(userId, body.confirmEmail);
+  const result = deleteUserAccount(userId, body.confirmEmail, admin.id);
   if (!result.ok) return fail(result.error, result.status);
   return json({ ok: true, paidOrders: result.paidOrders });
 }
