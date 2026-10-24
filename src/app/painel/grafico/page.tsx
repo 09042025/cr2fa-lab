@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 type SP = { tipo?: string; ativo?: string; nome?: string; id?: string; de?: string };
 
 const BACK: Record<string, { href: string; label: string }> = {
-  cripto: { href: "/painel/cripto", label: "Voltar para Cripto" },
+  cripto: { href: "/painel/cripto/mercado", label: "Voltar para Cripto" },
   acoes: { href: "/painel/acoes", label: "Voltar para Ações" },
   fiis: { href: "/painel/fiis", label: "Voltar para Fundos imobiliários" },
 };
