@@ -24,9 +24,9 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 md:flex-row">
       <aside className="md:sticky md:top-5 md:h-[calc(100vh-2.5rem)] md:w-60 md:shrink-0">
-        <div className="card flex h-full flex-col p-4">
+        <div className="card flex h-full flex-col overflow-hidden p-4">
           <Logo />
-          <nav className="mt-5 flex gap-1 overflow-x-auto md:flex-col md:overflow-visible" aria-label="Principal">
+          <nav className="mt-5 flex gap-1 overflow-x-auto md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden" aria-label="Principal">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-lg py-2 text-sm text-muted hover:bg-panel-2 hover:text-white ${n.sub ? "px-3 md:pl-7 md:text-[13px]" : "px-3"}`}>
                 {n.label}
@@ -39,7 +39,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
               </Link>
             )}
           </nav>
-          <div className="mt-4 border-t border-line pt-4 md:mt-auto">
+          <div className="mt-4 shrink-0 border-t border-line pt-4 md:mt-auto">
             <p className="truncate text-sm font-medium">{user.name}</p>
             <p className="truncate text-xs text-muted">{user.email}</p>
             <p className="mt-2 text-xs">
