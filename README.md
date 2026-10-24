@@ -67,6 +67,16 @@ Os dados ficam no volume `cr2fa-data` (SQLite). Faça backup desse volume.
 4. Em **Settings → Networking**, gere o domínio público e, depois, adicione o seu domínio próprio seguindo as instruções de DNS mostradas.
 5. No primeiro start o servidor **cria o administrador automaticamente** (se ainda não houver um), com `ADMIN_EMAIL` e `ADMIN_INITIAL_PASSWORD`. Se a senha ficar vazia, uma senha aleatória aparece **uma única vez** nos logs do deploy. A troca é obrigatória no primeiro login. Depois de trocar, apague `ADMIN_INITIAL_PASSWORD` das variáveis.
 
+## Recuperação de senha
+
+Na tela de login há o link **Esqueci minha senha**. O usuário informa o e-mail e recebe um link (válido por 1 hora, uso único) para criar uma nova senha. Para enviar o e-mail, o app usa o [Resend](https://resend.com):
+
+1. Crie a conta no Resend e verifique o domínio (registros DNS indicados por ele).
+2. Gere uma chave de API e defina na Railway `RESEND_API_KEY` e `MAIL_FROM` (endereço do domínio verificado).
+3. Confirme que `APP_URL` está com o endereço público (HTTPS), pois o link do e-mail é montado com ele.
+
+Sem essas variáveis, o pedido não envia e-mail e o servidor registra um aviso no log.
+
 ## Pagamentos
 
 ### Pix e cartão (Mercado Pago)
