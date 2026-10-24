@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { NoticiasTab } from "../../src/NoticiasTab";
 import { C } from "../../src/theme";
 import { Card, H2, Muted, ProBadge, ProGate, Screen } from "../../src/ui";
 
@@ -12,7 +13,6 @@ const CANAIS = [
   { nome: "geral", pro: true },
   { nome: "planejamento-de-reuniões", pro: true },
 ];
-const TEMAS = ["Cripto", "Ações", "Fundos imobiliários", "Renda fixa", "Economia Brasil", "Economia mundial"];
 
 /** Abas principais: 4 colunas do mesmo tamanho, alinhadas. */
 function SegTabs({ items, value, onChange, badge }: { items: readonly string[]; value: string; onChange: (v: string) => void; badge: (v: string) => boolean }) {
@@ -48,26 +48,9 @@ function ListPick({ items, value, onChange, badge, prefix = "" }: { items: reado
   );
 }
 
-/** Grade de 2 colunas com células iguais. */
-function GridPick({ items, value, onChange }: { items: readonly string[]; value: string; onChange: (v: string) => void }) {
-  return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-      {items.map((t) => {
-        const on = value === t;
-        return (
-          <Pressable key={t} onPress={() => onChange(t)} style={{ width: "48.5%", height: 44, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? "rgba(217,165,32,0.15)" : C.panel, paddingHorizontal: 8 }}>
-            <Text numberOfLines={1} style={{ color: on ? C.goldSoft : C.white, fontWeight: "600" }}>{t}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 export default function Comunidade() {
   const [tab, setTab] = useState<string>("Chat");
   const [canal, setCanal] = useState("chat-geral");
-  const [tema, setTema] = useState("Cripto");
   const pro = CANAIS.find((c) => c.nome === canal)?.pro ?? false;
   return (
     <Screen title="Comunidade">
@@ -83,12 +66,7 @@ export default function Comunidade() {
         </>
       )}
       {tab === "Feed" && <Card><H2>Feed da comunidade</H2><Muted>Publicações dos membros. Livre para todos.</Muted></Card>}
-      {tab === "Notícias" && (
-        <>
-          <GridPick items={TEMAS} value={tema} onChange={setTema} />
-          <Card><H2>Notícias · {tema}</H2><Muted>As manchetes do tema aparecem aqui. Livre para todos.</Muted></Card>
-        </>
-      )}
+      {tab === "Notícias" && <NoticiasTab />}
       {tab === "Lives VIP" && <ProGate feature="Lives VIP (exclusivo do plano Pró)"><Card><H2>Ao vivo</H2><Muted>A live do canal @EMERSON-NIZA aparece aqui.</Muted></Card></ProGate>}
     </Screen>
   );

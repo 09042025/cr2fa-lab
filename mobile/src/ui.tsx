@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "./auth";
 import { C } from "./theme";
@@ -61,3 +61,15 @@ export const s = StyleSheet.create({
   badge: { backgroundColor: "rgba(217,165,32,0.2)", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
   badgeText: { color: C.goldSoft, fontSize: 10, fontWeight: "700" },
 });
+
+/** Aviso de carregando / erro com botão de tentar de novo. */
+export function Status({ loading, error, onRetry }: { loading: boolean; error: string | null; onRetry: () => void }) {
+  if (loading) return <ActivityIndicator color={C.gold} style={{ marginVertical: 16 }} />;
+  if (!error) return null;
+  return (
+    <Card style={{ borderColor: C.down }}>
+      <Text style={{ color: C.down }}>{error}</Text>
+      <GoldButton label="Tentar de novo" ghost onPress={onRetry} />
+    </Card>
+  );
+}
