@@ -21,7 +21,6 @@ export default function Perfil() {
     <Screen title="Perfil">
       <Card>
         <H2>{user?.name}</H2>
-        <Muted>{user?.email}</Muted>
         <Text style={{ color: isPro ? C.goldSoft : C.muted, fontWeight: "700" }}>
           Plano: {isPro ? "Pró" : "Grátis"}
           {user?.role !== "admin" && isPro && user?.planExpiresAt ? ` · ${user.onTrial ? "teste grátis até" : "ativo até"} ${dia(user.planExpiresAt)}` : ""}
