@@ -9,6 +9,13 @@ function Msg({ error, ok }: { error: string | null; ok: string | null }) {
   return null;
 }
 
+/** em***@gmail.com: esconde o e-mail para quem assiste a uma tela compartilhada. */
+function maskEmail(v: string): string {
+  const [user, domain] = v.split("@");
+  if (!domain) return "••••";
+  return `${user.slice(0, 2)}***@${domain}`;
+}
+
 export function ProfileForm({ name, email }: { name: string; email: string }) {
   const router = useRouter();
   const [currentEmail, setCurrentEmail] = useState(email);
@@ -16,6 +23,7 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
   const emailChanging = value.trim().toLowerCase() !== currentEmail.toLowerCase();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -47,7 +55,15 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
       </div>
       <div>
         <label className="label" htmlFor="email">E-mail</label>
-        <input id="email" name="email" type="email" className="input" value={value} onChange={(e) => setValue(e.target.value)} required autoComplete="email" />
+        {show ? (
+          <input id="email" name="email" type="email" className="input" value={value} onChange={(e) => setValue(e.target.value)} required autoComplete="email" />
+        ) : (
+          <>
+            <input type="hidden" name="email" value={value} />
+            <input id="email" className="input" value={maskEmail(value)} readOnly aria-label="E-mail (oculto)" />
+          </>
+        )}
+        <button type="button" onClick={() => setShow(!show)} className="mt-1 text-xs text-gold-soft underline">{show ? "Ocultar e-mail" : "Mostrar e-mail"}</button>
       </div>
       {emailChanging && (
         <div>
