@@ -41,7 +41,6 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           </nav>
           <div className="mt-4 shrink-0 border-t border-line pt-4 md:mt-auto">
             <p className="truncate text-sm font-medium">{user.name}</p>
-            <p className="truncate text-xs text-muted">{user.email}</p>
             <p className="mt-2 text-xs">
               Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{user.plan === "pro" ? "Pró" : "Grátis"}</span>
               {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-muted"> {user.onTrial ? "(teste) " : ""}até {date(user.planExpiresAt)}</span> : null}
