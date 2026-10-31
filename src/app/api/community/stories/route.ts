@@ -8,6 +8,7 @@ const schema = z.object({
   imageId: z.number().int().positive().optional(),
   caption: z.string().max(MAX_CAPTION * 2).default(""),
   view: z.number().int().positive().optional(),
+  videoId: z.number().int().positive().optional(),
   share: z.number().int().positive().optional(),
 });
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   if (!parsed.data.imageId) return fail("Escolha uma foto.");
   if (user.role !== "admin" && isBanned(user.id)) return fail("Você foi suspenso da comunidade pela moderação.", 403);
   if (!rateLimit(`story:${user.id}`, 20, 60 * 60_000)) return fail("Muitos stories seguidos. Tente mais tarde.", 429);
-  const r = createStory(user.id, parsed.data.imageId, parsed.data.caption);
+  const r = createStory(user.id, parsed.data.imageId, parsed.data.caption, parsed.data.videoId ?? null);
   return r.ok ? json({ id: r.id }, 201) : fail(r.error, r.status ?? 400);
 }
 

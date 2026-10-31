@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "./Avatar";
 import { useImageUpload } from "./imageUpload";
+import { StoryCamera, MAX_STORY_SECONDS, type Captured } from "./StoryCamera";
 
-interface Story { id: number; imageId: number; caption: string; createdAt: number; seen: boolean; views?: number }
+interface Story { id: number; imageId: number; videoId: number | null; caption: string; createdAt: number; seen: boolean; views?: number }
 interface Group { userId: number; name: string; avatarId: number | null; isAdmin: boolean; mine: boolean; allSeen: boolean; stories: Story[] }
 
 const DURATION = 6000;
@@ -66,17 +67,87 @@ export function StoriesBar({ me, canPost }: { me: { id: number; name: string; av
   );
 }
 
+interface VideoUp { id: number; posterId: number; url: string }
+
+async function postFile(url: string, blob: Blob, name: string): Promise<number | string> {
+  const fd = new FormData();
+  fd.append("file", blob, name);
+  const r = await fetch(url, { method: "POST", body: fd });
+  const d = (await r.json().catch(() => null)) as { id?: number; error?: string } | null;
+  return r.ok && d?.id ? d.id : d?.error ?? "Não foi possível enviar.";
+}
+
+/** Primeiro quadro do vídeo + duração, para validar vídeos vindos da galeria. */
+function inspectVideo(file: File): Promise<{ poster: Blob; duration: number } | null> {
+  return new Promise((resolve) => {
+    const v = document.createElement("video");
+    const url = URL.createObjectURL(file);
+    const done = (r: { poster: Blob; duration: number } | null) => { URL.revokeObjectURL(url); resolve(r); };
+    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
+    v.onerror = () => done(null);
+    v.onloadeddata = () => { v.currentTime = Math.min(0.1, v.duration / 2 || 0); };
+    v.onseeked = () => {
+      const c = document.createElement("canvas");
+      const sc = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
+      c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+      c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob((b) => done(b ? { poster: b, duration: v.duration } : null), "image/jpeg", 0.8);
+    };
+  });
+}
+
 function Composer({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const img = useImageUpload();
+  const [video, setVideo] = useState<VideoUp | null>(null);
   const [caption, setCaption] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [camera, setCamera] = useState(false);
   const file = useRef<HTMLInputElement>(null);
 
-  async function send() {
-    if (!img.image || busy) return;
+  function reset() { img.clear(); if (video) URL.revokeObjectURL(video.url); setVideo(null); setErr(""); }
+
+  async function onCaptured(c: Captured) {
+    setCamera(false);
+    reset();
     setBusy(true);
-    const res = await api({ imageId: img.image.id, caption });
+    if (c.kind === "photo") {
+      await img.upload(new File([c.blob], "story.jpg", { type: "image/jpeg" }));
+    } else {
+      await uploadVideo(c.blob, c.poster);
+    }
+    setBusy(false);
+  }
+
+  async function uploadVideo(blob: Blob, poster: Blob) {
+    const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+    const p = await postFile("/api/community/image", poster, "capa.jpg");
+    if (typeof p === "string") return setErr(p);
+    const v = await postFile("/api/community/video", blob, `story.${ext}`);
+    if (typeof v === "string") return setErr(v);
+    setVideo({ id: v, posterId: p, url: URL.createObjectURL(blob) });
+  }
+
+  async function fromGallery(f: File | undefined) {
+    if (!f) return;
+    reset();
+    if (f.type.startsWith("image/")) return void img.upload(f);
+    if (!f.type.startsWith("video/")) return setErr("Escolha uma foto ou um vídeo.");
+    if (f.size > 14 * 1024 * 1024) return setErr("O vídeo é grande demais (máximo 14 MB). Grave direto pela câmera.");
+    setBusy(true);
+    const info = await inspectVideo(f);
+    if (!info) setErr("Não consegui ler esse vídeo. Tente gravar pela câmera.");
+    else if (info.duration > MAX_STORY_SECONDS + 1) setErr(`O vídeo tem mais de ${MAX_STORY_SECONDS} segundos.`);
+    else await uploadVideo(f, info.poster);
+    setBusy(false);
+  }
+
+  const ready = video ? { imageId: video.posterId, videoId: video.id } : img.image ? { imageId: img.image.id, videoId: null } : null;
+
+  async function send() {
+    if (!ready || busy) return;
+    setBusy(true);
+    const res = await api({ imageId: ready.imageId, videoId: ready.videoId ?? undefined, caption });
     setBusy(false);
     if (!res.ok) return setErr(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? "Não foi possível publicar.");
     onDone();
@@ -84,25 +155,38 @@ function Composer({ onClose, onDone }: { onClose: () => void; onDone: () => void
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true">
-      <div className="card w-full max-w-sm p-4">
+      <div className="card max-h-full w-full max-w-sm overflow-y-auto p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold">Novo story</h3>
           <button type="button" onClick={onClose} className="text-sm text-muted hover:text-white">Cancelar</button>
         </div>
-        {img.image ? (
+        {video ? (
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video src={video.url} controls loop playsInline className="mb-3 max-h-80 w-full rounded-lg bg-ink object-contain" />
+        ) : img.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={img.image.preview} alt="Prévia do story" className="mb-3 max-h-80 w-full rounded-lg object-contain bg-ink" />
+          <img src={img.image.preview} alt="Prévia do story" className="mb-3 max-h-80 w-full rounded-lg bg-ink object-contain" />
         ) : (
-          <button type="button" onClick={() => file.current?.click()} className="mb-3 flex h-48 w-full items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted hover:border-gold/60">
-            {img.busy ? "Enviando…" : "Escolher foto"}
-          </button>
+          <div className="mb-3 flex h-44 w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-line text-sm text-muted">
+            {busy || img.busy ? "Enviando…" : (
+              <>
+                <span>Tire uma foto ou grave um vídeo de até {MAX_STORY_SECONDS} s</span>
+                <span className="flex gap-2">
+                  <button type="button" onClick={() => setCamera(true)} className="btn btn-gold !py-1.5 text-sm">📷 Câmera</button>
+                  <button type="button" onClick={() => file.current?.click()} className="btn btn-ghost !py-1.5 text-sm">Galeria</button>
+                </span>
+              </>
+            )}
+          </div>
         )}
-        <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden onChange={(e) => { void img.upload(e.target.files?.[0]); e.target.value = ""; }} />
+        {(video || img.image) && <button type="button" onClick={reset} className="mb-3 text-xs text-muted underline hover:text-white">Trocar</button>}
+        <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp,video/*" hidden onChange={(e) => { void fromGallery(e.target.files?.[0]); e.target.value = ""; }} />
         <input value={caption} maxLength={200} onChange={(e) => setCaption(e.target.value)} placeholder="Legenda (opcional)" className="w-full rounded-lg border border-line bg-ink px-3 py-2 text-sm outline-none" />
         {(err || img.err) && <p className="mt-2 text-xs text-gold-soft">{err || img.err}</p>}
         <p className="mt-2 text-xs text-muted">O story fica visível por 24 horas e depois some.</p>
-        <button type="button" disabled={!img.image || busy} onClick={send} className="btn btn-gold mt-3 w-full disabled:opacity-50">{busy ? "Publicando…" : "Publicar story"}</button>
+        <button type="button" disabled={!ready || busy} onClick={send} className="btn btn-gold mt-3 w-full disabled:opacity-50">{busy ? "Aguarde…" : "Publicar story"}</button>
       </div>
+      {camera && <StoryCamera onCapture={onCaptured} onClose={() => setCamera(false)} />}
     </div>
   );
 }
@@ -115,6 +199,7 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   const g = groups[pos.g];
   const story = g?.stories[pos.s];
   const viewed = useRef(new Set<number>());
+  const vid = useRef<HTMLVideoElement>(null);
 
   const next = useCallback(() => {
     setProgress(0);
@@ -139,7 +224,7 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   }, [story, g]);
 
   useEffect(() => {
-    if (paused || msg) return;
+    if (paused || msg || story?.videoId) return;
     const t0 = Date.now() - progress * DURATION;
     const iv = setInterval(() => {
       const p = (Date.now() - t0) / DURATION;
@@ -148,6 +233,12 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pos, paused, msg]);
+
+  useEffect(() => {
+    const v = vid.current;
+    if (!v) return;
+    if (paused || msg) v.pause(); else void v.play().catch(() => { v.muted = true; void v.play().catch(() => {}); });
+  }, [paused, msg, pos]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); if (e.key === "ArrowRight") next(); if (e.key === "ArrowLeft") prev(); };
@@ -186,8 +277,24 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
             <button type="button" onClick={onClose} aria-label="Fechar" className="ml-auto px-2 text-2xl leading-none text-white">×</button>
           </div>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/api/community/image?id=${story.imageId}`} alt={story.caption || `Story de ${g.name}`} className="h-full w-full object-contain" draggable={false} />
+        {story.videoId ? (
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video
+            key={story.id}
+            ref={vid}
+            src={`/api/community/video?id=${story.videoId}`}
+            poster={`/api/community/image?id=${story.imageId}`}
+            autoPlay
+            playsInline
+            className="h-full w-full object-contain"
+            onTimeUpdate={(e) => { const v = e.currentTarget; if (v.duration) setProgress(v.currentTime / v.duration); }}
+            onEnded={next}
+            onError={() => setMsg("Não foi possível reproduzir este vídeo neste aparelho.")}
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={`/api/community/image?id=${story.imageId}`} alt={story.caption || `Story de ${g.name}`} className="h-full w-full object-contain" draggable={false} />
+        )}
         <button type="button" aria-label="Anterior" onClick={prev} className="absolute inset-y-16 left-0 w-1/3" />
         <button type="button" aria-label="Próximo" onClick={next} className="absolute inset-y-16 right-0 w-1/3" />
         <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 bg-gradient-to-t from-black/80 to-transparent p-4">
@@ -197,7 +304,7 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
             <div className="flex items-center justify-between gap-2 text-xs" onPointerDown={(e) => e.stopPropagation()}>
               <span className="text-white/70">👁 {story.views ?? 0} {story.views === 1 ? "visualização" : "visualizações"}</span>
               <span className="flex gap-2">
-                <button type="button" onClick={toFeed} className="rounded-full bg-gold px-3 py-1 font-semibold text-ink">Publicar no Feed</button>
+                {!story.videoId && <button type="button" onClick={toFeed} className="rounded-full bg-gold px-3 py-1 font-semibold text-ink">Publicar no Feed</button>}
                 <button type="button" onClick={remove} className="rounded-full border border-white/40 px-3 py-1 text-white">Apagar</button>
               </span>
             </div>

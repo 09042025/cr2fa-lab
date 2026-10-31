@@ -328,3 +328,19 @@ export function shortUrl(url: string, max = 48): string {
   const t = url.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 }
+
+export const MAX_VIDEO_BYTES = 14 * 1024 * 1024;
+
+/** Confere o tipo real do vídeo pelos primeiros bytes (webm do Chrome/Android, mp4/mov do iPhone). */
+export function sniffVideo(buf: Buffer): string | null {
+  if (buf.length < 12) return null;
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return "video/webm";
+  if (buf.toString("latin1", 4, 8) === "ftyp") return "video/mp4";
+  return null;
+}
+
+export function saveVideo(userId: number, buf: Buffer): number | null {
+  const mime = sniffVideo(buf);
+  if (!mime || buf.length > MAX_VIDEO_BYTES) return null;
+  return Number(db().prepare("INSERT INTO community_videos (user_id, mime, data) VALUES (?, ?, ?)").run(userId, mime, buf).lastInsertRowid);
+}
