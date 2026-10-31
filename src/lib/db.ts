@@ -239,6 +239,25 @@ function migrate(db: Database.Database) {
       data BLOB NOT NULL,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+    CREATE TABLE IF NOT EXISTS open_lives (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      embed TEXT,
+      started_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      ended_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_open_lives_active ON open_lives(ended_at, started_at);
+    CREATE TABLE IF NOT EXISTS open_live_chat (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      live_id INTEGER NOT NULL REFERENCES open_lives(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_open_live_chat ON open_live_chat(live_id, id);
     CREATE TABLE IF NOT EXISTS story_views (
       story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
       viewer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -22,6 +22,7 @@ const OTHERS: NavItem[] = [
   { href: "/painel/cursos", label: "Cursos", pro: true },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
   { href: "/painel/links", label: "Links Essenciais", pro: true },
+  { href: "/painel/lives", label: "Lives Abertas" },
   { href: "/painel/feed/mensagens", label: "Mensagens" },
   { href: "/painel/noticias", label: "Notícias" },
   { href: "/planos", label: "Planos e pagamento" },
