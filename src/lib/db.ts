@@ -232,6 +232,13 @@ function migrate(db: Database.Database) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_stories_created ON stories(created_at);
+    CREATE TABLE IF NOT EXISTS community_videos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      mime TEXT NOT NULL,
+      data BLOB NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
     CREATE TABLE IF NOT EXISTS story_views (
       story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
       viewer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -239,6 +246,9 @@ function migrate(db: Database.Database) {
       PRIMARY KEY (story_id, viewer_id)
     );
   `);
+  // Stories em vídeo: a imagem do story vira a capa e o vídeo fica em community_videos.
+  const storyCols = db.prepare("PRAGMA table_info(stories)").all() as { name: string }[];
+  if (!storyCols.some((c) => c.name === "video_id")) db.exec("ALTER TABLE stories ADD COLUMN video_id INTEGER");
 }
 
 export function db(): Database.Database {

@@ -42,3 +42,21 @@ test("story: apagar só o dono/admin e virar publicação", () => {
   assert.ok(db().prepare("SELECT 1 FROM community_images WHERE id = ?").get(img), "foto do post permanece");
   assert.equal(deleteStory(id, { id: b, role: "admin" }), false);
 });
+
+test("story em vídeo: valida dono, formato, apaga o vídeo junto e não vira post", async () => {
+  const { saveVideo, sniffVideo } = await import("../src/lib/community");
+  const a = user("elisa"), b = user("fabio");
+  const webm = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.alloc(40)]);
+  assert.equal(sniffVideo(webm), "video/webm");
+  assert.equal(saveVideo(a, Buffer.from("isto não é vídeo")), null);
+  const vid = saveVideo(a, webm)!;
+  const img = saveImage(a, png)!;
+  assert.equal(createStory(b, saveImage(b, png)!, "", vid).ok, false, "vídeo de outro");
+  const r = createStory(a, img, "", vid);
+  assert.ok(r.ok);
+  assert.equal(createStory(a, saveImage(a, png)!, "", vid).ok, false, "vídeo já usado");
+  assert.equal(listStoryGroups(b).find((g) => g.userId === a)!.stories[0].videoId, vid);
+  assert.equal(shareStoryToFeed((r as { id: number }).id, a), false);
+  assert.ok(deleteStory((r as { id: number }).id, { id: a, role: "user" }));
+  assert.equal(db().prepare("SELECT 1 FROM community_videos WHERE id = ?").get(vid), undefined);
+});
