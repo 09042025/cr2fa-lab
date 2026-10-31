@@ -6,6 +6,7 @@ import { canPost, canView, findChannel, isBanned, listBlocked, listMessages, lis
 import { AutoRefresh, BanButton, BlockButton, ChatForm, DeleteMessage, DismissReport, EditMessage, Reactions, ReportButton } from "@/components/CommunityChat";
 import { Locked, PageTitle } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
+import { LinkPreview } from "@/components/LinkPreview";
 import { RichText } from "@/components/RichText";
 import { ChannelIcon } from "@/components/ChannelIcon";
 
@@ -114,6 +115,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
                     <RichText body={m.body} first={firstName} />
                   </p>
                 )}
+                {m.body && <LinkPreview text={m.body} />}
                 {m.audioId && <audio controls preload="none" src={`/api/community/audio?id=${m.audioId}`} className="mt-1 h-10 w-full max-w-sm" />}
                 {m.imageId && (
                   <a href={`/api/community/image?id=${m.imageId}`} target="_blank" rel="noopener noreferrer">

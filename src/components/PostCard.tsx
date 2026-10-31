@@ -5,6 +5,7 @@ import { CommentForm, DeleteItem, LikeButton, PinButton, ReportPost } from "./Fe
 import { MAX_COMMENT, topicLabel, type Post } from "@/lib/feed";
 import { REPORT_REASONS } from "@/lib/community";
 import { RichText } from "./RichText";
+import { LinkPreview } from "./LinkPreview";
 
 const when = (t: number) => new Date(t * 1000).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 
@@ -34,6 +35,7 @@ export function PostCard({ p, viewer, showPin = false }: { p: Post; viewer: { id
         <Link href={`/painel/feed?t=${p.topic}`} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted hover:border-gold/50">{topicLabel(p.topic)}</Link>
       </header>
       {p.body && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6"><Text body={p.body} first={first} /></p>}
+      {p.body && <LinkPreview text={p.body} />}
       {p.imageId && (
         <a href={`/api/community/image?id=${p.imageId}`} target="_blank" rel="noopener noreferrer">
           {/* eslint-disable-next-line @next/next/no-img-element */}

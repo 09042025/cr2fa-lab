@@ -26,6 +26,7 @@ const OTHERS: NavItem[] = [
   { href: "/painel/visao-geral", label: "Visão geral" },
 ].sort((x, y) => x.label.localeCompare(y.label, "pt-BR"));
 const NAV: NavItem[] = [FEED, ...OTHERS];
+const ITEM = "flex items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-panel-2";
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -37,17 +38,17 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <Logo />
           <nav className="mt-5 flex gap-1 overflow-x-auto md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden" aria-label="Principal">
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-lg py-2 text-sm text-muted hover:bg-panel-2 hover:text-white ${n.sub ? "px-3 md:pl-7 md:text-[13px]" : "px-3"}`}>
+              <Link key={n.href} href={n.href} className={`${ITEM} text-muted hover:text-white`}>
                 {n.label}
                 {n.pro && <ProBadge />}
                 {n.href === "/painel/feed" && unread > 0 && <span className="rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink" aria-label={`${unread} mensagens não lidas`}>{unread}</span>}
               </Link>
             ))}
             {user.role === "admin" && (
-              <Link href="/painel/admin" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-gold-soft hover:bg-panel-2">
-                Administração
-              </Link>
+              <Link href="/painel/admin" className={ITEM + " text-gold-soft"}>Administração</Link>
             )}
+            <Link href="/painel/configuracoes" className={ITEM + " text-muted hover:text-white"}>Configurações</Link>
+            <LogoutButton variant="nav" />
           </nav>
           <div className="mt-4 shrink-0 border-t border-line pt-4 md:mt-auto">
             <p className="truncate text-sm font-medium">{user.name}</p>
@@ -55,10 +56,6 @@ export default async function PanelLayout({ children }: { children: React.ReactN
               Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{user.plan === "pro" ? "Pró" : "Grátis"}</span>
               {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-muted"> {user.onTrial ? "(teste) " : ""}até {date(user.planExpiresAt)}</span> : null}
             </p>
-            <div className="mt-3 space-y-2">
-              <Link href="/painel/configuracoes" className="btn btn-ghost w-full">Configurações</Link>
-              <LogoutButton />
-            </div>
           </div>
         </div>
       </aside>
