@@ -5,6 +5,7 @@ import { unreadCount } from "@/lib/dm";
 import { getMember, listPosts, MAX_POST, TOPICS } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
 import { PostForm } from "@/components/FeedClient";
+import { StoriesBar } from "@/components/StoriesBar";
 import { PostCard } from "@/components/PostCard";
 import { PageTitle } from "@/components/ui";
 
@@ -26,6 +27,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   return (
     <div className="mx-auto max-w-2xl">
       <PageTitle title="Feed" subtitle="Publicações dos membros sobre investimentos: análises, dúvidas e ideias." />
+      <StoriesBar me={{ id: user.id, name: user.name, avatarId: me.avatarId }} canPost={!banned} />
       <section className="card mb-5 flex items-center gap-3 p-4">
         <Link href={`/painel/feed/membro/${user.id}`}><Avatar name={user.name} id={me.avatarId} size={52} /></Link>
         <div className="min-w-0 flex-1">

@@ -224,6 +224,20 @@ function migrate(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_dm_pair ON dm_messages(sender_id, recipient_id, id);
     CREATE INDEX IF NOT EXISTS idx_dm_recipient ON dm_messages(recipient_id, read_at);
+    CREATE TABLE IF NOT EXISTS stories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      image_id INTEGER NOT NULL,
+      caption TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_stories_created ON stories(created_at);
+    CREATE TABLE IF NOT EXISTS story_views (
+      story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+      viewer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      viewed_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (story_id, viewer_id)
+    );
   `);
 }
 
