@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BLOCKS, planAllocation, rebalance, splitCents, futureValue } from "../src/lib/protocol";
+import { BLOCKS, planAllocation, rebalance, splitCents, futureValue, projection } from "../src/lib/protocol";
 
 test("os cinco blocos somam 100% e cada subdivisão soma 100%", () => {
   assert.equal(BLOCKS.length, 5);
@@ -42,4 +42,16 @@ test("rebalanceamento leva cada bloco a 20%", () => {
 test("juros compostos: R$ 500/mês por 20 anos a 10% a.a. fica perto de R$ 360 mil", () => {
   const v = futureValue(500, 10, 20);
   assert.ok(v > 340_000 && v < 380_000, String(v));
+});
+
+test("projeção: valor inicial entra nos juros e a inflação desconta o valor", () => {
+  const p = projection(10_000, 1_000, 10, 240, 5.5);
+  const last = p[p.length - 1];
+  assert.ok(Math.abs(last.nominal - futureValue(1_000, 10, 20, 10_000)) < 0.01);
+  assert.equal(last.invested, 10_000 + 1_000 * 240);
+  assert.ok(Math.abs(last.real - last.nominal / Math.pow(1.055, 20)) < 0.01);
+  assert.ok(last.real < last.nominal);
+  assert.equal(p[0].nominal, 10_000);
+  const zero = projection(0, 1_000, 10, 12, 0);
+  assert.ok(Math.abs(zero[12].real - zero[12].nominal) < 1e-6);
 });

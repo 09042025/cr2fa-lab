@@ -160,3 +160,21 @@ export function futureValue(monthly: number, annualRatePct: number, years: numbe
   if (i === 0) return initial + monthly * n;
   return initial * Math.pow(1 + i, n) + monthly * ((Math.pow(1 + i, n) - 1) / i);
 }
+
+/** IPCA médio anual dos últimos 20 anos (2006 a 2025, média geométrica dos índices oficiais do IBGE): cerca de 5,5% ao ano. */
+export const IPCA_MEDIO_20_ANOS = 5.5;
+
+export interface ProjectionPoint { month: number; invested: number; nominal: number; real: number }
+
+/** Valor futuro em meses, com valor inicial e aportes mensais (no fim de cada mês), e o mesmo valor descontada a inflação (poder de compra de hoje). */
+export function projection(initial: number, monthly: number, annualRatePct: number, months: number, inflationPct: number): ProjectionPoint[] {
+  const i = Math.pow(1 + annualRatePct / 100, 1 / 12) - 1;
+  const inf = Math.pow(1 + inflationPct / 100, 1 / 12) - 1;
+  const out: ProjectionPoint[] = [];
+  let value = initial;
+  for (let m = 0; m <= months; m++) {
+    if (m > 0) value = value * (1 + i) + monthly;
+    out.push({ month: m, invested: initial + monthly * m, nominal: value, real: value / Math.pow(1 + inf, m) });
+  }
+  return out;
+}
