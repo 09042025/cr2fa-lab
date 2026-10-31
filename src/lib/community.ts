@@ -173,10 +173,10 @@ export function sniffImage(buf: Buffer): string | null {
   return null;
 }
 
-export function saveImage(userId: number, buf: Buffer): number | null {
+export function saveImage(userId: number, buf: Buffer, priv = false): number | null {
   const mime = sniffImage(buf);
   if (!mime || buf.length > MAX_IMAGE_BYTES) return null;
-  return Number(db().prepare("INSERT INTO community_images (user_id, mime, data) VALUES (?, ?, ?)").run(userId, mime, buf).lastInsertRowid);
+  return Number(db().prepare("INSERT INTO community_images (user_id, mime, data, private) VALUES (?, ?, ?, ?)").run(userId, mime, buf, priv ? 1 : 0).lastInsertRowid);
 }
 
 export const MAX_AUDIO_BYTES = 3 * 1024 * 1024;
@@ -192,10 +192,10 @@ export function sniffAudio(buf: Buffer): string | null {
   return null;
 }
 
-export function saveAudio(userId: number, buf: Buffer): number | null {
+export function saveAudio(userId: number, buf: Buffer, priv = false): number | null {
   const mime = sniffAudio(buf);
   if (!mime || buf.length > MAX_AUDIO_BYTES) return null;
-  return Number(db().prepare("INSERT INTO community_audios (user_id, mime, data) VALUES (?, ?, ?)").run(userId, mime, buf).lastInsertRowid);
+  return Number(db().prepare("INSERT INTO community_audios (user_id, mime, data, private) VALUES (?, ?, ?, ?)").run(userId, mime, buf, priv ? 1 : 0).lastInsertRowid);
 }
 
 export function getAudio(id: number): { mime: string; data: Buffer } | null {

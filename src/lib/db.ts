@@ -204,6 +204,27 @@ function migrate(db: Database.Database) {
       PRIMARY KEY (message_id, user_id, emoji)
     );
   `);
+
+  // Mensagens diretas (estilo WhatsApp): imagens e áudios enviados numa conversa ficam marcados como privados
+  // e só quem participa da conversa consegue abri-los.
+  for (const t of ["community_images", "community_audios"]) {
+    const c = db.prepare(`PRAGMA table_info(${t})`).all() as { name: string }[];
+    if (!c.some((x) => x.name === "private")) db.exec(`ALTER TABLE ${t} ADD COLUMN private INTEGER NOT NULL DEFAULT 0`);
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS dm_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body TEXT NOT NULL DEFAULT '',
+      image_id INTEGER,
+      audio_id INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      read_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_dm_pair ON dm_messages(sender_id, recipient_id, id);
+    CREATE INDEX IF NOT EXISTS idx_dm_recipient ON dm_messages(recipient_id, read_at);
+  `);
 }
 
 export function db(): Database.Database {

@@ -100,10 +100,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
             {messages.length === 0 && <li className="text-sm text-muted">Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</li>}
             {messages.map((m) => (
               <li key={m.id} className="flex gap-3 text-sm">
-                <Link href={`/painel/comunidade/membro/${m.userId}`} className="mt-0.5 shrink-0"><Avatar name={m.author} id={m.avatarId} size={36} /></Link>
+                <Link href={`/painel/feed/membro/${m.userId}`} className="mt-0.5 shrink-0"><Avatar name={m.author} id={m.avatarId} size={36} /></Link>
                 <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-baseline gap-2">
-                  <Link href={`/painel/comunidade/membro/${m.userId}`} className="font-semibold hover:underline">{m.author}</Link>
+                  <Link href={`/painel/feed/membro/${m.userId}`} className="font-semibold hover:underline">{m.author}</Link>
                   {m.banned && <span className="rounded bg-down/20 px-1.5 text-[10px] font-semibold uppercase text-down">Suspenso</span>}
                   {m.isAdmin && <span className="rounded bg-gold/20 px-1.5 text-[10px] font-semibold uppercase text-gold-soft">Admin</span>}
                   <span className="text-xs text-muted">{when(m.createdAt)}{m.edited && " (editado)"}</span>

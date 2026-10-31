@@ -22,16 +22,16 @@ export function PostCard({ p, viewer, showPin = false }: { p: Post; viewer: { id
         </p>
       )}
       <header className="flex items-center gap-3">
-        <Link href={`/painel/comunidade/membro/${p.userId}`}><Avatar name={p.author} id={p.authorAvatar} size={40} /></Link>
+        <Link href={`/painel/feed/membro/${p.userId}`}><Avatar name={p.author} id={p.authorAvatar} size={40} /></Link>
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-2">
-            <Link href={`/painel/comunidade/membro/${p.userId}`} className="font-semibold hover:underline">{p.author}</Link>
+            <Link href={`/painel/feed/membro/${p.userId}`} className="font-semibold hover:underline">{p.author}</Link>
             {p.authorIsAdmin && <span className="rounded bg-gold/20 px-1.5 text-[10px] font-semibold uppercase text-gold-soft">Admin</span>}
             {p.authorBanned && <span className="rounded bg-down/20 px-1.5 text-[10px] font-semibold uppercase text-down">Suspenso</span>}
           </p>
           <p className="text-xs text-muted">{when(p.createdAt)}</p>
         </div>
-        <Link href={`/painel/comunidade/feed?t=${p.topic}`} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted hover:border-gold/50">{topicLabel(p.topic)}</Link>
+        <Link href={`/painel/feed?t=${p.topic}`} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted hover:border-gold/50">{topicLabel(p.topic)}</Link>
       </header>
       {p.body && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6"><Text body={p.body} first={first} /></p>}
       {p.imageId && (
@@ -57,7 +57,7 @@ export function PostCard({ p, viewer, showPin = false }: { p: Post; viewer: { id
             <li key={c.id} className="flex gap-2 text-sm">
               <Avatar name={c.author} id={c.authorAvatar} size={26} />
               <p className="min-w-0 flex-1 break-words rounded-lg bg-panel-2 px-3 py-1.5">
-                <Link href={`/painel/comunidade/membro/${c.userId}`} className="font-semibold hover:underline">{c.author}</Link>
+                <Link href={`/painel/feed/membro/${c.userId}`} className="font-semibold hover:underline">{c.author}</Link>
                 {c.authorIsAdmin && <span className="ml-1 rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Admin</span>}{" "}
                 <span className="whitespace-pre-wrap text-muted"><Text body={c.body} first={first} /></span>
                 <span className="ml-2 text-[11px] text-muted/70">{when(c.createdAt)}</span>
