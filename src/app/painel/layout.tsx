@@ -6,19 +6,25 @@ import { date } from "@/lib/format";
 import { TrialButton } from "@/components/TrialButton";
 import { trialDays } from "@/lib/trial";
 
-const NAV: { href: string; label: string; pro?: boolean; sub?: boolean }[] = [
-  { href: "/painel", label: "Visão geral" },
-  { href: "/painel/protocolo", label: "Protocolo CR2FA" },
-  { href: "/painel/cripto", label: "Cripto" },
-  { href: "/painel/fiis", label: "Fundos imobiliários" },
+type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean };
+
+/** O Feed é sempre o primeiro (e a página inicial). O resto segue a ordem alfabética. */
+const FEED: NavItem = { href: "/painel/comunidade/feed", label: "Feed" };
+const OTHERS: NavItem[] = [
   { href: "/painel/acoes", label: "Ações" },
-  { href: "/painel/renda-fixa", label: "Renda fixa" },
-  { href: "/painel/portfolio", label: "Portfólio", pro: true },
-  { href: "/painel/cursos", label: "Cursos", pro: true },
   { href: "/painel/comunidade", label: "Comunidade" },
-  { href: "/planos", label: "Planos e pagamento" },
+  { href: "/painel/cripto", label: "Cripto" },
+  { href: "/painel/cursos", label: "Cursos", pro: true },
+  { href: "/painel/fiis", label: "Fundos imobiliários" },
   { href: "/painel/links", label: "Links Essenciais", pro: true },
-];
+  { href: "/painel/noticias", label: "Notícias" },
+  { href: "/planos", label: "Planos e pagamento" },
+  { href: "/painel/portfolio", label: "Portfólio", pro: true },
+  { href: "/painel/protocolo", label: "Protocolo CR2FA" },
+  { href: "/painel/renda-fixa", label: "Renda fixa" },
+  { href: "/painel/visao-geral", label: "Visão geral" },
+].sort((x, y) => x.label.localeCompare(y.label, "pt-BR"));
+const NAV: NavItem[] = [FEED, ...OTHERS];
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
