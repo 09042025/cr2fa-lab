@@ -17,6 +17,7 @@ const NAV: { href: string; label: string; pro?: boolean; sub?: boolean }[] = [
   { href: "/painel/cursos", label: "Cursos", pro: true },
   { href: "/painel/comunidade", label: "Comunidade" },
   { href: "/planos", label: "Planos e pagamento" },
+  { href: "/painel/links", label: "Links Essenciais", pro: true },
 ];
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
