@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/painel/comunidade", label: "Chat" },
   { href: "/painel/comunidade/feed", label: "Feed" },
-  { href: "/painel/comunidade/noticias", label: "Notícias" },
   { href: "/painel/comunidade/lives", label: "Lives VIP", pro: true },
 ];
 
