@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { isBanned } from "@/lib/community";
-import { unreadCount } from "@/lib/dm";
 import { getMember, listPosts, MAX_POST, TOPICS } from "@/lib/feed";
-import { Avatar } from "@/components/Avatar";
 import { PostForm } from "@/components/FeedClient";
 import { StoriesBar } from "@/components/StoriesBar";
 import { PostCard } from "@/components/PostCard";
@@ -16,10 +14,9 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   const user = await requireUser();
   const sp = await searchParams;
   const topic = sp.t === "seguindo" ? "seguindo" : TOPICS.some((t) => t.id === sp.t) ? sp.t! : "todos";
+  const avatarId = getMember(user.id, user.id)!.avatarId;
   const before = Number(sp.antes) || undefined;
   const { posts, more } = listPosts({ viewerId: user.id, topic: topic === "todos" || topic === "seguindo" ? undefined : topic, following: topic === "seguindo", before });
-  const me = getMember(user.id, user.id)!;
-  const unread = unreadCount(user.id);
   const banned = user.role !== "admin" && isBanned(user.id);
   const chip = (id: string, label: string) => (
     <Link key={id} href={id === "todos" ? "/painel/feed" : `/painel/feed?t=${id}`} className={`whitespace-nowrap rounded-full border px-3 py-1 text-sm ${topic === id ? "border-gold bg-gold/15 text-gold-soft" : "border-line text-muted hover:border-gold/50"}`}>{label}</Link>
@@ -27,23 +24,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   return (
     <div className="mx-auto max-w-2xl">
       <PageTitle title="Feed" subtitle="Publicações dos membros sobre investimentos: análises, dúvidas e ideias." />
-      <StoriesBar me={{ id: user.id, name: user.name, avatarId: me.avatarId }} canPost={!banned} />
-      <section className="card mb-5 flex items-center gap-3 p-4">
-        <Link href={`/painel/feed/membro/${user.id}`}><Avatar name={user.name} id={me.avatarId} size={52} /></Link>
-        <div className="min-w-0 flex-1">
-          <Link href={`/painel/feed/membro/${user.id}`} className="font-semibold hover:underline">{user.name}</Link>
-          <p className="text-xs text-muted">@{me.handle}</p>
-          <p className="mt-1 flex flex-wrap gap-x-4 text-xs">
-            <span><strong>{me.posts}</strong> <span className="text-muted">publicações</span></span>
-            <Link href={`/painel/feed/membro/${user.id}?aba=seguindo`} className="hover:underline"><strong>{me.following}</strong> <span className="text-muted">seguindo</span></Link>
-            <Link href={`/painel/feed/membro/${user.id}?aba=seguidores`} className="hover:underline"><strong>{me.followers}</strong> <span className="text-muted">seguidores</span></Link>
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Link href="/painel/feed/mensagens" className="btn btn-gold !py-1.5 text-sm">Mensagens{unread > 0 ? <span className="ml-2 rounded-full bg-ink px-1.5 text-xs text-gold-soft">{unread}</span> : null}</Link>
-          <Link href={`/painel/feed/membro/${user.id}`} className="btn btn-ghost !py-1.5 text-sm">Meu perfil</Link>
-        </div>
-      </section>
+      <StoriesBar me={{ id: user.id, name: user.name, avatarId: avatarId }} canPost={!banned} />
       {banned ? (
         <p className="card mb-5 p-4 text-sm text-muted">Você foi suspenso da comunidade pela moderação e não pode publicar. Fale com o suporte se achar que foi um engano.</p>
       ) : (
