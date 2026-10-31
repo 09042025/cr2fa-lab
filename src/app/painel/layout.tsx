@@ -3,13 +3,14 @@ import { requireUser } from "@/lib/auth";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Logo, ProBadge } from "@/components/ui";
 import { date } from "@/lib/format";
+import { unreadCount } from "@/lib/dm";
 import { TrialButton } from "@/components/TrialButton";
 import { trialDays } from "@/lib/trial";
 
 type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean };
 
 /** O Feed é sempre o primeiro (e a página inicial). O resto segue a ordem alfabética. */
-const FEED: NavItem = { href: "/painel/comunidade/feed", label: "Feed" };
+const FEED: NavItem = { href: "/painel/feed", label: "Feed" };
 const OTHERS: NavItem[] = [
   { href: "/painel/acoes", label: "Ações" },
   { href: "/painel/comunidade", label: "Comunidade" },
@@ -28,6 +29,7 @@ const NAV: NavItem[] = [FEED, ...OTHERS];
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  const unread = unreadCount(user.id);
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 md:flex-row">
       <aside className="md:sticky md:top-5 md:h-[calc(100vh-2.5rem)] md:w-60 md:shrink-0">
@@ -38,6 +40,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
               <Link key={n.href} href={n.href} className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-lg py-2 text-sm text-muted hover:bg-panel-2 hover:text-white ${n.sub ? "px-3 md:pl-7 md:text-[13px]" : "px-3"}`}>
                 {n.label}
                 {n.pro && <ProBadge />}
+                {n.href === "/painel/feed" && unread > 0 && <span className="rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink" aria-label={`${unread} mensagens não lidas`}>{unread}</span>}
               </Link>
             ))}
             {user.role === "admin" && (

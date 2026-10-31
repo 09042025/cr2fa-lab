@@ -25,7 +25,7 @@ export default async function SettingsPage() {
       {(
         <section className="card mb-6 p-5">
           <h2 className="mb-1 font-semibold">Perfil da comunidade</h2>
-          <p className="mb-4 text-sm text-muted">Capa, foto e bio curta que os outros membros veem no chat, no feed e no seu perfil. <Link href={`/painel/comunidade/membro/${user.id}`} className="text-gold-soft underline">Ver meu perfil</Link></p>
+          <p className="mb-4 text-sm text-muted">Capa, foto e bio curta que os outros membros veem no chat, no feed e no seu perfil. <Link href={`/painel/feed/membro/${user.id}`} className="text-gold-soft underline">Ver meu perfil</Link></p>
           <CommunityProfileForm name={user.name} avatarId={me?.avatarId ?? null} bannerId={me?.bannerId ?? null} handle={me?.handle ?? ""} bio={me?.bio ?? ""} location={me?.location ?? ""} website={me?.website ?? ""} max={MAX_BIO} />
         </section>
       )}
