@@ -24,6 +24,7 @@ export function ProtocolCalculator() {
     for (let k = 1; k <= 6; k++) picks.add(Math.round((months * k) / 6));
     return series.filter((p) => picks.has(p.month) && p.month > 0);
   }, [series, months]);
+  const lossPct = (1 - 1 / Math.pow(1 + Math.max(0, inflation) / 100, months / 12)) * 100;
   const label = (m: number) => (m % 12 === 0 ? `${m / 12} ${m / 12 === 1 ? "ano" : "anos"}` : m > 12 ? `${Math.floor(m / 12)}a ${m % 12}m` : `${m} ${m === 1 ? "mês" : "meses"}`);
   const n = (set: (v: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = Number(e.target.value.replace(",", "."));
@@ -85,6 +86,11 @@ export function ProtocolCalculator() {
             </div>
           </div>
           <div><label className="label">Inflação (% a.a.)</label><input className="input" type="number" step="0.1" min={0} value={inflation} onChange={n(setInflation)} /></div>
+          <div className="rounded-xl border border-down/40 bg-down/10 p-3 sm:col-span-2 lg:col-span-1">
+            <p className="text-xs uppercase tracking-wider text-muted">Perda do poder de compra</p>
+            <p className="mt-1 text-2xl font-bold text-down">−{lossPct.toFixed(1).replace(".", ",")}%</p>
+            <p className="mt-1 text-xs text-muted">Em {label(months)}, R$ 100 de hoje compram o equivalente a <strong className="text-white">{brl(100 - lossPct)}</strong>.</p>
+          </div>
         </div>
         <p className="mt-2 text-xs text-muted">Inflação padrão: {IPCA_MEDIO_20_ANOS.toString().replace(".", ",")}% ao ano, a média do IPCA dos últimos 20 anos (2006 a 2025). Se você está começando do zero, deixe o valor inicial em 0.</p>
 
