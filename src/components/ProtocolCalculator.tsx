@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { planAllocation, projection, EMERGENCY_RESERVE_MONTHS, IPCA_MEDIO_20_ANOS } from "@/lib/protocol";
 import { brl } from "@/lib/format";
+import { CompoundChart } from "@/components/CompoundChart";
 
 export function ProtocolCalculator() {
   const [total, setTotal] = useState(100000);
@@ -98,6 +99,10 @@ export function ProtocolCalculator() {
             <p className="mt-1 text-2xl font-bold text-up">{brl(last.real)}</p>
             <p className="mt-1 text-sm text-muted">É o poder de compra desse dinheiro em {label(months)}, a {inflation.toString().replace(".", ",")}% de inflação ao ano.</p>
           </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-line p-3">
+          <CompoundChart series={series} />
         </div>
 
         <div className="mt-4 overflow-x-auto">
