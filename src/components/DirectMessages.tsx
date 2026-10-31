@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { ChannelIcon } from "@/components/ChannelIcon";
 import { shrink } from "@/components/imageUpload";
+import { LinkPreview } from "@/components/LinkPreview";
 
 interface Msg { id: number; senderId: number; recipientId: number; body: string; imageId: number | null; audioId: number | null; createdAt: number; readAt: number | null }
 interface Conv { userId: number; name: string; avatarId: number | null; isAdmin: boolean; lastBody: string; lastKind: "text" | "image" | "audio"; lastAt: number; lastMine: boolean; unread: number }
@@ -156,6 +157,7 @@ export function DirectMessages({ startWith }: { startWith: number | null }) {
                         )}
                         {m.audioId && <audio controls preload="none" src={`/api/community/audio?id=${m.audioId}`} className="mb-1 h-10 w-60 max-w-full" />}
                         {m.body && <p className="whitespace-pre-wrap break-words"><Linkified text={m.body} /></p>}
+                        {m.body && <LinkPreview text={m.body} />}
                         <p className="mt-0.5 flex items-center justify-end gap-2 text-[10px] text-muted">
                           {mine && (
                             <button className="hidden text-down hover:underline group-hover:inline" onClick={async () => {
