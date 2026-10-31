@@ -86,9 +86,9 @@ export function ProtocolCalculator() {
             </div>
           </div>
           <div><label className="label">Inflação (% a.a.)</label><input className="input" type="number" step="0.1" min={0} value={inflation} onChange={n(setInflation)} /></div>
-          <div className="rounded-xl border border-down/40 bg-down/10 p-3 sm:col-span-2 lg:col-span-1">
+          <div className="rounded-xl border border-gold/40 bg-gold/10 p-3 sm:col-span-2 lg:col-span-1">
             <p className="text-xs uppercase tracking-wider text-muted">Perda do poder de compra</p>
-            <p className="mt-1 text-2xl font-bold text-down">−{lossPct.toFixed(1).replace(".", ",")}%</p>
+            <p className="mt-1 text-2xl font-bold text-gold-soft">−{lossPct.toFixed(1).replace(".", ",")}%</p>
             <p className="mt-1 text-xs text-muted">Em {label(months)}, R$ 100 de hoje compram o equivalente a <strong className="text-white">{brl(100 - lossPct)}</strong>.</p>
           </div>
         </div>
