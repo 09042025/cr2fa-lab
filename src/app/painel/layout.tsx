@@ -6,6 +6,8 @@ import { date } from "@/lib/format";
 import { unreadCount } from "@/lib/dm";
 import { TrialButton } from "@/components/TrialButton";
 import { trialDays } from "@/lib/trial";
+import { db } from "@/lib/db";
+import { MobileDrawer } from "@/components/MobileDrawer";
 
 type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean };
 
@@ -31,12 +33,13 @@ const ITEM = "flex items-center justify-between gap-2 whitespace-nowrap rounded-
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const unread = unreadCount(user.id);
+  const avatarId = (db().prepare("SELECT avatar_id a FROM users WHERE id = ?").get(user.id) as { a: number | null } | undefined)?.a ?? null;
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 md:flex-row">
-      <aside className="md:sticky md:top-5 md:h-[calc(100vh-2.5rem)] md:w-60 md:shrink-0">
-        <div className="card flex h-full flex-col overflow-hidden p-4">
+      <MobileDrawer name={user.name} avatarId={avatarId} logo={<Logo />}>
+        <div className="card flex h-full flex-col overflow-hidden rounded-l-none p-4 md:rounded-l-2xl">
           <Logo />
-          <nav className="mt-5 flex gap-1 overflow-x-auto md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden" aria-label="Principal">
+          <nav className="mt-5 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden" aria-label="Principal">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className={`${ITEM} text-muted hover:text-white`}>
                 {n.label}
@@ -50,7 +53,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
             <Link href="/painel/configuracoes" className={ITEM + " text-muted hover:text-white"}>Configurações</Link>
             <LogoutButton variant="nav" />
           </nav>
-          <div className="mt-4 shrink-0 border-t border-line pt-4 md:mt-auto">
+          <div className="mt-4 shrink-0 border-t border-line pt-4">
             <p className="truncate text-sm font-medium">{user.name}</p>
             <p className="mt-2 text-xs">
               Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{user.plan === "pro" ? "Pró" : "Grátis"}</span>
@@ -58,7 +61,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
             </p>
           </div>
         </div>
-      </aside>
+      </MobileDrawer>
       <main className="min-w-0 flex-1">
         {user.trialAvailable && (
           <div className="card mb-5 flex flex-col gap-3 border-gold/50 p-4 sm:flex-row sm:items-center sm:justify-between">
