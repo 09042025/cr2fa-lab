@@ -4,6 +4,7 @@ import { isBanned } from "@/lib/community";
 import { getMember, listPosts, MAX_POST, TOPICS } from "@/lib/feed";
 import { PostForm } from "@/components/FeedClient";
 import { StoriesBar } from "@/components/StoriesBar";
+import { PeopleSearch } from "@/components/PeopleSearch";
 import { PostCard } from "@/components/PostCard";
 import { PageTitle } from "@/components/ui";
 
@@ -24,6 +25,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   return (
     <div className="mx-auto max-w-2xl">
       <PageTitle title="Feed" subtitle="Publicações dos membros sobre investimentos: análises, dúvidas e ideias." />
+      <PeopleSearch />
       <StoriesBar me={{ id: user.id, name: user.name, avatarId: avatarId }} canPost={!banned} />
       {banned ? (
         <p className="card mb-5 p-4 text-sm text-muted">Você foi suspenso da comunidade pela moderação e não pode publicar. Fale com o suporte se achar que foi um engano.</p>

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getUser, rateLimit } from "@/lib/auth";
 import { REPORT_REASONS, isBanned } from "@/lib/community";
-import { recordViews, toggleBookmark, toggleRepost, setPinned, addComment, addPost, deleteComment, deletePost, MAX_COMMENT, MAX_POST, reportPost, toggleLike } from "@/lib/feed";
+import { searchPeople, recordViews, toggleBookmark, toggleRepost, setPinned, addComment, addPost, deleteComment, deletePost, MAX_COMMENT, MAX_POST, reportPost, toggleLike } from "@/lib/feed";
 import { fail, json, sameOrigin } from "@/lib/http";
 
 const schema = z.discriminatedUnion("action", [
@@ -19,6 +19,14 @@ async function member() {
   const user = await getUser();
   if (!user) return { error: fail("Faça login.", 401) };
   return { user };
+}
+
+/** GET ?q=texto: busca membros para seguir (sem texto, sugestões). */
+export async function GET(req: Request) {
+  const { user, error } = await member();
+  if (error) return error;
+  if (!rateLimit(`people:${user!.id}`, 60, 60_000)) return fail("Calma! Muitas buscas seguidas.", 429);
+  return json({ people: searchPeople(user!.id, new URL(req.url).searchParams.get("q") ?? "") });
 }
 
 export async function POST(req: Request) {
