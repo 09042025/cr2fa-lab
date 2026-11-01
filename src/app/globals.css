@@ -121,3 +121,9 @@ table.data tr:hover td {
 @media (prefers-reduced-motion: reduce) {
   .float-slow { animation: none; }
 }
+
+/* Esconde a barra e as dicas do Google Tradutor: o idioma é escolhido pelo nosso seletor. */
+body { top: 0 !important; }
+.skiptranslate iframe.goog-te-banner-frame, iframe.skiptranslate, .VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, #goog-gt-tt, .goog-te-balloon-frame, .goog-tooltip { display: none !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
+font[style] { background: transparent !important; }

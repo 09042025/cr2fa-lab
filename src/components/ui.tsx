@@ -18,7 +18,7 @@ export function Logo({ size = "md" }: { size?: "md" | "lg" }) {
   return (
     <Link href="/" aria-label={APP_NAME} className="inline-flex items-center gap-2.5">
       <Image src={logoMark} alt="" height={34} unoptimized className="h-[34px] w-auto" />
-      <span className="font-display text-[17px] font-bold tracking-[0.16em] text-gold-soft">
+      <span translate="no" className="notranslate font-display text-[17px] font-bold tracking-[0.16em] text-gold-soft">
         NIZA <span className="font-medium text-gold">INVEST</span>
       </span>
     </Link>

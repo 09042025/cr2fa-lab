@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         <p>Para criar e proteger sua conta, liberar os recursos do seu plano, exibir a comunidade, enviar avisos importantes (como renovação) e moderar conteúdo. Não vendemos seus dados e não usamos publicidade de terceiros.</p>
 
         <h2 className="font-semibold text-white">Compartilhamento</h2>
-        <p>Compartilhamos dados apenas com os serviços necessários para o funcionamento: hospedagem, envio de e-mails e processamento de pagamentos. Suas publicações na comunidade são visíveis aos outros membros conforme o seu plano.</p>
+        <p>Compartilhamos dados apenas com os serviços necessários para o funcionamento: hospedagem, envio de e-mails e processamento de pagamentos. Se você escolher outro idioma no site, o texto das páginas que você abre é enviado ao Google Tradutor para ser traduzido (nada é enviado enquanto você usar o português); as mensagens diretas ficam fora da tradução. Suas publicações na comunidade são visíveis aos outros membros conforme o seu plano.</p>
 
         <h2 className="font-semibold text-white">Seus direitos e exclusão da conta</h2>
         <p>Você pode pedir acesso, correção ou exclusão dos seus dados a qualquer momento (LGPD). Para excluir sua conta e os dados ligados a ela, escreva para <a className="text-gold-soft underline" href={`mailto:${CONTATO}?subject=Excluir%20minha%20conta`}>{CONTATO}</a> pelo e-mail cadastrado. Atendemos em até 15 dias.</p>

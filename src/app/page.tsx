@@ -4,6 +4,7 @@ import { getUser } from "@/lib/auth";
 import { BLOCKS, EMERGENCY_RESERVE_MONTHS } from "@/lib/protocol";
 import { FREE_LIMITS, PLAN_FEATURES, formatBRL, priceCents } from "@/lib/plans";
 import { Disclaimer, Logo } from "@/components/ui";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { trialDays } from "@/lib/trial";
 import pizza from "@/assets/protocolo-pizza.webp";
 import autor from "@/assets/emerson-niza.webp";
@@ -21,6 +22,7 @@ export default async function Home() {
       <nav className="flex items-center justify-between py-5">
         <Logo />
         <div className="flex items-center gap-2">
+          <LanguageSwitcher compact />
           {user ? (
             <Link href="/painel" className="btn btn-gold">Abrir painel</Link>
           ) : (

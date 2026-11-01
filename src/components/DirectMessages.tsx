@@ -94,7 +94,7 @@ export function DirectMessages({ startWith }: { startWith: number | null }) {
   const onSent = useCallback(() => { if (active) void loadThread(active, false); void loadList(); }, [active, loadThread, loadList]);
 
   return (
-    <div className="grid min-h-[70vh] gap-4 md:grid-cols-[300px_1fr]">
+    <div translate="no" className="notranslate grid min-h-[70vh] gap-4 md:grid-cols-[300px_1fr]">
       <aside className={`card flex min-h-0 flex-col p-3 ${active ? "hidden md:flex" : "flex"}`}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar membro para conversar…" className="input mb-3" maxLength={40} aria-label="Buscar membro" />
         {found.length > 0 && (
