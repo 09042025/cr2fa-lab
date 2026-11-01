@@ -50,6 +50,11 @@ const makeScale = (lo: number, hi: number, log: boolean, top: number, height: nu
   return (v: number): number | null => top + height * (1 - (v - lo) / (hi - lo));
 };
 
+type YWin = { lo: number; hi: number };
+/** Valor correspondente à altura (0 = base, 1 = topo) dentro de [lo, hi]. */
+const valueAt = (lo: number, hi: number, log: boolean, f: number) =>
+  log ? 10 ** (Math.log10(lo) + f * (Math.log10(hi) - Math.log10(lo))) : lo + f * (hi - lo);
+
 const fmtDate = (day: number) => dayToDate(day).toLocaleDateString("pt-BR", { timeZone: "UTC" });
 
 export function OnchainChart({ start, price, lines, halvings, showHalvings, logPrice, i0, i1, onZoom, onReset, onCursor }: Props) {
@@ -58,7 +63,9 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
   const svgRef = useRef<SVGSVGElement>(null);
   const [w, setW] = useState(900);
   const [hover, setHover] = useState<number | null>(null);
-  const [drag, setDrag] = useState<{ x0: number; x1: number } | null>(null);
+  const [drag, setDrag] = useState<{ kind: "box" | "axis"; axis?: string; x0: number; x1: number; y0: number; y1: number } | null>(null);
+  /** Zoom vertical por eixo ("price" ou o id do indicador), em valores reais. */
+  const [yz, setYz] = useState<Record<string, YWin>>({});
 
   useEffect(() => {
     const el = wrap.current;
@@ -89,23 +96,29 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
     // Eixo do preço: o preço e as linhas que usam o mesmo eixo.
     const priceLines = lines.filter((l) => l.axisId === "price");
     const pe = extent([price, ...priceLines.map((l) => l.values)], i0, i1, logPrice);
-    const [pLo, pHi] = padExtent(pe ?? [1, 10], logPrice, 0.04);
+    const [pLo0, pHi0] = padExtent(pe ?? [1, 10], logPrice, 0.04);
+    const pLo = yz.price?.lo ?? pLo0;
+    const pHi = yz.price?.hi ?? pHi0;
     const yPrice = makeScale(pLo, pHi, logPrice, padT, plotH);
-    const priceTicks = logPrice ? logTicks(pLo, pHi) : linearTicks(pLo, pHi, 7);
+    const lt = logPrice ? logTicks(pLo, pHi) : [];
+    const priceTicks = logPrice && lt.length >= 3 ? lt : linearTicks(pLo, pHi, 7);
 
     const axes = ownIds.map((id, k) => {
       const group = lines.filter((l) => l.axisId === id);
       const log = group[0].scale === "log";
       const ex = extent(group.map((l) => l.values), i0, i1, log);
-      const [lo, hi] = padExtent(ex ?? [1, 10], log, 0.06);
+      const [lo0, hi0] = padExtent(ex ?? [1, 10], log, 0.06);
+      const lo = yz[id]?.lo ?? lo0;
+      const hi = yz[id]?.hi ?? hi0;
       return {
+        log,
         id,
         color: group[0].color,
         fmt: group[0].fmt,
         x0: padL + plotW + k * axisW,
         hidden: k >= MAX_VISIBLE_AXES,
         y: makeScale(lo, hi, log, padT, plotH),
-        ticks: log ? logTicks(lo, hi) : linearTicks(lo, hi, 5),
+        ticks: log && logTicks(lo, hi).length >= 3 ? logTicks(lo, hi) : linearTicks(lo, hi, 5),
         lo,
         hi,
       };
@@ -121,29 +134,103 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
     });
     const dt = dateTicks(start + i0, start + i1, compact ? 5 : 9);
     return { plotW, plotH, padR, x, yPrice, priceTicks, axes, pricePath, paths, dt, pLo, pHi };
-  }, [lines, price, w, h, padL, axisW, i0, i1, logPrice, start, compact]);
+  }, [lines, price, w, h, padL, axisW, i0, i1, logPrice, start, compact, yz]);
 
   const idxFromPx = (px: number) => Math.min(i1, Math.max(i0, Math.round(i0 + ((px - padL) / geo.plotW) * (i1 - i0))));
-  const localX = (e: React.PointerEvent) => e.clientX - (svgRef.current?.getBoundingClientRect().left ?? 0);
+  const box = () => svgRef.current?.getBoundingClientRect();
+  const localX = (e: { clientX: number }) => e.clientX - (box()?.left ?? 0);
+  const localY = (e: { clientY: number }) => e.clientY - (box()?.top ?? 0);
+  const fracFromY = (py: number) => Math.min(1, Math.max(0, 1 - (py - padT) / geo.plotH));
+  /** Faixa de valores de um eixo entre duas alturas em pixels. */
+  const axisInfo = (id: string) => {
+    if (id === "price") return { lo: geo.pLo, hi: geo.pHi, log: logPrice };
+    const a = geo.axes.find((x) => x.id === id)!;
+    return { lo: a.lo, hi: a.hi, log: a.log };
+  };
+  const winFromPx = (id: string, ya: number, yb: number): YWin => {
+    const { lo, hi, log } = axisInfo(id);
+    const fa = fracFromY(Math.max(ya, yb));
+    const fb = fracFromY(Math.min(ya, yb));
+    return { lo: valueAt(lo, hi, log, fa), hi: valueAt(lo, hi, log, fb) };
+  };
+  const axisIds = ["price", ...geo.axes.map((a) => a.id)];
+  const axisAtX = (px: number): string | null => {
+    if (px < padL) return "price";
+    for (const a of geo.axes.filter((x) => !x.hidden)) if (px >= a.x0 && px < a.x0 + axisW) return a.id;
+    return null;
+  };
 
   const onMove = (e: React.PointerEvent) => {
     const px = localX(e);
-    setHover(idxFromPx(px));
-    if (drag) setDrag({ ...drag, x1: px });
+    if (!drag) { if (px >= padL && px <= padL + geo.plotW) setHover(idxFromPx(px)); return; }
+    setHover(drag.kind === "box" ? idxFromPx(px) : null);
+    setDrag({ ...drag, x1: px, y1: localY(e) });
   };
   const onDown = (e: React.PointerEvent<SVGRectElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    const px = localX(e);
-    setDrag({ x0: px, x1: px });
+    setDrag({ kind: "box", x0: localX(e), x1: localX(e), y0: localY(e), y1: localY(e) });
+  };
+  const onAxisDown = (id: string) => (e: React.PointerEvent<SVGRectElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDrag({ kind: "axis", axis: id, x0: localX(e), x1: localX(e), y0: localY(e), y1: localY(e) });
   };
   const onUp = () => {
-    if (drag && Math.abs(drag.x1 - drag.x0) >= 14) {
-      const a = idxFromPx(Math.min(drag.x0, drag.x1));
-      const b = idxFromPx(Math.max(drag.x0, drag.x1));
-      if (b - a >= 14) onZoom(a, b);
+    if (drag?.kind === "axis" && Math.abs(drag.y1 - drag.y0) >= 10 && drag.axis) {
+      setYz((z) => ({ ...z, [drag.axis!]: winFromPx(drag.axis!, drag.y0, drag.y1) }));
+    } else if (drag?.kind === "box") {
+      const dx = Math.abs(drag.x1 - drag.x0);
+      const dy = Math.abs(drag.y1 - drag.y0);
+      if (dx >= 14) {
+        const a = idxFromPx(Math.min(drag.x0, drag.x1));
+        const b = idxFromPx(Math.max(drag.x0, drag.x1));
+        if (b - a >= 14) onZoom(a, b);
+      }
+      // caixa que não cobre a altura toda também aproxima na vertical, em todos os eixos
+      if (dy >= 14 && dy < geo.plotH * 0.9) {
+        const next: Record<string, YWin> = {};
+        for (const id of axisIds) next[id] = winFromPx(id, drag.y0, drag.y1);
+        setYz(next);
+      }
     }
     setDrag(null);
   };
+  const resetAll = () => { setYz({}); onReset(); };
+
+  // Roda do mouse: Ctrl/⌘ + roda move o gráfico para os lados; a roda sobre um eixo estica/encolhe a escala dele.
+  const live = useRef({ geo, i0, i1, n: price.length, yz, padL, axisW, plotW: geo.plotW, onZoom });
+  live.current = { geo, i0, i1, n: price.length, yz, padL, axisW, plotW: geo.plotW, onZoom };
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      const L = live.current;
+      const r = el.getBoundingClientRect();
+      const px = e.clientX - r.left;
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const span = L.i1 - L.i0;
+        const d = Math.round(((e.deltaY + e.deltaX) / L.plotW) * span * 1.5) || Math.sign(e.deltaY + e.deltaX);
+        const n0 = Math.max(0, Math.min(L.n - 1 - span, L.i0 + d));
+        if (n0 !== L.i0) L.onZoom(n0, n0 + span);
+        return;
+      }
+      let id: string | null = null;
+      if (px < L.padL) id = "price";
+      else for (const a of L.geo.axes) if (!a.hidden && px >= a.x0 && px < a.x0 + L.axisW) id = a.id;
+      if (!id) return;
+      e.preventDefault();
+      const info = id === "price" ? { lo: L.geo.pLo, hi: L.geo.pHi, log: logPriceRef.current } : (() => { const a = L.geo.axes.find((x) => x.id === id)!; return { lo: a.lo, hi: a.hi, log: a.log }; })();
+      const f = Math.min(1, Math.max(0, 1 - (e.clientY - r.top - padT) / L.geo.plotH));
+      const k = e.deltaY < 0 ? 0.8 : 1.25; // roda para cima aproxima
+      const lo = valueAt(info.lo, info.hi, info.log, f * (1 - k));
+      const hi = valueAt(info.lo, info.hi, info.log, f + (1 - f) * k);
+      setYz((z) => ({ ...z, [id as string]: { lo, hi } }));
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, []);
+  const logPriceRef = useRef(logPrice);
+  logPriceRef.current = logPrice;
 
   // Sem o cursor sobre o gráfico, o topo mostra o valor mais recente de cada série (útil no celular, onde não há cursor).
   const lastIndexOf = (v: Series) => { for (let k = v.length - 1; k >= 0; k--) if (v[k] !== null && v[k] !== undefined) return k; return -1; };
@@ -274,9 +361,21 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
               })}
             </g>
           )}
-          {drag && Math.abs(drag.x1 - drag.x0) > 2 && (
-            <rect x={Math.min(drag.x0, drag.x1)} y={padT} width={Math.abs(drag.x1 - drag.x0)} height={geo.plotH} fill="#f3d27a" opacity={0.14} pointerEvents="none" />
+          {drag?.kind === "box" && (Math.abs(drag.x1 - drag.x0) > 2 || Math.abs(drag.y1 - drag.y0) > 2) && (
+            <rect x={Math.min(drag.x0, drag.x1)} y={Math.min(drag.y0, drag.y1)} width={Math.abs(drag.x1 - drag.x0)} height={Math.abs(drag.y1 - drag.y0)} fill="#f3d27a" fillOpacity={0.14} stroke="#f3d27a" strokeOpacity={0.7} strokeDasharray="4 3" pointerEvents="none" />
           )}
+          {drag?.kind === "axis" && Math.abs(drag.y1 - drag.y0) > 2 && (() => {
+            const a = drag.axis === "price" ? { x: 0, w: padL } : { x: geo.axes.find((q) => q.id === drag.axis)?.x0 ?? 0, w: axisW };
+            return <rect x={a.x} y={Math.min(drag.y0, drag.y1)} width={a.w} height={Math.abs(drag.y1 - drag.y0)} fill="#ec6bb0" fillOpacity={0.2} pointerEvents="none" />;
+          })()}
+
+          {/* eixos: arraste na vertical para aproximar só aquele eixo; roda do mouse estica; duplo clique desfaz */}
+          {[{ id: "price", x: 0, w: padL }, ...geo.axes.filter((a) => !a.hidden).map((a) => ({ id: a.id, x: a.x0, w: axisW }))].map((a) => (
+            <rect key={`z${a.id}`} x={a.x} y={padT} width={a.w} height={geo.plotH} fill="transparent"
+              style={{ touchAction: "pan-y", cursor: "ns-resize" }}
+              onPointerDown={onAxisDown(a.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}
+              onDoubleClick={() => setYz((z) => { const n = { ...z }; delete n[a.id]; return n; })} />
+          ))}
 
           {/* área de interação */}
           <rect
@@ -285,11 +384,14 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
             onPointerMove={onMove} onPointerDown={onDown} onPointerUp={onUp}
             onPointerLeave={() => { if (!drag) setHover(null); }}
             onPointerCancel={() => setDrag(null)}
-            onDoubleClick={onReset}
+            onDoubleClick={resetAll}
           />
         </svg>
       </div>
-      <p className="mt-1 text-[11px] text-muted">Arraste sobre o gráfico para dar zoom. Clique duas vezes para voltar ao período escolhido.</p>
+      <p className="mt-1 text-[11px] text-muted">
+        Arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início.
+        {Object.keys(yz).length > 0 && <> <button type="button" className="text-gold-soft underline" onClick={() => setYz({})}>Desfazer zoom vertical</button></>}
+      </p>
     </div>
   );
 }
