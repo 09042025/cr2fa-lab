@@ -18,7 +18,7 @@ type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean };
 const FEED: NavItem = { href: "/painel/feed", label: "Feed" };
 const OTHERS: NavItem[] = [
   { href: "/painel/acoes", label: "Ações" },
-  { href: "/painel/comunidade", label: "Comunidade" },
+  { href: "/painel/comunidade", label: "Comunidade", pro: true },
   { href: "/painel/cripto", label: "Cripto" },
   { href: "/painel/cursos", label: "Cursos", pro: true },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
@@ -28,7 +28,7 @@ const OTHERS: NavItem[] = [
   { href: "/painel/noticias", label: "Notícias" },
   { href: "/planos", label: "Planos e pagamento" },
   { href: "/painel/portfolio", label: "Portfólio", pro: true },
-  { href: "/painel/protocolo", label: "Protocolo CR2FA" },
+  { href: "/painel/protocolo", label: "Protocolo CR2FA", pro: true },
   { href: "/painel/renda-fixa", label: "Renda fixa" },
   { href: "/painel/visao-geral", label: "Visão geral" },
 ].sort((x, y) => x.label.localeCompare(y.label, "pt-BR"));
