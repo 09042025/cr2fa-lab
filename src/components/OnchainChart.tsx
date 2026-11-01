@@ -145,7 +145,10 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
     setDrag(null);
   };
 
-  const cur = hover ?? i1;
+  // Sem o cursor sobre o gráfico, o topo mostra o valor mais recente de cada série (útil no celular, onde não há cursor).
+  const lastIndexOf = (v: Series) => { for (let k = v.length - 1; k >= 0; k--) if (v[k] !== null && v[k] !== undefined) return k; return -1; };
+  const latest = Math.max(0, price.length - 1);
+  const cur = hover ?? latest;
   const day = start + cur;
   const yAt = (l: ChartLine, v: number) => (l.axisId === "price" ? geo.yPrice(v) : geo.axes.find((a) => a.id === l.axisId)?.y(v) ?? null);
   const priceNow = price[cur];
@@ -153,14 +156,29 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
 
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" aria-live="polite">
-        <span className="font-semibold text-white">{fmtDate(day)}{hover === null ? <span className="ml-1 font-normal text-muted">(fim do período)</span> : null}</span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 rounded" style={{ background: PRICE_COLOR }} />
-          <span className="text-muted">Preço BTC</span>
-          <span className="font-semibold" style={{ color: PRICE_COLOR }}>{priceNow === null || priceNow === undefined ? "—" : formatValue("usd", priceNow)}</span>
-        </span>
-        {lines.length > 0 && <span className="text-muted">Valores de cada indicador no painel à direita.</span>}
+      <div className="mb-2 space-y-1.5 text-xs" aria-live="polite">
+        <p className="font-semibold text-white">
+          {hover === null ? <>Valores atuais <span className="font-normal text-muted">(último dado: {fmtDate(start + latest)}). Passe o cursor sobre o gráfico para ver outra data.</span></> : fmtDate(day)}
+        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-0.5 w-4 rounded" style={{ background: PRICE_COLOR }} />
+            <span className="text-muted">Preço BTC</span>
+            <span className="font-semibold" style={{ color: PRICE_COLOR }}>{priceNow === null || priceNow === undefined ? "—" : formatValue("usd", priceNow)}</span>
+          </span>
+          {lines.map((l) => {
+            const v = hover === null ? (lastIndexOf(l.values) >= 0 ? l.values[lastIndexOf(l.values)] : null) : l.values[hover];
+            const stale = hover === null && lastIndexOf(l.values) >= 0 && lastIndexOf(l.values) < latest;
+            return (
+              <span key={l.key} className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4 rounded" style={{ background: l.color }} />
+                <span className="text-muted">{l.label}</span>
+                <span className="font-semibold" style={{ color: l.color }}>{v === null || v === undefined ? "—" : formatValue(l.fmt, v)}</span>
+                {stale && <span className="text-muted">({fmtDate(start + lastIndexOf(l.values))})</span>}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       <div ref={wrap} className="w-full select-none">
