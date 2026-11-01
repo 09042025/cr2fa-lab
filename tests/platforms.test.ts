@@ -9,8 +9,9 @@ test("lista curada: links https, sem duplicados e regex coerentes", () => {
   for (const x of EXCHANGES) assert.match(x.url, /^https:\/\//, x.name);
   assert.ok(EXCHANGES.some((x) => x.origin === "Brasil") && EXCHANGES.some((x) => x.origin === "Global"));
   const fluid = DEFI_PLATFORMS.find((p) => p.id === "fluid")!;
-  assert.ok(fluid.match.test("fluid-lending"));
-  assert.ok(!fluid.match.test("fluid-dex"));
+  assert.ok(fluid.match.test("fluid-lending") && fluid.match.test("fluid-dex"));
+  assert.ok(!DEXES.some((d) => d.id.startsWith("fluid")), "Fluid DEX fica em Plataformas DeFi");
+  for (const id of ["jupiter", "cowswap", "1inch"]) assert.ok(DEXES.some((d) => d.id === id) && !DEFI_PLATFORMS.some((d) => d.id === id), id);
   assert.ok(!DEFI_PLATFORMS.find((p) => p.id === "aave")!.match.test("aavegotchi"));
 });
 

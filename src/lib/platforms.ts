@@ -34,7 +34,7 @@ const P = (id: string, name: string, url: string, kind: PlatformKind, match: Reg
 export const DEFI_PLATFORMS: Platform[] = [
   P("aave", "Aave", "https://aave.com", "emprestimo", /^aave(-|$)/, "Maior mercado de empréstimo: deposite para render ou use como garantia para tomar emprestado."),
   P("kamino", "Kamino", "https://kamino.finance", "emprestimo", /^kamino(-|$)/, "Empréstimo e liquidez automatizada na Solana."),
-  P("fluid", "Fluid", "https://fluid.io", "emprestimo", /^fluid(?!-dex)(-|$)/, "Empréstimo e DEX integrados, da equipe da Instadapp."),
+  P("fluid", "Fluid", "https://fluid.io", "emprestimo", /^fluid(-|$)/, "Empréstimo e DEX integrados (inclui o Fluid DEX), da equipe da Instadapp."),
   P("morpho", "Morpho", "https://morpho.org", "emprestimo", /^morpho(-|$)/, "Mercados de empréstimo e cofres de rendimento."),
   P("spark", "Spark", "https://spark.fi", "emprestimo", /^spark(-|$)/, "Empréstimo ligado ao ecossistema Sky (antigo MakerDAO)."),
   P("compound", "Compound", "https://compound.finance", "emprestimo", /^compound(-|$)/, "Um dos pioneiros do empréstimo descentralizado."),
@@ -56,9 +56,6 @@ export const DEFI_PLATFORMS: Platform[] = [
   P("hyperliquid", "Hyperliquid", "https://hyperliquid.xyz", "derivativos", /^hyperliquid(-|$)/, "Negociação de futuros perpétuos on-chain."),
   P("dydx", "dYdX", "https://dydx.exchange", "derivativos", /^dydx(-|$)/, "Futuros perpétuos descentralizados."),
   P("gmx", "GMX", "https://gmx.io", "derivativos", /^gmx(-|$)/, "Futuros perpétuos e liquidez em Arbitrum e Avalanche."),
-  P("jupiter", "Jupiter", "https://jup.ag", "agregador", /^jupiter(-|$)/, "Maior agregador de trocas da Solana, com futuros e staking."),
-  P("1inch", "1inch", "https://1inch.io", "agregador", /^1inch(-|$)/, "Agregador que busca o melhor preço entre várias DEX."),
-  P("cowswap", "CoW Swap", "https://cow.fi", "agregador", /^cow(-|swap|$)/, "Trocas protegidas contra MEV."),
 ];
 
 export const DEXES: Platform[] = [
@@ -77,8 +74,10 @@ export const DEXES: Platform[] = [
   P("cetus", "Cetus", "https://www.cetus.zone", "dex", /^cetus(-|$)/, "Principal DEX das redes Sui e Aptos."),
   P("maverick", "Maverick", "https://www.mav.xyz", "dex", /^maverick(-|$)/, "Liquidez dinâmica."),
   P("thena", "Thena", "https://www.thena.fi", "dex", /^thena(-|$)/, "DEX da BNB Chain."),
+  P("jupiter", "Jupiter", "https://jup.ag", "dex", /^jupiter(-|$)/, "Maior DEX e agregador da Solana: melhor preço entre várias corretoras, com futuros e staking."),
+  P("1inch", "1inch", "https://1inch.io", "dex", /^1inch(-|$)/, "DEX agregadora: busca o melhor preço entre várias DEX."),
+  P("cowswap", "CoW Swap", "https://cow.fi", "dex", /^cow(-|swap|$)/, "DEX com trocas protegidas contra MEV."),
   P("kyber", "KyberSwap", "https://kyberswap.com", "dex", /^kyber(-|$)/, "Agregador e DEX multi-redes."),
-  P("fluiddex", "Fluid DEX", "https://fluid.io", "dex", /^fluid-dex$/, "DEX do protocolo Fluid."),
 ];
 
 export interface Exchange { name: string; url: string; origin: "Brasil" | "Global"; note: string }
@@ -181,11 +180,22 @@ export function getPlatformTvl() {
 
 /** Volume das DEX. Com `chain`, só o volume naquela rede (a rede precisa estar na lista de redes conhecidas). */
 export function getDexVolumes(chain?: string) {
-  const key = chain ? `platforms:dexvol:v1:${chain.toLowerCase()}` : "platforms:dexvol:v1:all";
+  const key = chain ? `platforms:dexvol:v2:${chain.toLowerCase()}` : "platforms:dexvol:v2:all";
   return cached<Record<string, VolInfo>>(key, 30 * 60, async () => {
     const path = chain ? `/${encodeURIComponent(chain)}` : "";
     const raw = await fetchJson<{ protocols?: LlamaDex[] }>(`https://api.llama.fi/overview/dexs${path}?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true`, {}, 40000);
     if (!raw || !Array.isArray(raw.protocols)) throw new Error("Resposta inesperada do DefiLlama");
-    return aggregateVolumes(raw.protocols, DEXES);
+    const out = aggregateVolumes(raw.protocols, DEXES);
+    // Agregadoras (1inch, CoW etc.) podem estar numa lista separada do DefiLlama: completa só o que faltou.
+    if (DEXES.some((d) => !out[d.id])) {
+      try {
+        const agg = await fetchJson<{ protocols?: LlamaDex[] }>(`https://api.llama.fi/overview/aggregators${path}?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true`, {}, 40000);
+        if (agg && Array.isArray(agg.protocols)) {
+          const extra = aggregateVolumes(agg.protocols, DEXES.filter((d) => !out[d.id]));
+          Object.assign(out, extra);
+        }
+      } catch { /* sem a lista de agregadoras, segue só com as DEX */ }
+    }
+    return out;
   });
 }
