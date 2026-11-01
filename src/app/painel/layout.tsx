@@ -12,7 +12,7 @@ import { Avatar } from "@/components/Avatar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { MobileDrawer } from "@/components/MobileDrawer";
 
-type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean };
+type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean };
 
 /** O Feed é sempre o primeiro (e a página inicial). O resto segue a ordem alfabética. */
 const FEED: NavItem = { href: "/painel/feed", label: "Feed" };
@@ -28,6 +28,7 @@ const OTHERS: NavItem[] = [
   { href: "/painel/noticias", label: "Notícias" },
   { href: "/planos", label: "Planos e pagamento" },
   { href: "/painel/portfolio", label: "Portfólio", pro: true },
+  { href: "/painel/feed?t=salvos", label: "Posts Salvos", saved: true },
   { href: "/painel/protocolo", label: "Protocolo CR2FA", pro: true },
   { href: "/painel/renda-fixa", label: "Renda fixa" },
   { href: "/painel/visao-geral", label: "Visão geral" },
@@ -59,7 +60,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <nav className="mt-3 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden" aria-label="Principal">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className={`${ITEM} text-muted hover:text-white`}>
-                {n.label}
+                <span className="flex items-center gap-2">{n.saved && <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z" /></svg>}{n.label}</span>
                 {n.pro && <ProBadge />}
                 {n.href === "/painel/feed/mensagens" && unread > 0 && <span className="rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink" aria-label={`${unread} mensagens não lidas`}>{unread}</span>}
               </Link>
