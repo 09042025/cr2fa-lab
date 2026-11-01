@@ -10,6 +10,7 @@ const TABS = [
   { href: "/painel/cripto/futuros", label: "Futuros" },
   { href: "/painel/cripto/etf", label: "ETFs de Cripto" },
   { href: "/painel/cripto/onchain", label: "Análise" },
+  { href: "/painel/cripto/plataformas", label: "DEX e Plataformas DeFi" },
 ];
 
 export function CryptoTabs() {
