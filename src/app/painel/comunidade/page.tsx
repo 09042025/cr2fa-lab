@@ -31,17 +31,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 
   return (
     <>
-      <PageTitle title="Chat" subtitle="Canais de conversa da comunidade, moderados pela equipe. Exclusivo do plano Pró." />
+      <PageTitle title="Chat" subtitle="Canais de conversa da comunidade, moderados pela equipe. " />
       <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
         <nav className="card p-3 text-sm" aria-label="Canais">
           {visibleCategories(isAdmin).map((cat) => (
             <div key={cat.id} className="mb-3">
               <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{cat.label}</p>
               {cat.channels.map((c) => (
-                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} title={c.free || c.admin ? undefined : "Exclusivo do plano Pró"} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${c.slug === ch.slug ? "bg-panel-2 font-semibold text-gold-soft" : "text-muted hover:bg-panel-2 hover:text-white"}`}>
+                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${c.slug === ch.slug ? "bg-panel-2 font-semibold text-gold-soft" : "text-muted hover:bg-panel-2 hover:text-white"}`}>
                   <ChannelIcon name={c.icon} />
                   <span className="truncate">{c.name}</span>
-                  {!c.free && !c.admin && <span className="ml-auto rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Pró</span>}
                 </Link>
               ))}
             </div>
