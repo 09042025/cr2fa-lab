@@ -65,3 +65,17 @@ test("busca de membros para seguir", async () => {
   const sug = searchPeople(a, "");
   assert.ok(!sug.some((p) => p.id === c || p.id === a || p.id === b), "sugestões ignoram quem já segue, você e bloqueados");
 });
+
+test("não curte a própria publicação; só o autor vê quem curtiu", async () => {
+  const { listLikers } = await import("../src/lib/feed");
+  const a = user("gabi3"), b = user("hugo3"), c = user("iris3");
+  const id = addPost(a, "geral", "meu post")!;
+  assert.equal(toggleLike(id, a), false);
+  assert.ok(toggleLike(id, b) && toggleLike(id, c));
+  assert.equal(listLikers(id, { id: b, role: "user" }), null, "outro membro não vê");
+  assert.deepEqual(listLikers(id, { id: a, role: "user" })!.map((l) => l.name), ["hugo3", "iris3"]);
+  assert.equal(listLikers(id, { id: c, role: "admin" })!.length, 2, "admin vê");
+  db().prepare("INSERT INTO community_blocks (blocker_id, blocked_id) VALUES (?, ?)").run(a, b);
+  assert.deepEqual(listLikers(id, { id: a, role: "user" })!.map((l) => l.name), ["iris3"]);
+  assert.equal(listLikers(999999, { id: a, role: "user" }), null);
+});

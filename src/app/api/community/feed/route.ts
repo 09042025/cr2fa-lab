@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getUser, rateLimit } from "@/lib/auth";
 import { REPORT_REASONS, isBanned } from "@/lib/community";
-import { searchPeople, recordViews, toggleBookmark, toggleRepost, setPinned, addComment, addPost, deleteComment, deletePost, MAX_COMMENT, MAX_POST, reportPost, toggleLike } from "@/lib/feed";
+import { listLikers, searchPeople, recordViews, toggleBookmark, toggleRepost, setPinned, addComment, addPost, deleteComment, deletePost, MAX_COMMENT, MAX_POST, reportPost, toggleLike } from "@/lib/feed";
 import { fail, json, sameOrigin } from "@/lib/http";
 
 const schema = z.discriminatedUnion("action", [
@@ -25,6 +25,11 @@ async function member() {
 export async function GET(req: Request) {
   const { user, error } = await member();
   if (error) return error;
+  const likesOf = new URL(req.url).searchParams.get("likes");
+  if (likesOf !== null) {
+    const list = listLikers(Number(likesOf), user!);
+    return list ? json({ likers: list }) : fail("Só o autor da publicação vê quem curtiu.", 403);
+  }
   if (!rateLimit(`people:${user!.id}`, 60, 60_000)) return fail("Calma! Muitas buscas seguidas.", 429);
   return json({ people: searchPeople(user!.id, new URL(req.url).searchParams.get("q") ?? "") });
 }
@@ -46,7 +51,7 @@ export async function POST(req: Request) {
   }
   if (d.action === "pin") return setPinned(user!.id, d.postId, d.pin) ? json({ ok: true }) : fail("Só é possível fixar publicações suas.", 403);
   if (d.action === "repost") return toggleRepost(d.postId, user!.id) ? json({ ok: true }) : fail("Não é possível repostar esta publicação (ela é sua ou não existe).", 400);
-  if (d.action === "like") return toggleLike(d.postId, user!.id) ? json({ ok: true }) : fail("Publicação não encontrada.", 404);
+  if (d.action === "like") return toggleLike(d.postId, user!.id) ? json({ ok: true }) : fail("Não é possível curtir a própria publicação.", 400);
   if (d.action === "comment") return addComment(d.postId, user!.id, d.body) ? json({ ok: true }, 201) : fail("Escreva um comentário de até 500 caracteres.");
   return reportPost(d.postId, user!.id, d.reason, REPORT_REASONS) ? json({ ok: true }, 201) : fail("Não foi possível denunciar (você já denunciou ou a publicação é sua).");
 }

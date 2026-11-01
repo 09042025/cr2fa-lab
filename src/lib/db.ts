@@ -282,6 +282,8 @@ function migrate(db: Database.Database) {
       PRIMARY KEY (story_id, viewer_id)
     );
   `);
+  // Curtidas na própria publicação deixaram de existir: remove as antigas.
+  db.exec("DELETE FROM community_post_likes WHERE rowid IN (SELECT l.rowid FROM community_post_likes l JOIN community_posts p ON p.id = l.post_id WHERE p.user_id = l.user_id)");
   // Stories em vídeo: a imagem do story vira a capa e o vídeo fica em community_videos.
   const storyCols = db.prepare("PRAGMA table_info(stories)").all() as { name: string }[];
   if (!storyCols.some((c) => c.name === "video_id")) db.exec("ALTER TABLE stories ADD COLUMN video_id INTEGER");
