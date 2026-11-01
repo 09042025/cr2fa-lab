@@ -105,7 +105,7 @@ export function CommentForm({ postId, max }: { postId: number; max: number }) {
   return (
     <div className="mt-2">
       <div className="flex gap-2">
-        <input value={body} maxLength={max} onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void send(); } }} placeholder="Escreva um comentário…" className="h-9 min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 text-sm outline-none focus:outline-none" />
+        <input id={`comment-${postId}`} value={body} maxLength={max} onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void send(); } }} placeholder="Escreva um comentário…" className="h-9 min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 text-sm outline-none focus:outline-none" />
         <button className="btn btn-ghost h-9 !py-0 text-xs" onClick={send}>Comentar</button>
       </div>
       {err && <p className="mt-1 text-xs text-down">{err}</p>}

@@ -28,11 +28,17 @@ export interface Post {
   likes: number;
   liked: boolean;
   pinned: boolean;
+  reposts: number;
+  reposted: boolean;
+  bookmarked: boolean;
+  views: number;
+  /** No filtro "Seguindo": nome de quem você segue que repostou esta publicação. */
+  repostedBy: string | null;
   comments: Comment[];
 }
 export interface Comment { id: number; postId: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; body: string; createdAt: number }
 
-interface ListOpts { viewerId: number; topic?: string; following?: boolean; onlyId?: number; excludeId?: number; authorId?: number; before?: number; limit?: number }
+interface ListOpts { viewerId: number; topic?: string; following?: boolean; saved?: boolean; onlyId?: number; excludeId?: number; authorId?: number; before?: number; limit?: number }
 
 /** Publicações mais novas primeiro. Esconde quem o leitor bloqueou. Cada página traz `limit` itens; use `before` (id) para a seguinte. */
 export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
@@ -40,7 +46,11 @@ export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
   const where: string[] = ["(p.user_id = ? OR p.user_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?))"];
   const args: (number | string)[] = [o.viewerId, o.viewerId];
   if (o.topic && TOPICS.some((t) => t.id === o.topic)) { where.push("p.topic = ?"); args.push(o.topic); }
-  if (o.following) where.push("p.user_id IN (SELECT followed_id FROM community_follows WHERE follower_id = ?)"), args.push(o.viewerId);
+  if (o.following) {
+    where.push("(p.user_id IN (SELECT followed_id FROM community_follows WHERE follower_id = ?) OR p.id IN (SELECT r.post_id FROM post_reposts r WHERE r.user_id IN (SELECT followed_id FROM community_follows WHERE follower_id = ?)))");
+    args.push(o.viewerId, o.viewerId);
+  }
+  if (o.saved) where.push("p.id IN (SELECT post_id FROM post_bookmarks WHERE user_id = ?)"), args.push(o.viewerId);
   if (o.onlyId) { where.push("p.id = ?"); args.push(o.onlyId); }
   if (o.excludeId) { where.push("p.id != ?"); args.push(o.excludeId); }
   if (o.authorId) { where.push("p.user_id = ?"); args.push(o.authorId); }
@@ -51,11 +61,16 @@ export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
               p.topic, p.body, p.image_id imageId, p.created_at createdAt,
               (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id) likes,
               EXISTS (SELECT 1 FROM community_post_likes l WHERE l.post_id = p.id AND l.user_id = ?) liked,
-              u.pinned_post_id = p.id pinned
+              u.pinned_post_id = p.id pinned,
+              (SELECT COUNT(*) FROM post_reposts r WHERE r.post_id = p.id) reposts,
+              EXISTS (SELECT 1 FROM post_reposts r WHERE r.post_id = p.id AND r.user_id = ?) reposted,
+              EXISTS (SELECT 1 FROM post_bookmarks b WHERE b.post_id = p.id AND b.user_id = ?) bookmarked,
+              (SELECT COUNT(*) FROM post_views v WHERE v.post_id = p.id) views,
+              ${o.following ? "(SELECT u2.name FROM post_reposts r2 JOIN users u2 ON u2.id = r2.user_id WHERE r2.post_id = p.id AND r2.user_id IN (SELECT followed_id FROM community_follows WHERE follower_id = ?) AND p.user_id NOT IN (SELECT followed_id FROM community_follows WHERE follower_id = ?) ORDER BY r2.created_at DESC LIMIT 1)" : "NULL"} repostedBy
        FROM community_posts p JOIN users u ON u.id = p.user_id
        WHERE ${where.join(" AND ")} ORDER BY p.id DESC LIMIT ?`,
     )
-    .all(o.viewerId, ...args, limit + 1) as (Omit<Post, "comments" | "authorIsAdmin" | "authorBanned" | "liked" | "pinned"> & { authorIsAdmin: number; authorBanned: number; liked: number; pinned: number })[];
+    .all(...[o.viewerId, o.viewerId, o.viewerId, ...(o.following ? [o.viewerId, o.viewerId] : []), ...args, limit + 1]) as (Omit<Post, "comments" | "authorIsAdmin" | "authorBanned" | "liked" | "pinned" | "reposted" | "bookmarked"> & { authorIsAdmin: number; authorBanned: number; liked: number; pinned: number; reposted: number; bookmarked: number })[];
   const more = rows.length > limit;
   const page = rows.slice(0, limit);
   const ids = page.map((r) => r.id);
@@ -78,6 +93,8 @@ export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
       authorBanned: !!r.authorBanned,
       liked: !!r.liked,
       pinned: !!r.pinned,
+      reposted: !!r.reposted,
+      bookmarked: !!r.bookmarked,
       comments: cs.filter((c) => c.postId === r.id).map((c) => ({ ...c, authorIsAdmin: !!c.authorIsAdmin })),
     })),
   };
@@ -110,6 +127,30 @@ export function toggleLike(postId: number, userId: number): boolean {
   const del = db().prepare("DELETE FROM community_post_likes WHERE post_id = ? AND user_id = ?").run(postId, userId);
   if (!del.changes) db().prepare("INSERT INTO community_post_likes (post_id, user_id) VALUES (?, ?)").run(postId, userId);
   return true;
+}
+
+const postExists = (id: number) => !!db().prepare("SELECT 1 FROM community_posts WHERE id = ?").get(id);
+
+function toggleRow(table: "post_reposts" | "post_bookmarks", postId: number, userId: number): boolean {
+  if (!postExists(postId)) return false;
+  const del = db().prepare(`DELETE FROM ${table} WHERE post_id = ? AND user_id = ?`).run(postId, userId);
+  if (!del.changes) db().prepare(`INSERT INTO ${table} (post_id, user_id) VALUES (?, ?)`).run(postId, userId);
+  return true;
+}
+/** Repostar: aparece também para quem segue você (filtro "Seguindo"). Repostar a própria publicação não conta. */
+export const toggleRepost = (postId: number, userId: number): boolean => {
+  const own = db().prepare("SELECT 1 FROM community_posts WHERE id = ? AND user_id = ?").get(postId, userId);
+  return !own && toggleRow("post_reposts", postId, userId);
+};
+export const toggleBookmark = (postId: number, userId: number): boolean => toggleRow("post_bookmarks", postId, userId);
+
+/** Visualização única por membro; o autor não conta. */
+export function recordViews(postIds: number[], userId: number): number {
+  let n = 0;
+  for (const id of postIds.slice(0, 30)) {
+    n += db().prepare("INSERT OR IGNORE INTO post_views (post_id, user_id) SELECT id, ? FROM community_posts WHERE id = ? AND user_id != ?").run(userId, id, userId).changes;
+  }
+  return n;
 }
 
 export function addComment(postId: number, userId: number, body: string): boolean {
