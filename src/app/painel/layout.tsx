@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { getMember } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { CommunityTabs } from "@/components/CommunityTabs";
 import { MobileDrawer } from "@/components/MobileDrawer";
 
 type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean };
@@ -20,16 +21,12 @@ const OTHERS: NavItem[] = [
   { href: "/painel/acoes", label: "Ações" },
   { href: "/painel/comunidade", label: "Comunidade", pro: true },
   { href: "/painel/cripto", label: "Cripto" },
-  { href: "/painel/cursos", label: "Cursos", pro: true },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
-  { href: "/painel/links", label: "Links Essenciais", pro: true },
   { href: "/painel/lives", label: "Lives Abertas" },
   { href: "/painel/feed/mensagens", label: "Mensagens" },
   { href: "/painel/noticias", label: "Notícias" },
   { href: "/planos", label: "Planos e pagamento" },
-  { href: "/painel/portfolio", label: "Portfólio", pro: true },
   { href: "/painel/feed?t=salvos", label: "Posts Salvos", saved: true },
-  { href: "/painel/protocolo", label: "Protocolo CR2FA", pro: true },
   { href: "/painel/renda-fixa", label: "Renda fixa" },
   { href: "/painel/visao-geral", label: "Visão geral" },
 ].sort((x, y) => x.label.localeCompare(y.label, "pt-BR"));
@@ -92,6 +89,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
             Você está no teste grátis do Pró até <span className="text-gold-soft">{date(user.planExpiresAt)}</span>. <Link href="/planos" className="text-gold-soft underline">Ver planos</Link>
           </p>
         ) : null}
+        <CommunityTabs />
         {children}
       </main>
     </div>
