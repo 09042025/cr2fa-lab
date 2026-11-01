@@ -9,6 +9,7 @@ import { trialDays } from "@/lib/trial";
 import { db } from "@/lib/db";
 import { getMember } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { MobileDrawer } from "@/components/MobileDrawer";
 
 type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean };
@@ -70,6 +71,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
             <LogoutButton variant="nav" />
           </nav>
           <div className="mt-4 shrink-0 border-t border-line pt-4">
+            <LanguageSwitcher className="mb-3 w-full" />
             <p className="text-xs">
               Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{user.plan === "pro" ? "Pró" : "Grátis"}</span>
               {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-muted"> {user.onTrial ? "(teste) " : ""}até {date(user.planExpiresAt)}</span> : null}

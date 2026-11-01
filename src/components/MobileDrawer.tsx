@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Avatar } from "./Avatar";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 /**
  * No celular, o menu fica escondido e abre pela lateral ao tocar na foto (como no X).
@@ -28,7 +29,7 @@ export function MobileDrawer({ name, avatarId, logo, children }: { name: string;
           <Avatar name={name} id={avatarId} size={36} />
         </button>
         {logo}
-        <span className="w-9" aria-hidden />
+        <LanguageSwitcher compact />
       </header>
       {open && <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
       <aside
