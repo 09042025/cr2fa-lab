@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Avatar } from "./Avatar";
 import { compact, postUrl, shareTargets, shareText } from "@/lib/share";
 
 const post = (body: unknown) => fetch("/api/community/feed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -43,6 +45,7 @@ export function PostActions(props: {
   const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
   const [share, setShare] = useState(false);
+  const [likers, setLikers] = useState(false);
 
   useEffect(() => {
     const el = root.current;
@@ -71,7 +74,8 @@ export function PostActions(props: {
         className={`${base} ${props.reposted ? "text-up" : "hover:bg-up/10 hover:text-up"} disabled:cursor-not-allowed disabled:opacity-50`}>
         <Icon d="repost" /><span>{compact(props.reposts)}</span>
       </button>
-      <button type="button" onClick={() => act("like")} aria-pressed={props.liked} aria-label={`${props.likes} curtidas. Curtir`}
+      <button type="button" onClick={() => (props.own ? setLikers(true) : act("like"))} aria-pressed={props.own ? undefined : props.liked}
+        aria-label={props.own ? `${props.likes} curtidas. Ver quem curtiu` : `${props.likes} curtidas. Curtir`} title={props.own ? "Ver quem curtiu" : "Curtir"}
         className={`${base} ${props.liked ? "text-pink-400" : "hover:bg-pink-500/10 hover:text-pink-400"}`}>
         <Icon d="heart" fill={props.liked} /><span>{compact(props.likes)}</span>
       </button>
@@ -87,6 +91,7 @@ export function PostActions(props: {
           <Icon d="share" />
         </button>
       </span>
+      {likers && <LikersSheet id={props.id} onClose={() => setLikers(false)} />}
       {share && <ShareSheet id={props.id} author={props.author} body={props.body} onClose={() => setShare(false)} />}
     </div>
   );
@@ -134,6 +139,55 @@ function ShareSheet({ id, author, body, onClose }: { id: number; author: string;
           ))}
         </ul>
         <p className="mt-3 text-xs text-muted">Só quem tem conta no NIZA INVEST consegue abrir a publicação.</p>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+interface Liker { id: number; name: string; handle: string; avatarId: number | null; isAdmin: boolean; iFollow: boolean; isMe: boolean }
+
+/** Lista de quem curtiu (só o autor da publicação vê). */
+function LikersSheet({ id, onClose }: { id: number; onClose: () => void }) {
+  const [list, setList] = useState<Liker[] | null>(null);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    let dead = false;
+    fetch(`/api/community/feed?likes=${id}`, { cache: "no-store" }).then(async (r) => {
+      const d = (await r.json().catch(() => null)) as { likers?: Liker[]; error?: string } | null;
+      if (dead) return;
+      if (!r.ok) setErr(d?.error ?? "Não foi possível carregar."); else setList(d?.likers ?? []);
+    }).catch(() => { if (!dead) setErr("Não foi possível carregar."); });
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    return () => { dead = true; window.removeEventListener("keydown", k); };
+  }, [id, onClose]);
+
+  return createPortal(
+    <div className="notranslate fixed inset-0 z-[70] flex items-end justify-center bg-black/70 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Quem curtiu" onClick={onClose}>
+      <div className="card flex max-h-[80vh] w-full max-w-sm flex-col rounded-b-none p-4 sm:rounded-b-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-semibold">Curtido por</h2>
+          <button type="button" onClick={onClose} aria-label="Fechar" className="px-2 text-2xl leading-none text-muted hover:text-white">×</button>
+        </div>
+        {err && <p className="text-sm text-down">{err}</p>}
+        {!err && list === null && <p className="text-sm text-muted">Carregando…</p>}
+        {list && list.length === 0 && <p className="py-4 text-sm text-muted">Ninguém curtiu ainda. Você não pode curtir a sua própria publicação, mas pode ver aqui quem curtir.</p>}
+        <ul className="min-h-0 flex-1 overflow-y-auto">
+          {(list ?? []).map((l) => (
+            <li key={l.id}>
+              <Link href={`/painel/feed/membro/${l.id}`} onClick={onClose} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-panel-2">
+                <Avatar name={l.name} id={l.avatarId} size={40} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5"><span className="truncate text-sm font-semibold">{l.name}</span>{l.isAdmin && <span className="rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Admin</span>}</span>
+                  <span className="block truncate text-xs text-muted">@{l.handle}</span>
+                </span>
+                {l.iFollow && <span className="text-xs text-muted">Seguindo</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>,
     document.body,

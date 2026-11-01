@@ -123,7 +123,8 @@ export function deletePost(id: number, user: { id: number; role: string }): bool
 }
 
 export function toggleLike(postId: number, userId: number): boolean {
-  if (!db().prepare("SELECT 1 FROM community_posts WHERE id = ?").get(postId)) return false;
+  // não se curte a própria publicação (o autor vê a lista de quem curtiu)
+  if (!db().prepare("SELECT 1 FROM community_posts WHERE id = ? AND user_id != ?").get(postId, userId)) return false;
   const del = db().prepare("DELETE FROM community_post_likes WHERE post_id = ? AND user_id = ?").run(postId, userId);
   if (!del.changes) db().prepare("INSERT INTO community_post_likes (post_id, user_id) VALUES (?, ?)").run(postId, userId);
   return true;
@@ -319,4 +320,18 @@ export function searchPeople(viewerId: number, qRaw: string, limit = 12): Person
     rows = db().prepare(`${base} AND (u.name LIKE ? ESCAPE '\\' OR u.handle LIKE ? ESCAPE '\\') ORDER BY (u.name LIKE ? ESCAPE '\\' OR u.handle LIKE ? ESCAPE '\\') DESC, followers DESC, u.name LIMIT ?`).all(viewerId, viewerId, viewerId, like, like, `${esc(q)}%`, `${esc(q)}%`, limit) as Row[];
   }
   return rows.map((r) => ({ ...r, handle: r.handle ?? defaultHandle(r.name, r.id), iFollow: !!r.iFollow, isAdmin: !!r.isAdmin }));
+}
+
+export interface Liker { id: number; name: string; handle: string; avatarId: number | null; isAdmin: boolean; iFollow: boolean; isMe: boolean }
+
+/** Quem curtiu uma publicação. Só o autor (e o administrador) vê a lista; quem você bloqueou não aparece. */
+export function listLikers(postId: number, viewer: { id: number; role: string }): Liker[] | null {
+  const p = db().prepare("SELECT user_id userId FROM community_posts WHERE id = ?").get(postId) as { userId: number } | undefined;
+  if (!p || (p.userId !== viewer.id && viewer.role !== "admin")) return null;
+  const rows = db().prepare(`SELECT u.id, u.name, u.handle, u.avatar_id avatarId, u.role = 'admin' isAdmin,
+      EXISTS (SELECT 1 FROM community_follows f WHERE f.follower_id = ? AND f.followed_id = u.id) iFollow
+    FROM community_post_likes l JOIN users u ON u.id = l.user_id
+    WHERE l.post_id = ? AND u.id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?)
+    ORDER BY u.name`).all(viewer.id, postId, viewer.id) as (Omit<Liker, "handle" | "isAdmin" | "iFollow" | "isMe"> & { handle: string | null; isAdmin: number; iFollow: number })[];
+  return rows.map((r) => ({ ...r, handle: r.handle ?? defaultHandle(r.name, r.id), isAdmin: !!r.isAdmin, iFollow: !!r.iFollow, isMe: r.id === viewer.id }));
 }
