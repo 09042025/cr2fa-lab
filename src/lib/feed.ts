@@ -292,3 +292,31 @@ export function listFollows(userId: number, kind: "followers" | "following", vie
     .all(viewerId, userId, viewerId) as (Omit<FollowItem, "handle" | "iFollow" | "isMe"> & { handle: string | null; iFollow: number })[];
   return rows.map((r) => ({ ...r, handle: r.handle ?? defaultHandle(r.name, r.id), iFollow: !!r.iFollow, isMe: r.id === viewerId }));
 }
+
+export interface Person { id: number; name: string; handle: string; bio: string; avatarId: number | null; followers: number; iFollow: boolean; isAdmin: boolean }
+
+/**
+ * Busca de membros para seguir: por nome ou @usuário. Sem texto, sugere os mais seguidos que você ainda não segue.
+ * Não mostra você nem quem você bloqueou.
+ */
+export function searchPeople(viewerId: number, qRaw: string, limit = 12): Person[] {
+  const q = qRaw.trim().replace(/^@/, "").slice(0, 40).replace(/[%\\]/g, "");
+  const base = `SELECT u.id, u.name, u.handle, u.bio, u.avatar_id avatarId, u.role = 'admin' isAdmin,
+      (SELECT COUNT(*) FROM community_follows f WHERE f.followed_id = u.id) followers,
+      EXISTS (SELECT 1 FROM community_follows f2 WHERE f2.follower_id = ? AND f2.followed_id = u.id) iFollow
+    FROM users u
+    WHERE u.id != ? AND u.community_banned = 0 AND u.id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?)`;
+  type Row = Omit<Person, "handle" | "iFollow" | "isAdmin"> & { handle: string | null; iFollow: number; isAdmin: number };
+  let rows: Row[];
+  if (q.length === 0 && qRaw.trim() !== "") return [];
+  if (q.length === 0) {
+    rows = db().prepare(`${base} AND u.id NOT IN (SELECT followed_id FROM community_follows WHERE follower_id = ?) ORDER BY followers DESC, u.id LIMIT ?`).all(viewerId, viewerId, viewerId, viewerId, limit) as Row[];
+  } else if (q.length < 2) {
+    return [];
+  } else {
+    const esc = (t: string) => t.replace(/_/g, "\\_");
+    const like = `%${esc(q)}%`;
+    rows = db().prepare(`${base} AND (u.name LIKE ? ESCAPE '\\' OR u.handle LIKE ? ESCAPE '\\') ORDER BY (u.name LIKE ? ESCAPE '\\' OR u.handle LIKE ? ESCAPE '\\') DESC, followers DESC, u.name LIMIT ?`).all(viewerId, viewerId, viewerId, like, like, `${esc(q)}%`, `${esc(q)}%`, limit) as Row[];
+  }
+  return rows.map((r) => ({ ...r, handle: r.handle ?? defaultHandle(r.name, r.id), iFollow: !!r.iFollow, isAdmin: !!r.isAdmin }));
+}

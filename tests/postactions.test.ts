@@ -45,3 +45,23 @@ test("compartilhamento: links e contadores", () => {
   assert.ok(shareText("a".repeat(300), "Ana").length < 200);
   assert.deepEqual([compact(999), compact(1234), compact(25000), compact(1_500_000)], ["999", "1,2 mil", "25 mil", "1,5 mi"]);
 });
+
+test("busca de membros para seguir", async () => {
+  const { searchPeople } = await import("../src/lib/feed");
+  const a = user("zeca3"), b = user("zuleica3"), c = user("zoe3"), d = user("paulo3");
+  db().prepare("UPDATE users SET handle = 'zu_trader' WHERE id = ?").run(b);
+  setFollow(c, b, true); setFollow(d, b, true);
+  const byName = searchPeople(a, "zul");
+  assert.deepEqual(byName.map((p) => p.name), ["zuleica3"]);
+  assert.equal(byName[0].followers, 2);
+  assert.equal(byName[0].handle, "zu_trader");
+  assert.equal(searchPeople(a, "@zu_tr")[0]?.id, b);
+  assert.equal(searchPeople(a, "z").length, 0, "1 letra não busca");
+  assert.equal(searchPeople(a, "%").length, 0, "curinga é removido");
+  assert.ok(!searchPeople(a, "zeca").some((p) => p.id === a), "não lista você");
+  db().prepare("INSERT INTO community_blocks (blocker_id, blocked_id) VALUES (?, ?)").run(a, b);
+  assert.equal(searchPeople(a, "zul").length, 0, "bloqueado some");
+  setFollow(a, c, true);
+  const sug = searchPeople(a, "");
+  assert.ok(!sug.some((p) => p.id === c || p.id === a || p.id === b), "sugestões ignoram quem já segue, você e bloqueados");
+});
