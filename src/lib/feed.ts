@@ -114,12 +114,11 @@ export function addPost(userId: number, topic: string, body: string, imageId?: n
 }
 
 export function deletePost(id: number, user: { id: number; role: string }): boolean {
+  // só o autor apaga o próprio post; o administrador apaga qualquer um
+  const own = user.role === "admin" || !!db().prepare("SELECT 1 FROM community_posts WHERE id = ? AND user_id = ?").get(id, user.id);
+  if (!own) return false;
   db().prepare("UPDATE users SET pinned_post_id = NULL WHERE pinned_post_id = ?").run(id);
-  const r =
-    user.role === "admin"
-      ? db().prepare("DELETE FROM community_posts WHERE id = ?").run(id)
-      : db().prepare("DELETE FROM community_posts WHERE id = ? AND user_id = ?").run(id, user.id);
-  return r.changes > 0;
+  return db().prepare("DELETE FROM community_posts WHERE id = ?").run(id).changes > 0;
 }
 
 export function toggleLike(postId: number, userId: number): boolean {
