@@ -71,11 +71,6 @@ export const INDICATORS: IndicatorDef[] = [
     desc: "Emissão diária de moedas em dólar dividida pela média de 365 dias. Mostra a pressão de venda dos mineradores. Valores abaixo de 0,5 apareceram em fundos e estresse de mineração. Acima de 4 apareceu em topos de ciclo.",
   },
   {
-    id: "nvt", name: "NVT (90 dias)", group: "valuation", axis: "own", scale: "log", fmt: "ratio", needs: ["supply", "tvol"],
-    lines: [{ label: "NVT" }],
-    desc: "Valor de mercado dividido pela média de 90 dias do valor transferido ajustado na rede, em dólar. É o equivalente do P/L do Bitcoin: valores altos indicam preço alto em relação ao uso da rede.",
-  },
-  {
     id: "sth_realized_price", name: "Preço realizado STH", group: "holders", axis: "price", scale: "log", fmt: "usd", needs: ["sth"],
     lines: [{ label: "Preço realizado STH" }],
     desc: "Preço médio de aquisição das moedas que se moveram nos últimos 155 dias, ou seja, dos detentores de curto prazo (STH). Fica no eixo do preço. Preço acima da linha: o comprador recente está no lucro, e a linha costuma funcionar como suporte em altas. Preço abaixo: o comprador recente está no prejuízo, e a linha costuma virar resistência. Dados gratuitos cobrem só os últimos 4 anos.",

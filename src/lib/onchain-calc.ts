@@ -173,7 +173,6 @@ const CALC: Record<string, Calc> = {
     const ma = sma(iss, 365);
     return [combine(iss, ma, (i, m) => (m > 0 && i > 0 ? i / m : null))];
   },
-  nvt: (b) => [combine(marketCap(b), sma(b.tvol as Series, 90), (m, v) => (v > 0 ? m / v : null))],
   sth_realized_price: (b) => [(b.sth as Series).slice()],
   lth_realized_price: (b) => [(b.lth as Series).slice()],
   sth_mvrv: (b) => [combine(b.price, b.sth as Series, (p, r) => (r > 0 ? p / r : null))],
