@@ -9,7 +9,9 @@ export async function GET(req: Request) {
   const user = await getUser();
   if (!user) return Response.json({ error: "Faça login." }, { status: 401 });
 
-  const ids = parseIds(new URL(req.url).searchParams.get("i"), user.plan === "pro" ? INDICATORS.length : undefined);
+  if (user.plan !== "pro" && user.role !== "admin") return Response.json({ error: "Exclusivo do plano Pró." }, { status: 403 });
+
+  const ids = parseIds(new URL(req.url).searchParams.get("i"), INDICATORS.length);
   const raw = await getBtcOnchain();
   if (!raw.data) return Response.json({ error: raw.error || "Dados indisponíveis no momento." }, { status: 503 });
 
