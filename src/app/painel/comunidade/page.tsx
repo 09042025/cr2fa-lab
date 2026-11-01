@@ -31,7 +31,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 
   return (
     <>
-      <PageTitle title="Chat" subtitle="Canais de conversa da comunidade, moderados pela equipe. Alguns canais são exclusivos do plano Pró." />
+      <PageTitle title="Chat" subtitle="Canais de conversa da comunidade, moderados pela equipe. Exclusivo do plano Pró." />
       <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
         <nav className="card p-3 text-sm" aria-label="Canais">
           {visibleCategories(isAdmin).map((cat) => (
@@ -96,7 +96,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
               </ul>
             </div>
           )}
-          {!allowed ? <Locked feature={`${ch.name} (exclusivo do plano Pró)`} text="Este espaço da comunidade faz parte do plano Pró. No Grátis você participa do Feed, das Notícias e do chat-geral." /> : <>
+          {!allowed ? <Locked feature={`${ch.name} (exclusivo do plano Pró)`} text="Este espaço da comunidade faz parte do plano Pró. No Grátis você participa do Feed e das Notícias." /> : <>
           <ul className="flex max-h-[32rem] flex-1 flex-col gap-3 overflow-y-auto pr-1">
             {messages.length === 0 && <li className="text-sm text-muted">Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</li>}
             {messages.map((m) => (

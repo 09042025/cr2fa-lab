@@ -14,10 +14,10 @@ test("canal de moderação só aparece para admin", () => {
 test("permissões de escrita", () => {
   const pro = { role: "user", plan: "pro" }, free = { role: "user", plan: "free" }, adm = { role: "admin", plan: "pro" };
   assert.equal(canPost(findChannel("chat-geral", false), pro), true);
-  assert.equal(canPost(findChannel("chat-geral", false), free), true);
+  assert.equal(canPost(findChannel("chat-geral", false), free), false);
   assert.equal(canPost(findChannel("geral", false), free), false);
   assert.equal(canView(findChannel("geral", false), free), false);
-  assert.equal(canView(findChannel("chat-geral", false), free), true);
+  assert.equal(canView(findChannel("chat-geral", false), free), false);
   assert.equal(canView(findChannel("geral", false), pro), true);
   assert.equal(canPost(findChannel("anuncios", false), pro), false);
   assert.equal(canPost(findChannel("anuncios", true), adm), true);

@@ -2,10 +2,18 @@ import { requireUser } from "@/lib/auth";
 import { ProtocolCalculator } from "@/components/ProtocolCalculator";
 import Image from "next/image";
 import pizza from "@/assets/protocolo-pizza.webp";
-import { Disclaimer, PageTitle } from "@/components/ui";
+import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 
 export default async function ProtocolPage() {
-  await requireUser();
+  const user = await requireUser();
+  if (user.plan !== "pro" && user.role !== "admin") {
+    return (
+      <>
+        <PageTitle title="Protocolo CR2FA" subtitle="Cinco blocos de 20%. Diversificação em duas camadas." />
+        <Locked feature="Protocolo CR2FA (exclusivo do plano Pró)" text="A calculadora e a metodologia completa do Protocolo CR2FA fazem parte do plano Pró." />
+      </>
+    );
+  }
   return (
     <>
       <PageTitle title="Protocolo CR2FA" subtitle="Cinco blocos de 20%. Diversificação em duas camadas: entre os blocos e dentro de cada um." />

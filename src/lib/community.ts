@@ -48,7 +48,7 @@ export const CATEGORIES: Category[] = [
         ],
       },
       { slug: "anuncios", name: "anuncios-do-canal", icon: "bell", post: "admin", description: "Avisos oficiais do Emerson e da equipe.", intro: SECURITY },
-      { slug: "chat-geral", name: "chat-geral", icon: "users", post: "pro", free: true, description: "Bate-papo geral entre os membros." },
+      { slug: "chat-geral", name: "chat-geral", icon: "users", post: "pro", description: "Bate-papo geral entre os membros." },
     ],
   },
   {
