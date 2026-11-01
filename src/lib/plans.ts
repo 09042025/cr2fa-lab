@@ -12,7 +12,7 @@ export const PLAN_FEATURES = {
     "Pools DeFi completos, com filtros por rede, ativo, TVL e APY",
     "Ações, FIIs e ETFs com lista completa e filtros por setor",
     "Comparador de renda fixa com imposto de renda (CDB, LCI/LCA, Selic)",
-    "Protocolo CR2FA completo e Comunidade (chat, canais e Lives VIP)",
+    "Protocolo CR2FA completo, Comunidade (chat, canais e Lives VIP) e Simulador de Financiamentos",
     "Portfólio com rebalanceamento automático pelo Protocolo CR2FA",
     "Exportação em CSV",
     "Suporte prioritário",

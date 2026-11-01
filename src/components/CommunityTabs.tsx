@@ -8,9 +8,10 @@ const TABS = [
   { href: "/painel/cursos", label: "Cursos" },
   { href: "/painel/links", label: "Links Essenciais" },
   { href: "/painel/portfolio", label: "Portfólio" },
+  { href: "/painel/financiamento", label: "Financiamentos" },
   { href: "/painel/protocolo", label: "Protocolo CR2FA" },
 ];
-const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/protocolo"];
+const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/financiamento", "/painel/protocolo"];
 
 /** Abas da área Pró (Comunidade): aparecem em todas as páginas dela. */
 export function CommunityTabs(_props: { pro?: boolean }) {
