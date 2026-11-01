@@ -1,5 +1,4 @@
 import { requireUser } from "@/lib/auth";
-import { CommunityTabs } from "@/components/CommunityTabs";
 import { Locked, PageTitle } from "@/components/ui";
 
 export default async function CommunityLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +14,6 @@ export default async function CommunityLayout({ children }: { children: React.Re
   }
   return (
     <>
-      <CommunityTabs pro />
       {children}
     </>
   );
