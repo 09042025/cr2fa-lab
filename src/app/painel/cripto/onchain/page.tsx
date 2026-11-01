@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { DEFAULT_IDS, INDICATORS, parseIds } from "@/lib/onchain-defs";
-import { Disclaimer, PageTitle } from "@/components/ui";
+import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { OnchainExplorer } from "@/components/OnchainExplorer";
 import { TradingViewChart } from "@/components/TradingViewChart";
 
@@ -9,7 +9,15 @@ export const dynamic = "force-dynamic";
 
 export default async function OnchainPage({ searchParams }: { searchParams: Promise<{ i?: string; v?: string }> }) {
   const user = await requireUser();
-  const isPro = user.plan === "pro";
+  const isPro = user.plan === "pro" || user.role === "admin";
+  if (!isPro) {
+    return (
+      <>
+        <PageTitle title="Análise on Chain" subtitle="Gráfico do Bitcoin com análise técnica e indicadores on-chain." />
+        <Locked feature="Análise on Chain (exclusivo do plano Pró)" text="O gráfico do TradingView e os indicadores on-chain do Bitcoin fazem parte do plano Pró." />
+      </>
+    );
+  }
   const sp = await searchParams;
   const view = sp.v === "onchain" || (sp.i && sp.v !== "tv") ? "onchain" : "tv";
   const fromUrl = parseIds(sp.i, isPro ? INDICATORS.length : undefined);
@@ -19,7 +27,7 @@ export default async function OnchainPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <PageTitle
-        title="Análise do Bitcoin"
+        title="Análise on Chain"
         subtitle={view === "tv"
           ? "O gráfico oficial do TradingView, com todos os indicadores técnicos, Fibonacci, MACD, RSI, ferramentas de desenho e troca de ativo."
           : "O gráfico do Bitcoin com os indicadores on-chain. Ative e desative cada um no painel à direita, arraste sobre o gráfico para dar zoom e passe o mouse para ler os valores de cada dia."}

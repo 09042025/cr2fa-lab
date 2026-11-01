@@ -14,7 +14,15 @@ type SP = PoolFilters;
 export default async function DefiPage({ searchParams }: { searchParams: Promise<SP> }) {
   const user = await requireUser();
   const sp = await searchParams;
-  const isPro = user.plan === "pro";
+  const isPro = user.plan === "pro" || user.role === "admin";
+  if (!isPro) {
+    return (
+      <>
+        <PageTitle title="HUB DEFI" subtitle="Pools de liquidez e rendimento em dezenas de redes." />
+        <Locked feature="HUB DEFI (exclusivo do plano Pró)" text="Os pools de liquidez e rendimento, com filtros por rede, DEX, TVL e simulador de retorno, fazem parte do plano Pró." />
+      </>
+    );
+  }
   const pools = await getAllPools();
 
   const tipo = sp.tipo === "rendimento" ? "rendimento" : "liquidez";
@@ -32,7 +40,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageTitle title="DeFi" subtitle="Pools de liquidez e rendimento em dezenas de redes. No Protocolo, 30% do bloco de cripto fica em stablecoins rendendo." />
+      <PageTitle title="HUB DEFI" subtitle="Pools de liquidez e rendimento em dezenas de redes. No Protocolo, 30% do bloco de cripto fica em stablecoins rendendo." />
 
       <section id="pools" className="card p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
