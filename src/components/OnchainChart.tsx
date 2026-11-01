@@ -31,7 +31,7 @@ interface Props {
   onZoom: (i0: number, i1: number) => void;
   onReset: () => void;
   /** Avisa qual dia está sob o cursor (ou o último do período), para o painel mostrar os valores. */
-  onCursor?: (index: number) => void;
+  onCursor?: (index: number, hovering: boolean) => void;
 }
 
 /** Quantos eixos à direita são desenhados; os demais indicadores usam a escala própria, sem rótulos. */
@@ -152,7 +152,7 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
   const day = start + cur;
   const yAt = (l: ChartLine, v: number) => (l.axisId === "price" ? geo.yPrice(v) : geo.axes.find((a) => a.id === l.axisId)?.y(v) ?? null);
   const priceNow = price[cur];
-  useEffect(() => { onCursor?.(cur); }, [cur, onCursor]);
+  useEffect(() => { onCursor?.(cur, hover !== null); }, [cur, hover, onCursor]);
 
   return (
     <div>

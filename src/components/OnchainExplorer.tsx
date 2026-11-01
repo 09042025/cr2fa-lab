@@ -46,6 +46,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
 
   const key = selected.join(",");
   const [cursor, setCursor] = useState(0);
+  const [hovering, setHovering] = useState(false);
   const [notice, setNotice] = useState("");
   const have = data ? Object.keys(data.series).join(",") : "";
 
@@ -135,7 +136,10 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
     const arr = data?.series[id]?.[0];
     const def = INDICATOR_BY_ID[id];
     if (!arr || !def) return "";
-    const v = arr[Math.min(cursor, arr.length - 1)];
+    // Sem o cursor no gráfico, mostra o último valor existente (o mesmo do topo do gráfico).
+    let v: number | null | undefined;
+    if (hovering) v = arr[Math.min(cursor, arr.length - 1)];
+    else { for (let k = arr.length - 1; k >= 0; k--) if (arr[k] !== null && arr[k] !== undefined) { v = arr[k]; break; } }
     return v === null || v === undefined ? "—" : formatValue(def.fmt, v);
   };
 
@@ -178,7 +182,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
               <OnchainChart
                 start={data.start} price={data.price} lines={lines} halvings={data.halvings}
                 showHalvings={showHalvings} logPrice={logPrice} i0={i0} i1={i1}
-                onZoom={(a, b) => setZoom([a, b])} onReset={() => setZoom(null)} onCursor={setCursor}
+                onZoom={(a, b) => setZoom([a, b])} onReset={() => setZoom(null)} onCursor={(i, h) => { setCursor(i); setHovering(h); }}
               />
             </div>
           ) : status === "error" ? (
