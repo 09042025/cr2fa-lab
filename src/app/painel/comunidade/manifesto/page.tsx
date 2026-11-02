@@ -27,10 +27,12 @@ function Pill({ tone, title, sub, children }: { tone: "blue" | "red" | "black" |
 
 export default function ManifestoPage() {
   return (
-    <article
-      className="wfm"
-      style={{ backgroundColor: "#05070f", backgroundImage: `linear-gradient(rgba(4,6,14,0.8), rgba(4,6,14,0.88)), url(${tile.src})`, backgroundSize: "100% 100%, 100% auto", backgroundRepeat: "no-repeat, repeat-y" }}
-    >
+    <article className="wfm">
+      <div
+        aria-hidden
+        className="wfm-bg"
+        style={{ backgroundImage: `linear-gradient(rgba(4,6,14,0.78), rgba(4,6,14,0.86)), url(${tile.src})`, backgroundSize: "100% 100%, 100% auto", backgroundRepeat: "no-repeat, repeat-y" }}
+      />
       <header className="wfm-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={hero.src} alt="O lobo da chama branca e a caverna de Platão" />
