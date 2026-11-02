@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { db, now, type OrderRow, type UserRow } from "./db";
-import { diamondPriceCents, mentoriaPriceCents, periodSeconds, priceCents, type Period, type Product } from "./plans";
+import { blackPriceCents, diamondPriceCents, mentoriaPriceCents, periodSeconds, priceCents, type Period, type Product } from "./plans";
+
+export const BLACK_PERIOD_SEC = 366 * 24 * 60 * 60;
 
 export function createOrder(params: {
   userId: number;
@@ -21,7 +23,7 @@ export function createOrder(params: {
       params.userId,
       params.period,
       params.product ?? "premium",
-      params.product === "mentoria" ? mentoriaPriceCents() : params.product === "diamond" ? diamondPriceCents() : priceCents(params.period),
+      params.product === "mentoria" ? mentoriaPriceCents() : params.product === "diamond" ? diamondPriceCents() : params.product === "black" ? blackPriceCents() : priceCents(params.period),
       params.method,
       t,
       params.expiresInSec ? t + params.expiresInSec : null,
@@ -62,6 +64,15 @@ export function markPaid(orderId: string, extra: { providerRef?: string; txHash?
       d.prepare("INSERT OR IGNORE INTO mentorships (user_id, order_id, kind) VALUES (?, ?, 'diamond')").run(order.user_id, order.id);
       return true;
     }
+    if (order.product === "black") {
+      // Diamond Black VIP: anuidade. Premium por 12 meses (não encurta quem já é vitalício) + Mentoria, se ainda não tiver.
+      const u = d.prepare("SELECT * FROM users WHERE id = ?").get(order.user_id) as UserRow;
+      const lifetime = u.plan === "pro" && !u.plan_expires_at;
+      const from = u.plan === "pro" && u.plan_expires_at && u.plan_expires_at > t ? u.plan_expires_at : t;
+      d.prepare("UPDATE users SET plan = 'pro', plan_expires_at = ? WHERE id = ?").run(lifetime ? null : from + BLACK_PERIOD_SEC, order.user_id);
+      if (!d.prepare("SELECT 1 FROM mentorships WHERE user_id = ? AND kind = 'diamond'").get(order.user_id)) d.prepare("INSERT OR IGNORE INTO mentorships (user_id, order_id, kind) VALUES (?, ?, 'diamond')").run(order.user_id, order.id);
+      return true;
+    }
     const user = d.prepare("SELECT * FROM users WHERE id = ?").get(order.user_id) as UserRow;
     const base = user.plan === "pro" && user.plan_expires_at && user.plan_expires_at > t ? user.plan_expires_at : t;
     d.prepare("UPDATE users SET plan = 'pro', plan_expires_at = ? WHERE id = ?").run(
@@ -73,9 +84,14 @@ export function markPaid(orderId: string, extra: { providerRef?: string; txHash?
   return run();
 }
 
-/** A conta tem o Plano Diamond (pedido pago)? */
+/** Diamond Black VIP ativo (anuidade paga e ainda dentro dos 12 meses)? */
+export function hasBlack(userId: number): boolean {
+  return !!db().prepare("SELECT 1 FROM orders WHERE user_id = ? AND product = 'black' AND status = 'paid' AND paid_at > ? LIMIT 1").get(userId, now() - BLACK_PERIOD_SEC);
+}
+
+/** A conta tem o Plano Diamond (pedido pago) ou o Diamond Black VIP, que inclui tudo do Diamond? */
 export function hasDiamond(userId: number): boolean {
-  return !!db().prepare("SELECT 1 FROM orders WHERE user_id = ? AND product = 'diamond' AND status = 'paid' LIMIT 1").get(userId);
+  return !!db().prepare("SELECT 1 FROM orders WHERE user_id = ? AND product = 'diamond' AND status = 'paid' LIMIT 1").get(userId) || hasBlack(userId);
 }
 
 export function expireStaleOrders(): void {

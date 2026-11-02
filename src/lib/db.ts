@@ -323,6 +323,12 @@ function migrate(db: Database.Database) {
       approval INTEGER NOT NULL DEFAULT 0,
       audience TEXT NOT NULL DEFAULT 'premium'
     );
+    CREATE TABLE IF NOT EXISTS black_invites (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL CHECK (status IN ('requested','invited','declined')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
     CREATE TABLE IF NOT EXISTS event_rsvps (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       event_id INTEGER NOT NULL REFERENCES meeting_events(id) ON DELETE CASCADE,
@@ -408,7 +414,7 @@ export interface OrderRow {
   id: string;
   user_id: number;
   period: "monthly" | "yearly";
-  product: "premium" | "mentoria" | "diamond";
+  product: "premium" | "mentoria" | "diamond" | "black";
   amount_cents: number;
   method: "mercadopago" | "crypto";
   status: "pending" | "paid" | "expired";

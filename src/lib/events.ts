@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { db, now } from "./db";
 import { addEvent, type MeetingEvent } from "./agenda";
-import { hasDiamond } from "./orders";
+import { hasBlack, hasDiamond } from "./orders";
 
 /** Eventos presenciais (estilo Luma): confirmação de presença, aprovação do admin (VIP), capacidade e QR code de entrada. */
 export const COST_MODES: { id: string; label: string }[] = [
@@ -13,7 +13,7 @@ export const COST_MODES: { id: string; label: string }[] = [
 export const costLabel = (id: string) => COST_MODES.find((c) => c.id === id)?.label ?? "";
 
 export type RsvpStatus = "confirmed" | "pending" | "waitlist" | "declined" | "cancelled";
-export interface EventDetails { eventId: number; bannerId: number | null; location: string; costMode: string; costNote: string; capacity: number | null; approval: boolean; audience: "premium" | "diamond" }
+export interface EventDetails { eventId: number; bannerId: number | null; location: string; costMode: string; costNote: string; capacity: number | null; approval: boolean; audience: "premium" | "diamond" | "black" }
 export interface Rsvp { id: number; eventId: number; userId: number; status: RsvpStatus; code: string; checkedInAt: number | null; createdAt: number; name?: string; email?: string }
 export interface EventInput { bannerId: number | null; location: string; costMode: string; costNote: string; capacity: number | null; approval: boolean; audience: string }
 
@@ -31,7 +31,7 @@ export function cleanDetails(i: EventInput): { error: string } | { data: EventIn
     if (!(n >= 1 && n <= 5000)) return { error: "A capacidade deve ficar entre 1 e 5000 pessoas." };
     capacity = n;
   }
-  return { data: { bannerId: i.bannerId && Number.isInteger(i.bannerId) ? i.bannerId : null, location, costMode: costMode || "none", costNote, capacity, approval, audience: i.audience === "diamond" ? "diamond" : "premium" } };
+  return { data: { bannerId: i.bannerId && Number.isInteger(i.bannerId) ? i.bannerId : null, location, costMode: costMode || "none", costNote, capacity, approval, audience: i.audience === "black" ? "black" : i.audience === "diamond" ? "diamond" : "premium" } };
 }
 
 export function createPresencial(userId: number, base: { title: string; startsAt: number; durationMin: number; notes: string }, d: EventInput): MeetingEvent | { error: string } {
@@ -45,7 +45,7 @@ export function createPresencial(userId: number, base: { title: string; startsAt
 }
 
 type DRow = { event_id: number; banner_id: number | null; location: string; cost_mode: string; cost_note: string; capacity: number | null; approval: number; audience: string };
-const mapD = (r: DRow): EventDetails => ({ eventId: r.event_id, bannerId: r.banner_id, location: r.location, costMode: r.cost_mode, costNote: r.cost_note, capacity: r.capacity, approval: r.approval === 1, audience: r.audience === "diamond" ? "diamond" : "premium" });
+const mapD = (r: DRow): EventDetails => ({ eventId: r.event_id, bannerId: r.banner_id, location: r.location, costMode: r.cost_mode, costNote: r.cost_note, capacity: r.capacity, approval: r.approval === 1, audience: r.audience === "black" ? "black" : r.audience === "diamond" ? "diamond" : "premium" });
 export function getDetails(eventId: number): EventDetails | null {
   const r = db().prepare("SELECT * FROM event_details WHERE event_id = ?").get(eventId) as DRow | undefined;
   return r ? mapD(r) : null;
@@ -88,6 +88,7 @@ export function register(eventId: number, user: { id: number; role: string; plan
   if (ev.endsAt < now()) return { error: "Este evento já aconteceu." };
   const isAdmin = user.role === "admin";
   if (!isAdmin && !(user.plan === "pro")) return { error: "Exclusivo para membros Premium." };
+  if (d.audience === "black" && !isAdmin && !hasBlack(user.id)) return { error: "Este evento é exclusivo para membros Diamond Black VIP." };
   if (d.audience === "diamond" && !isAdmin && !hasDiamond(user.id)) return { error: "Este evento é exclusivo para membros Diamond." };
   const cur = getRsvp(eventId, user.id);
   if (cur && (cur.status === "confirmed" || cur.status === "pending" || cur.status === "waitlist")) return { status: cur.status };
