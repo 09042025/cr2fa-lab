@@ -7,7 +7,7 @@ const TABS = [
   { href: "/painel/comunidade/manifesto", label: "Manifesto" },
   { href: "/painel/comunidade", label: "SOCIETY" },
   { href: "/painel/comunidade/lives", label: "Lives VIP" },
-  { href: "/painel/cursos", label: "Cursos" },
+  { href: "/painel/cursos", label: "Masterclass" },
   { href: "/painel/links", label: "Links Essenciais" },
   { href: "/painel/portfolio", label: "Portfólio" },
   { href: "/painel/financiamento", label: "Financiamentos" },

@@ -9,7 +9,7 @@ export default async function Page() {
   const isPro = user.plan === "pro";
   return (
     <>
-      <PageTitle title="Cursos" subtitle="Aulas e análises de ativos para quem é Premium." />
+      <PageTitle title="Masterclass" subtitle="Aulas e análises de ativos para quem é Premium." />
       {isPro ? (
         <section className="card flex flex-col items-start gap-3 p-6">
           <div className="flex items-center gap-2"><ProBadge /><h3 className="font-semibold">Em breve</h3></div>
@@ -17,7 +17,7 @@ export default async function Page() {
           <Link href="/painel/visao-geral" className="btn btn-ghost">Voltar à visão geral</Link>
         </section>
       ) : (
-        <Locked feature="Cursos (exclusivo do plano Premium)" />
+        <Locked feature="Masterclass (exclusivo do plano Premium)" />
       )}
     </>
   );
