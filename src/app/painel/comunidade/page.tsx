@@ -10,6 +10,7 @@ import { LinkPreview } from "@/components/LinkPreview";
 import { RichText } from "@/components/RichText";
 import { AgendaCalendar } from "@/components/AgendaCalendar";
 import { listEvents, roomMeetings } from "@/lib/agenda";
+import { costLabel, detailsMap } from "@/lib/events";
 import { MeetingRoom } from "@/components/MeetingRoom";
 import { now } from "@/lib/db";
 import { EmbossDefs, EmbossedIcon } from "@/components/EmbossedIcon";
@@ -32,13 +33,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const blocked = listBlocked(user.id);
   const reports = isAdmin && ch.slug === "moderador" ? listReports() : [];
   const postReports = isAdmin && ch.slug === "moderador" ? listPostReports() : [];
-  const agenda = allowed && ch.slug === "planejamento-de-reunioes" ? listEvents() : null;
+  const agendaRaw = allowed && ch.slug === "planejamento-de-reunioes" && !isRoom ? listEvents() : null;
+  const dmap = agendaRaw ? detailsMap(agendaRaw.filter((e) => e.kind === "evento").map((e) => e.id)) : null;
+  const agenda = agendaRaw && dmap ? agendaRaw.map((e) => { const d = dmap.get(e.id); return d ? { ...e, detail: { bannerId: d.bannerId, location: d.location, costLabel: d.costMode === "none" ? "" : costLabel(d.costMode) + (d.costNote ? ` (${d.costNote})` : ""), costNote: d.costNote, capacity: d.capacity, approval: d.approval, audience: d.audience } } : e; }) : null;
   const view = isRoom ? { name: ROOM.name, icon: ROOM.icon, description: "Entre aqui nas reuniões online da comunidade. Os links cadastrados na Agenda aparecem automaticamente, com dia, hora e plataforma." } : ch;
   const firstName = user.name.split(" ")[0].toLowerCase();
 
   return (
     <>
-      <PageTitle title="SOCIETY" subtitle="Canais de conversa da comunidade, moderados pela equipe. " />
+      <PageTitle title="Society" subtitle="Canais de conversa da comunidade, moderados pela equipe. " />
       <div className="grid gap-4 md:grid-cols-[17rem_1fr]">
         <EmbossDefs />
         <nav className="card h-fit space-y-4 border-gold/20 p-3 text-sm" aria-label="Canais">

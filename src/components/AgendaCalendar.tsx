@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-interface Ev { id: number; title: string; startsAt: number; endsAt: number; link: string; notes: string; kind: "reuniao" | "evento" }
+interface Ev { id: number; title: string; startsAt: number; endsAt: number; link: string; notes: string; kind: "reuniao" | "evento"; detail?: { bannerId: number | null; location: string; costLabel: string; costNote: string; capacity: number | null; approval: boolean; audience: string } }
 
 // Horário de Brasília (UTC-3, sem horário de verão): trabalhamos com "relógio de Brasília" deslocando 3h.
 const OFF = 3 * 3600;
@@ -38,6 +38,7 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
   const [ym, setYm] = useState(today.slice(0, 7));
   const [sel, setSel] = useState(today);
   const [form, setForm] = useState({ title: "", date: today, time: "20:00", dur: "60", link: "", notes: "", kind: "reuniao" });
+  const [pres, setPres] = useState({ location: "", costMode: "free", costNote: "", capacity: "", approval: false, audience: "premium", bannerId: null as number | null, bannerName: "" });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -66,12 +67,23 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
     const startsAt = Math.floor(new Date(`${form.date}T${form.time}:00-03:00`).getTime() / 1000);
     if (!form.title.trim() || Number.isNaN(startsAt)) return setErr("Preencha o título, a data e a hora.");
     setBusy(true);
-    const r = await fetch("/api/community/agenda", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: form.title, startsAt, durationMin: Number(form.dur) || 60, link: form.link, notes: form.notes, kind: form.kind }) });
+    const r = await fetch("/api/community/agenda", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: form.title, startsAt, durationMin: Number(form.dur) || 60, link: form.kind === "evento" ? "" : form.link, notes: form.notes, kind: form.kind, details: form.kind === "evento" ? { bannerId: pres.bannerId, location: pres.location, costMode: pres.costMode, costNote: pres.costNote, capacity: pres.capacity.trim() ? Number(pres.capacity) : null, approval: pres.approval, audience: pres.audience } : undefined }) });
     setBusy(false);
     if (!r.ok) return setErr((await r.json().catch(() => ({}))).error ?? "Erro ao salvar.");
     setForm({ ...form, title: "", link: "", notes: "" });
+    setPres({ location: "", costMode: "free", costNote: "", capacity: "", approval: false, audience: "premium", bannerId: null, bannerName: "" });
     setSel(form.date); setYm(form.date.slice(0, 7)); setOpen(false);
     router.refresh();
+  }
+  async function uploadBanner(file: File | undefined) {
+    if (!file) return;
+    setErr("");
+    const fd = new FormData();
+    fd.append("file", file);
+    const r = await fetch("/api/community/image", { method: "POST", body: fd });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return setErr(d.error ?? "Não foi possível enviar o banner.");
+    setPres((p) => ({ ...p, bannerId: d.id, bannerName: file.name }));
   }
   async function remove(id: number) {
     if (!confirm("Apagar este evento da agenda?")) return;
@@ -98,7 +110,7 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
           <label className="text-xs text-muted sm:col-span-6">Tipo
             <select className={inp} value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as "reuniao" | "evento" })}>
               <option value="reuniao">Reunião online (aparece automaticamente na Sala de Reuniões)</option>
-              <option value="evento">Evento (divulgação própria, não vai para a Sala de Reuniões)</option>
+              <option value="evento">Evento presencial (inscrição com confirmação e QR code, não vai para a Sala de Reuniões)</option>
             </select>
           </label>
           <input className={`${inp} sm:col-span-6`} placeholder="Título (ex.: Live de análise semanal)" maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -109,7 +121,41 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
               {[30, 45, 60, 90, 120, 180].map((d) => <option key={d} value={d}>{d} min</option>)}
             </select>
           </label>
-          <input className={`${inp} sm:col-span-6`} placeholder="Link da reunião (Meet, Zoom, Teams…)" maxLength={500} value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />
+          {form.kind === "reuniao" && <input className={`${inp} sm:col-span-6`} placeholder="Link da reunião (Meet, Zoom, Teams…)" maxLength={500} value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />}
+          {form.kind === "evento" && (
+            <fieldset className="space-y-2 rounded-lg border border-gold/30 p-3 sm:col-span-6">
+              <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-gold/80">Evento presencial</legend>
+              <input className={inp} placeholder="Endereço completo (ex.: Bar do Zé, Rua X, 123, São Paulo)" maxLength={200} value={pres.location} onChange={(e) => setPres({ ...pres, location: e.target.value })} />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="text-xs text-muted">Custo para os participantes{pres.approval ? " (opcional neste evento VIP)" : ""}
+                  <select className={inp} value={pres.costMode} onChange={(e) => setPres({ ...pres, costMode: e.target.value })}>
+                    {pres.approval && <option value="none">Não informar</option>}
+                    <option value="free">Gratuito</option>
+                    <option value="each">Cada um paga o seu consumo (ex.: comanda)</option>
+                    <option value="sponsored">Financiado pela Niza Invest</option>
+                    <option value="ticket">Valor por pessoa (ingresso)</option>
+                  </select>
+                </label>
+                <label className="text-xs text-muted">Detalhe do custo (ex.: “R$ 50 por pessoa” ou “cada um paga a sua comanda”)
+                  <input className={inp} maxLength={300} value={pres.costNote} onChange={(e) => setPres({ ...pres, costNote: e.target.value })} />
+                </label>
+                <label className="text-xs text-muted">Limite de pessoas (opcional)
+                  <input className={inp} inputMode="numeric" placeholder="ex.: 40" value={pres.capacity} onChange={(e) => setPres({ ...pres, capacity: e.target.value.replace(/\D/g, "") })} />
+                </label>
+                <label className="text-xs text-muted">Quem pode se inscrever
+                  <select className={inp} value={pres.audience} onChange={(e) => setPres({ ...pres, audience: e.target.value })}>
+                    <option value="premium">Todos os membros Premium</option>
+                    <option value="diamond">Somente membros Diamond</option>
+                  </select>
+                </label>
+              </div>
+              <label className="flex items-start gap-2 text-sm text-muted"><input type="checkbox" className="mt-1" checked={pres.approval} onChange={(e) => setPres({ ...pres, approval: e.target.checked, costMode: e.target.checked && pres.costMode === "free" ? "none" : pres.costMode })} /> Evento VIP: a presença só vale mediante a sua aprovação (sem isso, quem se inscreve é confirmado na hora, até o limite)</label>
+              <label className="block text-xs text-muted">Banner do evento (imagem até 2 MB)
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className={inp} onChange={(e) => uploadBanner(e.target.files?.[0])} />
+              </label>
+              {pres.bannerId && <p className="text-xs text-up">Banner enviado: {pres.bannerName}</p>}
+            </fieldset>
+          )}
           <textarea className={`${inp} sm:col-span-6`} rows={2} placeholder="Observações (opcional)" maxLength={600} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           <div className="flex items-center gap-3 sm:col-span-6">
             <button disabled={busy} className="rounded-lg bg-gradient-to-b from-gold-soft to-gold px-4 py-2 text-sm font-semibold text-black disabled:opacity-60">{busy ? "Salvando…" : "Salvar na agenda"}</button>
@@ -164,10 +210,18 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
 function EventCard({ e, isAdmin, onDelete }: { e: Ev; isAdmin: boolean; onDelete: (id: number) => void }) {
   return (
     <li className="rounded-lg border border-gold/25 bg-ink/60 p-3 text-sm">
+      {e.kind === "evento" && e.detail?.bannerId && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`/api/community/image?id=${e.detail.bannerId}`} alt="" className="mb-2 h-24 w-full rounded-lg object-cover" />
+      )}
       <p className="font-semibold text-white">{e.title} <span className={`ml-1 rounded px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase ${e.kind === "evento" ? "bg-gold/20 text-gold-soft" : "bg-up/15 text-up"}`}>{e.kind === "evento" ? "Evento" : "Reunião"}</span></p>
       <p className="text-xs text-gold-soft">{hm(e.startsAt)} – {hm(e.endsAt)} (Brasília)</p>
+      {e.kind === "evento" && e.detail && (
+        <p className="mt-1 text-xs text-muted">📍 {e.detail.location}{e.detail.costLabel ? ` · ${e.detail.costLabel}` : ""}{e.detail.approval ? " · mediante aprovação" : ""}{e.detail.audience === "diamond" ? " · só Diamond" : ""}</p>
+      )}
       {e.notes && <p className="mt-1 whitespace-pre-wrap break-words text-xs text-muted">{e.notes}</p>}
       <p className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+        {e.kind === "evento" && <a href={`/painel/comunidade/eventos/${e.id}`} className="rounded-md bg-gold/20 px-3 py-1 font-semibold text-gold-soft hover:bg-gold/30">Ver evento e confirmar presença →</a>}
         {e.link && <a href={e.link} target="_blank" rel="noopener noreferrer" className="rounded-md bg-up/20 px-3 py-1 font-semibold text-up hover:bg-up/30">Entrar · {plataforma(e.link)}</a>}
         <button type="button" onClick={() => ics(e)} className="text-muted underline hover:text-white">Adicionar ao meu calendário</button>
         {isAdmin && <button type="button" onClick={() => onDelete(e.id)} className="text-down underline">apagar</button>}

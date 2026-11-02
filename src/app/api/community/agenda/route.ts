@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getUser } from "@/lib/auth";
 import { fail, json, sameOrigin } from "@/lib/http";
 import { addEvent, deleteEvent, listEvents } from "@/lib/agenda";
+import { createPresencial } from "@/lib/events";
 
 const isPremium = (u: { plan: string; role: string }) => u.plan === "pro" || u.role === "admin";
 
@@ -12,6 +13,10 @@ const schema = z.object({
   link: z.string().max(500).default(""),
   notes: z.string().max(600).default(""),
   kind: z.enum(["reuniao", "evento"]).default("reuniao"),
+  details: z.object({
+    bannerId: z.number().int().nullable().default(null), location: z.string().max(250).default(""), costMode: z.string().max(20).default(""),
+    costNote: z.string().max(400).default(""), capacity: z.number().int().nullable().default(null), approval: z.boolean().default(false), audience: z.string().max(10).default("premium"),
+  }).optional(),
 });
 
 export async function GET() {
@@ -28,6 +33,11 @@ export async function POST(req: Request) {
   if (user.role !== "admin") return fail("Só o administrador cadastra eventos.", 403);
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return fail("Confira o título, a data e o link.");
+  if (parsed.data.kind === "evento") {
+    if (!parsed.data.details) return fail("Preencha os dados do evento presencial (endereço e custo).");
+    const r = createPresencial(user.id, parsed.data, parsed.data.details);
+    return "error" in r ? fail(r.error) : json({ event: r }, 201);
+  }
   const ev = addEvent(user.id, parsed.data);
   return ev ? json({ event: ev }, 201) : fail("Não foi possível salvar: confira a data e o link (precisa começar com https://).");
 }

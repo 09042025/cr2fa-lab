@@ -5,7 +5,7 @@ import { Diamond } from "./Diamond";
 
 const TABS = [
   { href: "/painel/comunidade/manifesto", label: "Manifesto" },
-  { href: "/painel/comunidade", label: "SOCIETY" },
+  { href: "/painel/comunidade", label: "Society" },
   { href: "/painel/comunidade/lives", label: "Lives VIP" },
   { href: "/painel/cursos", label: "Masterclass" },
   { href: "/painel/links", label: "Links Essenciais" },
