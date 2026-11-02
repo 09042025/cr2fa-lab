@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { listPostReports } from "@/lib/feed";
 import { DismissPostReport, DeleteItem } from "@/components/FeedClient";
-import { canPost, canView, findChannel, isBanned, listBlocked, listMessages, listReports, MAX_BODY, REACTIONS, REPORT_REASONS, ROOM, visibleCategories } from "@/lib/community";
+import { canPost, canView, findChannel, isBanned, listBlocked, listMessages, listReports, MAX_BODY, REACTIONS, REPORT_REASONS, LOUNGE, ROOM, visibleCategories } from "@/lib/community";
 import { AutoRefresh, BanButton, BlockButton, ChatForm, DeleteMessage, DismissReport, EditMessage, Reactions, ReportButton } from "@/components/CommunityChat";
 import { Locked, PageTitle } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
@@ -12,6 +12,8 @@ import { AgendaCalendar } from "@/components/AgendaCalendar";
 import { listEvents, roomMeetings } from "@/lib/agenda";
 import { costLabel, detailsMap } from "@/lib/events";
 import { MeetingRoom } from "@/components/MeetingRoom";
+import { Lounge } from "@/components/Lounge";
+import { createHmac } from "node:crypto";
 import { now } from "@/lib/db";
 import { EmbossDefs, EmbossedIcon } from "@/components/EmbossedIcon";
 
@@ -24,19 +26,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const isAdmin = user.role === "admin";
   const sp = await searchParams;
   const ch = findChannel(sp.c, isAdmin);
-  const allowed = canView(ch, user);
   const isRoom = sp.c === ROOM.slug;
-  const messages = allowed && !isRoom ? listMessages(ch.slug, user.id) : [];
+  const isLounge = sp.c === LOUNGE.slug;
+  const allowed = isLounge ? user.plan === "pro" || isAdmin : canView(ch, user);
+  const loungeRoom = "NizaInvestLounge" + createHmac("sha256", process.env.SESSION_SECRET ?? "").update("lounge").digest("hex").slice(0, 12);
+  const messages = allowed && !isRoom && !isLounge ? listMessages(ch.slug, user.id) : [];
   const banned = !isAdmin && isBanned(user.id);
   const writable = canPost(ch, user) && !banned;
   const replying = messages.find((m) => String(m.id) === sp.r);
   const blocked = listBlocked(user.id);
   const reports = isAdmin && ch.slug === "moderador" ? listReports() : [];
   const postReports = isAdmin && ch.slug === "moderador" ? listPostReports() : [];
-  const agendaRaw = allowed && ch.slug === "planejamento-de-reunioes" && !isRoom ? listEvents() : null;
+  const agendaRaw = allowed && ch.slug === "planejamento-de-reunioes" && !isRoom && !isLounge ? listEvents() : null;
   const dmap = agendaRaw ? detailsMap(agendaRaw.filter((e) => e.kind === "evento").map((e) => e.id)) : null;
   const agenda = agendaRaw && dmap ? agendaRaw.map((e) => { const d = dmap.get(e.id); return d ? { ...e, detail: { bannerId: d.bannerId, location: d.location, costLabel: d.costMode === "none" ? "" : costLabel(d.costMode) + (d.costNote ? ` (${d.costNote})` : ""), costNote: d.costNote, capacity: d.capacity, approval: d.approval, audience: d.audience } } : e; }) : null;
-  const view = isRoom ? { name: ROOM.name, icon: ROOM.icon, description: "Entre aqui nas reuniões online da comunidade. Os links cadastrados na Agenda aparecem automaticamente, com dia, hora e plataforma." } : ch;
+  const view = isLounge ? { name: LOUNGE.name, icon: LOUNGE.icon, description: "Voz, vídeo e compartilhamento de tela entre membros Premium." } : isRoom ? { name: ROOM.name, icon: ROOM.icon, description: "Entre aqui nas reuniões online da comunidade. Os links cadastrados na Agenda aparecem automaticamente, com dia, hora e plataforma." } : ch;
   const firstName = user.name.split(" ")[0].toLowerCase();
 
   return (
@@ -49,18 +53,22 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
             <div key={cat.id}>
               <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/70">{cat.label}</p>
               {cat.channels.map((c) => (
-                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} className={`group flex items-center gap-3 rounded-xl px-2 py-1.5 transition ${c.slug === ch.slug && !isRoom ? "bg-gradient-to-r from-gold/15 to-transparent font-semibold text-gold-soft" : "text-muted hover:bg-white/[0.04] hover:text-white"}`}>
-                  <EmbossedIcon name={c.icon} size={34} active={c.slug === ch.slug && !isRoom} />
+                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} className={`group flex items-center gap-3 rounded-xl px-2 py-1.5 transition ${c.slug === ch.slug && !isRoom && !isLounge ? "bg-gradient-to-r from-gold/15 to-transparent font-semibold text-gold-soft" : "text-muted hover:bg-white/[0.04] hover:text-white"}`}>
+                  <EmbossedIcon name={c.icon} size={34} active={c.slug === ch.slug && !isRoom && !isLounge} />
                   <span className="truncate">{c.name}</span>
                 </Link>
               ))}
             </div>
           ))}
           <div>
-            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/70">Reuniões online</p>
+            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/70">Voz e reuniões online</p>
             <Link href={`/painel/comunidade?c=${ROOM.slug}`} className={`group flex items-center gap-3 rounded-xl px-2 py-1.5 transition ${isRoom ? "bg-gradient-to-r from-gold/15 to-transparent font-semibold text-gold-soft" : "text-muted hover:bg-white/[0.04] hover:text-white"}`}>
               <EmbossedIcon name={ROOM.icon} size={34} active={isRoom} />
               <span className="truncate">{ROOM.name}</span>
+            </Link>
+            <Link href={`/painel/comunidade?c=${LOUNGE.slug}`} className={`group flex items-center gap-3 rounded-xl px-2 py-1.5 transition ${isLounge ? "bg-gradient-to-r from-gold/15 to-transparent font-semibold text-gold-soft" : "text-muted hover:bg-white/[0.04] hover:text-white"}`}>
+              <EmbossedIcon name={LOUNGE.icon} size={34} active={isLounge} />
+              <span className="truncate">{LOUNGE.name}</span>
             </Link>
           </div>
           {blocked.length > 0 && (
@@ -78,7 +86,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
             <h2 className="flex items-center gap-3 font-display text-xl font-bold text-white"><EmbossedIcon name={view.icon} size={46} active /> {view.name}</h2>
             <p className="mt-2 text-sm text-muted">{view.description}</p>
           </header>
-          {!isRoom && ch.intro && (
+          {!isRoom && !isLounge && ch.intro && (
             <div className="mb-3 space-y-1 rounded-lg border border-gold/30 bg-panel-2 p-3 text-sm">
               {ch.intro.map((l, i) => <p key={i} className={i === 0 || l.startsWith("🚨") ? "font-semibold text-gold-soft" : "text-muted"}>{l}</p>)}
             </div>
@@ -105,7 +113,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
               </ul>
             </div>
           )}
-          {!allowed ? <Locked feature={`${ch.name} (exclusivo do plano Premium)`} text="Este espaço da comunidade faz parte do plano Premium. No Grátis você participa do Feed e das Notícias." /> : isRoom ? <MeetingRoom meetings={roomMeetings()} nowTs={now()} /> : <>
+          {!allowed ? <Locked feature={`${ch.name} (exclusivo do plano Premium)`} text="Este espaço da comunidade faz parte do plano Premium. No Grátis você participa do Feed e das Notícias." /> : isLounge ? <Lounge room={loungeRoom} name={user.name} /> : isRoom ? <MeetingRoom meetings={roomMeetings()} nowTs={now()} /> : <>
           {agenda && <AgendaCalendar events={agenda} isAdmin={isAdmin} />}
           <ul className="flex max-h-[32rem] flex-1 flex-col gap-3 overflow-y-auto pr-1">
             {messages.length === 0 && <li className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center text-sm text-muted"><EmbossedIcon name={ch.icon} size={64} active /><span>Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</span></li>}
