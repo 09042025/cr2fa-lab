@@ -24,7 +24,7 @@ const FEATURES: { icon: string; title: string; text: string; pro?: boolean }[] =
 ];
 const WFS = [
   "Manifesto e Chat com canais temáticos, “Pergunte ao Niza” e Reuniões e Eventos",
-  "Lives VIP e Cursos em vídeo",
+  "Lives VIP e Masterclass em vídeo",
   "Links Essenciais, Portfólio e Protocolo CR2FA completo",
   "Negócios: vitrine de serviços e produtos dos membros, com indicações, nota do Google e cases",
   "Calendário com links das reuniões e aviso por e-mail",
