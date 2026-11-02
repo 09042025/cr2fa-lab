@@ -91,3 +91,27 @@ ${note ? `<p style="background:#faf5e4;border-radius:8px;padding:10px 14px">${es
 </div>`,
   };
 }
+
+export function meetingEmail(name: string, ev: { title: string; startsAt: number; endsAt: number; link: string; notes: string }, agendaUrl: string): { subject: string; html: string; text: string } {
+  const app = process.env.APP_NAME || "NIZA INVEST";
+  const first = name.trim().split(/\s+/)[0] || "";
+  const hello = first ? `Olá, ${first}!` : "Olá!";
+  const fmt = (t: number, o: Intl.DateTimeFormatOptions) => new Date(t * 1000).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", ...o });
+  const date = fmt(ev.startsAt, { weekday: "long", day: "2-digit", month: "long" });
+  const hour = `${fmt(ev.startsAt, { hour: "2-digit", minute: "2-digit" })} às ${fmt(ev.endsAt, { hour: "2-digit", minute: "2-digit" })} (Brasília)`;
+  const cta = ev.link || agendaUrl;
+  return {
+    subject: `Agenda White Flame Society: ${ev.title} - ${date}`,
+    text: `${hello}\n\nPróxima reunião da White Flame Society:\n\n${ev.title}\n${date}, ${hour}\n${ev.notes ? `\n${ev.notes}\n` : ""}\nEntrar: ${cta}\nAgenda completa: ${agendaUrl}`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1a1a1a">
+<h2 style="color:#b8860b">${escapeHtml(app)} · White Flame Society</h2>
+<p>${escapeHtml(hello)}</p>
+<p>Próxima reunião:</p>
+<p style="font-size:18px;margin:0"><strong>${escapeHtml(ev.title)}</strong></p>
+<p style="margin:4px 0 12px">${escapeHtml(date)}<br>${escapeHtml(hour)}</p>
+${ev.notes ? `<p style="font-size:14px;color:#444;white-space:pre-wrap">${escapeHtml(ev.notes)}</p>` : ""}
+<p><a href="${escapeHtml(cta)}" style="display:inline-block;background:#d4a82f;color:#111;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">${ev.link ? "Entrar na reunião" : "Ver a agenda"}</a></p>
+<p style="font-size:13px;color:#555">Agenda completa: <a href="${escapeHtml(agendaUrl)}">${escapeHtml(agendaUrl)}</a><br>Você receberá este aviso todos os dias às 08:00 até a data da reunião.</p>
+</div>`,
+  };
+}

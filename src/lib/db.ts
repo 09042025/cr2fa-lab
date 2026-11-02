@@ -252,6 +252,12 @@ function migrate(db: Database.Database) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_meeting_starts ON meeting_events(starts_at);
+    CREATE TABLE IF NOT EXISTS meeting_mail_log (
+      event_id INTEGER NOT NULL REFERENCES meeting_events(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      day TEXT NOT NULL,
+      PRIMARY KEY (event_id, user_id, day)
+    );
     CREATE TABLE IF NOT EXISTS stories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
