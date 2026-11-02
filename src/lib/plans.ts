@@ -74,7 +74,8 @@ export const BLACK_FEATURES = [
   "Tudo do Premium e tudo do Plano Diamond (inclui a Mentoria com Niza, 12 aulas)",
   "Encontros presenciais VIP periódicos para falar de negócios e fazer network",
   "Grupo seleto, por convite, com pessoas de alto nível em conhecimento e sucesso financeiro",
-  "Foco em riqueza, empreendedorismo, negócios e investimentos. Inicialmente em São Paulo",
+  "Foco em riqueza, empreendedorismo, negócios e investimentos",
+  "Encontros começando em São Paulo, com expansão prevista para outras cidades do Brasil e do mundo",
 ] as const;
 
 /** Diamond Black VIP: anuidade. Preço em BLACK_PRICE_BRL (padrão R$ 10.000,00 por ano). */
