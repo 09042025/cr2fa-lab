@@ -13,5 +13,11 @@ export async function register() {
     } catch (e) {
       console.error("[lembrete] Falha ao iniciar os lembretes:", e);
     }
+    try {
+      const { startAgendaMailJob } = await import("./lib/agenda");
+      startAgendaMailJob();
+    } catch (e) {
+      console.error("[agenda] Falha ao iniciar os avisos da agenda:", e);
+    }
   }
 }
