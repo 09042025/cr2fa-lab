@@ -38,7 +38,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 
   return (
     <>
-      <PageTitle title="Chat" subtitle="Canais de conversa da comunidade, moderados pela equipe. " />
+      <PageTitle title="SOCIETY" subtitle="Canais de conversa da comunidade, moderados pela equipe. " />
       <div className="grid gap-4 md:grid-cols-[17rem_1fr]">
         <EmbossDefs />
         <nav className="card h-fit space-y-4 border-gold/20 p-3 text-sm" aria-label="Canais">
