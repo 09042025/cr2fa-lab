@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db, now, type OrderRow, type UserRow } from "./db";
-import { mentoriaPriceCents, periodSeconds, priceCents, type Period, type Product } from "./plans";
+import { diamondPriceCents, mentoriaPriceCents, periodSeconds, priceCents, type Period, type Product } from "./plans";
 
 export function createOrder(params: {
   userId: number;
@@ -21,7 +21,7 @@ export function createOrder(params: {
       params.userId,
       params.period,
       params.product ?? "premium",
-      params.product === "mentoria" ? mentoriaPriceCents() : priceCents(params.period),
+      params.product === "mentoria" ? mentoriaPriceCents() : params.product === "diamond" ? diamondPriceCents() : priceCents(params.period),
       params.method,
       t,
       params.expiresInSec ? t + params.expiresInSec : null,
@@ -56,6 +56,12 @@ export function markPaid(orderId: string, extra: { providerRef?: string; txHash?
       d.prepare("INSERT OR IGNORE INTO mentorships (user_id, order_id) VALUES (?, ?)").run(order.user_id, order.id);
       return true;
     }
+    if (order.product === "diamond") {
+      // Plano Diamond: Premium vitalício (sem vencimento) + uma mentoria (12 aulas, uma única vez).
+      d.prepare("UPDATE users SET plan = 'pro', plan_expires_at = NULL WHERE id = ?").run(order.user_id);
+      d.prepare("INSERT OR IGNORE INTO mentorships (user_id, order_id) VALUES (?, ?)").run(order.user_id, order.id);
+      return true;
+    }
     const user = d.prepare("SELECT * FROM users WHERE id = ?").get(order.user_id) as UserRow;
     const base = user.plan === "pro" && user.plan_expires_at && user.plan_expires_at > t ? user.plan_expires_at : t;
     d.prepare("UPDATE users SET plan = 'pro', plan_expires_at = ? WHERE id = ?").run(
@@ -65,6 +71,11 @@ export function markPaid(orderId: string, extra: { providerRef?: string; txHash?
     return true;
   });
   return run();
+}
+
+/** A conta tem o Plano Diamond (pedido pago)? */
+export function hasDiamond(userId: number): boolean {
+  return !!db().prepare("SELECT 1 FROM orders WHERE user_id = ? AND product = 'diamond' AND status = 'paid' LIMIT 1").get(userId);
 }
 
 export function expireStaleOrders(): void {

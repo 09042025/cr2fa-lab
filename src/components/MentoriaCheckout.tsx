@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CryptoOrderCard, type CryptoOrderView, type NetworkOption } from "./Checkout";
 
-export function MentoriaCheckout({ price, mpEnabled, networks, pending }: { price: string; mpEnabled: boolean; networks: NetworkOption[]; pending: CryptoOrderView[] }) {
+export function MentoriaCheckout({ price, mpEnabled, networks, pending, product = "mentoria", title, subtitle }: { price: string; mpEnabled: boolean; networks: NetworkOption[]; pending: CryptoOrderView[]; product?: "mentoria" | "diamond"; title?: string; subtitle?: string }) {
   const router = useRouter();
   const [method, setMethod] = useState<"mp" | "crypto">(mpEnabled ? "mp" : "crypto");
   const [networkId, setNetworkId] = useState(networks[0]?.id ?? "");
@@ -15,7 +15,7 @@ export function MentoriaCheckout({ price, mpEnabled, networks, pending }: { pric
 
   async function payMp() {
     setBusy(true); setError(null);
-    const res = await fetch("/api/checkout/mercadopago", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product: "mentoria" }) });
+    const res = await fetch("/api/checkout/mercadopago", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product }) });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setError(data.error || "Erro ao iniciar o pagamento.");
@@ -23,7 +23,7 @@ export function MentoriaCheckout({ price, mpEnabled, networks, pending }: { pric
   }
   async function payCrypto() {
     setBusy(true); setError(null);
-    const res = await fetch("/api/checkout/crypto", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product: "mentoria", network: networkId, asset }) });
+    const res = await fetch("/api/checkout/crypto", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product, network: networkId, asset }) });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setError(data.error || "Erro ao criar o pedido.");
@@ -33,8 +33,8 @@ export function MentoriaCheckout({ price, mpEnabled, networks, pending }: { pric
   return (
     <div className="space-y-4">
       <div className="card border-gold/40 p-5">
-        <h2 className="font-display text-lg font-bold text-gold-soft">Contratar a mentoria · {price}</h2>
-        <p className="mt-1 text-sm text-muted">Pagamento único, à parte do plano Premium. Não é assinatura e nada é renovado sozinho.</p>
+        <h2 className="font-display text-lg font-bold text-gold-soft">{title ?? "Contratar a mentoria"} · {price}</h2>
+        <p className="mt-1 text-sm text-muted">{subtitle ?? "Pagamento único, à parte do plano Premium. Não é assinatura e nada é renovado sozinho."}</p>
         <div className="mt-4 flex gap-2">
           <button onClick={() => setMethod("mp")} disabled={!mpEnabled} className={`btn ${method === "mp" ? "btn-gold" : "btn-ghost"}`}>Pix ou cartão (Mercado Pago)</button>
           <button onClick={() => setMethod("crypto")} disabled={networks.length === 0} className={`btn ${method === "crypto" ? "btn-gold" : "btn-ghost"}`}>Cripto</button>
@@ -44,7 +44,7 @@ export function MentoriaCheckout({ price, mpEnabled, networks, pending }: { pric
 
         {method === "mp" && mpEnabled && (
           <div className="mt-4">
-            <p className="mb-3 text-sm text-muted">Você será levado ao checkout seguro do Mercado Pago (Pix com aprovação na hora ou cartão de crédito em até 12x). A mentoria é liberada automaticamente após a confirmação.</p>
+            <p className="mb-3 text-sm text-muted">Você será levado ao checkout seguro do Mercado Pago (Pix com aprovação na hora ou cartão de crédito em até 12x). O acesso é liberado automaticamente após a confirmação.</p>
             <button className="btn btn-gold" onClick={payMp} disabled={busy}>{busy ? "Aguarde..." : `Pagar ${price}`}</button>
           </div>
         )}
@@ -52,14 +52,14 @@ export function MentoriaCheckout({ price, mpEnabled, networks, pending }: { pric
           <div className="mt-4 space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="label" htmlFor="mnet">Rede</label>
-                <select id="mnet" className="input" value={networkId} onChange={(e) => { setNetworkId(e.target.value); setAsset(networks.find((n) => n.id === e.target.value)!.assets[0]); }}>
+                <label className="label" htmlFor={`${product}-net`}>Rede</label>
+                <select id={`${product}-net`} className="input" value={networkId} onChange={(e) => { setNetworkId(e.target.value); setAsset(networks.find((n) => n.id === e.target.value)!.assets[0]); }}>
                   {networks.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label" htmlFor="masset">Ativo</label>
-                <select id="masset" className="input" value={asset} onChange={(e) => setAsset(e.target.value)}>
+                <label className="label" htmlFor={`${product}-asset`}>Ativo</label>
+                <select id={`${product}-asset`} className="input" value={asset} onChange={(e) => setAsset(e.target.value)}>
                   {net?.assets.map((a) => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
@@ -69,7 +69,7 @@ export function MentoriaCheckout({ price, mpEnabled, networks, pending }: { pric
         )}
         {error && <p role="alert" className="mt-3 rounded-lg border border-down/40 bg-down/10 px-3 py-2 text-sm text-down">{error}</p>}
       </div>
-      {orders.map((o) => <CryptoOrderCard key={o.orderId} order={{ ...o, product: "mentoria" }} onPaid={() => router.refresh()} />)}
+      {orders.map((o) => <CryptoOrderCard key={o.orderId} order={{ ...o, product }} onPaid={() => router.refresh()} />)}
     </div>
   );
 }
