@@ -66,8 +66,11 @@ export const CATEGORIES: Category[] = [
   },
 ];
 
-/** Sala de Reuniões: onde os membros entram nas reuniões online cadastradas na Agenda (o Lounge foi desativado). */
+/** Sala de Reuniões: onde os membros entram nas reuniões online cadastradas na Agenda */
 export const ROOM = { slug: "sala-de-reunioes", name: "Sala de Reuniões", icon: "video" };
+
+/** Lounge: sala de voz e vídeo (com compartilhamento de tela) entre membros Premium. */
+export const LOUNGE = { slug: "lounge", name: "Lounge", icon: "mic" };
 
 export const MAX_BODY = 1000;
 
