@@ -8,7 +8,7 @@ import { Locked, PageTitle } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 import { LinkPreview } from "@/components/LinkPreview";
 import { RichText } from "@/components/RichText";
-import { ChannelIcon } from "@/components/ChannelIcon";
+import { EmbossDefs, EmbossedIcon } from "@/components/EmbossedIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -32,24 +32,25 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   return (
     <>
       <PageTitle title="Chat" subtitle="Canais de conversa da comunidade, moderados pela equipe. " />
-      <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
-        <nav className="card p-3 text-sm" aria-label="Canais">
+      <div className="grid gap-4 md:grid-cols-[17rem_1fr]">
+        <EmbossDefs />
+        <nav className="card h-fit space-y-4 border-gold/20 p-3 text-sm" aria-label="Canais">
           {visibleCategories(isAdmin).map((cat) => (
-            <div key={cat.id} className="mb-3">
-              <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{cat.label}</p>
+            <div key={cat.id}>
+              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/70">{cat.label}</p>
               {cat.channels.map((c) => (
-                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${c.slug === ch.slug ? "bg-panel-2 font-semibold text-gold-soft" : "text-muted hover:bg-panel-2 hover:text-white"}`}>
-                  <ChannelIcon name={c.icon} />
+                <Link key={c.slug} href={`/painel/comunidade?c=${c.slug}`} className={`group flex items-center gap-3 rounded-xl px-2 py-1.5 transition ${c.slug === ch.slug ? "bg-gradient-to-r from-gold/15 to-transparent font-semibold text-gold-soft" : "text-muted hover:bg-white/[0.04] hover:text-white"}`}>
+                  <EmbossedIcon name={c.icon} size={34} active={c.slug === ch.slug} />
                   <span className="truncate">{c.name}</span>
                 </Link>
               ))}
             </div>
           ))}
           <div>
-            <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Canais de voz</p>
+            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/70">Canais de voz</p>
             {VOICE.map((v) => (
-              <p key={v.name} className="flex items-center gap-2 px-2 py-1.5 text-muted/60 [&_svg]:opacity-50" title="Em breve">
-                <ChannelIcon name={v.icon} />{v.name}<span className="ml-auto text-[10px]">em breve</span>
+              <p key={v.name} className="flex items-center gap-3 px-2 py-1.5 text-muted/60" title="Em breve">
+                <EmbossedIcon name={v.icon} size={34} dim />{v.name}<span className="ml-auto rounded-full border border-line px-1.5 text-[9px] uppercase tracking-wide">em breve</span>
               </p>
             ))}
           </div>
@@ -63,10 +64,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
           )}
         </nav>
 
-        <section className="card flex min-h-[28rem] flex-col p-4">
-          <header className="mb-3 border-b border-line pb-3">
-            <h2 className="flex items-center gap-2 font-semibold"><ChannelIcon name={ch.icon} size={20} /> {ch.name}</h2>
-            <p className="text-xs text-muted">{ch.description}</p>
+        <section className="card flex min-h-[28rem] flex-col border-gold/20 p-5">
+          <header className="mb-4 border-b border-gold/20 pb-4">
+            <h2 className="flex items-center gap-3 font-display text-xl font-bold text-white"><EmbossedIcon name={ch.icon} size={46} active /> {ch.name}</h2>
+            <p className="mt-2 text-sm text-muted">{ch.description}</p>
           </header>
           {ch.intro && (
             <div className="mb-3 space-y-1 rounded-lg border border-gold/30 bg-panel-2 p-3 text-sm">
@@ -97,9 +98,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
           )}
           {!allowed ? <Locked feature={`${ch.name} (exclusivo do plano Premium)`} text="Este espaço da comunidade faz parte do plano Premium. No Grátis você participa do Feed e das Notícias." /> : <>
           <ul className="flex max-h-[32rem] flex-1 flex-col gap-3 overflow-y-auto pr-1">
-            {messages.length === 0 && <li className="text-sm text-muted">Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</li>}
+            {messages.length === 0 && <li className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center text-sm text-muted"><EmbossedIcon name={ch.icon} size={64} active /><span>Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</span></li>}
             {messages.map((m) => (
-              <li key={m.id} className="flex gap-3 text-sm">
+              <li key={m.id} className="flex gap-3 rounded-xl px-2 py-2 text-sm transition hover:bg-white/[0.03]">
                 <Link href={`/painel/feed/membro/${m.userId}`} className="mt-0.5 shrink-0"><Avatar name={m.author} id={m.avatarId} size={36} /></Link>
                 <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-baseline gap-2">

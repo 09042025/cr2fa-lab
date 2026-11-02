@@ -56,7 +56,7 @@ export const CATEGORIES: Category[] = [
     label: "Canais de texto",
     channels: [
       { slug: "geral", name: "geral", icon: "trend", post: "pro", description: "Mercado, ativos e dúvidas do dia a dia." },
-      { slug: "planejamento-de-reunioes", name: "planejamento-de-reuniões", icon: "calendar", post: "pro", description: "Sugestões de temas e horários para as reuniões ao vivo." },
+      { slug: "planejamento-de-reunioes", name: "agenda-de-reuniões", icon: "calendar", post: "pro", description: "Sugestões de temas e horários para as reuniões ao vivo." },
     ],
   },
   {
