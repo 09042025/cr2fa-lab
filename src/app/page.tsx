@@ -2,13 +2,31 @@ import Image from "next/image";
 import Link from "next/link";
 import { getUser } from "@/lib/auth";
 import { BLOCKS, EMERGENCY_RESERVE_MONTHS } from "@/lib/protocol";
-import { FREE_LIMITS, PLAN_FEATURES, formatBRL, priceCents } from "@/lib/plans";
+import { DIAMOND_FEATURES, DIAMOND_NAME, FREE_LIMITS, MENTORIA_SESSIONS, PLAN_FEATURES, diamondPriceCents, formatBRL, mentoriaPriceCents, priceCents } from "@/lib/plans";
+import { Diamond } from "@/components/Diamond";
+import wolf from "@/assets/wfs/logo-wolf.webp";
 import { Disclaimer, Logo } from "@/components/ui";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { trialDays } from "@/lib/trial";
 import pizza from "@/assets/protocolo-pizza.webp";
 import autor from "@/assets/emerson-niza.webp";
 import autorAvatar from "@/assets/emerson-niza-avatar.webp";
+
+const FEATURES: { icon: string; title: string; text: string; pro?: boolean }[] = [
+  { icon: "📊", title: "Protocolo CR2FA e Portfólio", text: "Cinco blocos de 20% e uma carteira que mostra quanto comprar ou vender para voltar ao desenho original. Importa suas posições e rebalanceia.", pro: true },
+  { icon: "₿", title: "Cripto completo", text: "Visão de mercado, cotações, ETFs de cripto, futuros, RWA, DEX e plataformas DeFi, além do HUB DEFI e da Análise on Chain (MVRV, STH/LTH e outros indicadores do Bitcoin).", pro: true },
+  { icon: "📈", title: "Ações e FIIs", text: "Cotações, filtros por setor e indicadores de ações, fundos imobiliários e ETFs, com gráficos e dados atualizados." },
+  { icon: "🏦", title: "Renda fixa", text: "Selic, CDI, IPCA e um comparador de CDB, LCI/LCA e Tesouro já com imposto de renda." },
+  { icon: "🧮", title: "Simuladores", text: "Juros compostos e Simulador de Financiamentos de imóveis e veículos (Price e SAC, parcela por prazo).", pro: true },
+  { icon: "💬", title: "Feed, Mensagens e Notícias", text: "Rede social de investidores com posts, stories, mensagens privadas, notícias do mercado e Lives Abertas. Tradução em vários idiomas." },
+];
+const WFS = [
+  "Manifesto e Chat com canais temáticos, “Pergunte ao Niza” e Reuniões e Eventos",
+  "Lives VIP e Cursos em vídeo",
+  "Links Essenciais, Portfólio e Protocolo CR2FA completo",
+  "Negócios: vitrine de serviços e produtos dos membros, com indicações, nota do Google e cases",
+  "Calendário com links das reuniões e aviso por e-mail",
+];
 
 export default async function Home() {
   const user = await getUser();
@@ -36,7 +54,6 @@ export default async function Home() {
 
       <section className="grid items-center gap-10 py-10 md:grid-cols-2">
         <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold">NIZA INVEST</p>
           <h1 className="font-display text-4xl font-bold leading-tight text-gold-soft md:text-5xl">
             Cinco blocos de 20%. Diversificação em duas camadas com o Protocolo CR2FA.
           </h1>
@@ -46,7 +63,9 @@ export default async function Home() {
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/cadastrar" className="btn btn-gold">{!user || user.trialAvailable ? `Testar o Premium ${trialDays()} dias grátis` : "Começar grátis"}</Link>
+            <Link href="#funcionalidades" className="btn btn-ghost">Ver funcionalidades</Link>
             <Link href="#planos" className="btn btn-ghost">Ver planos</Link>
+            <Link href="#mentoria" className="btn btn-ghost"><Diamond size={20} className="mr-1.5" />Mentoria com Niza</Link>
           </div>
           <a href="#autor" className="mt-7 inline-flex items-center gap-3 rounded-full border border-line bg-panel/60 py-1.5 pl-1.5 pr-4 transition hover:border-gold">
             <Image src={autorAvatar} alt="Foto de Emerson Niza" width={44} height={44} unoptimized className="h-11 w-11 rounded-full border border-gold/60 object-cover" />
@@ -137,15 +156,40 @@ export default async function Home() {
         </div>
       </section>
 
+      <section id="funcionalidades" className="py-14">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Tudo em um só lugar</p>
+        <h2 className="mt-1 font-display text-3xl font-bold text-gold-soft">Funcionalidades</h2>
+        <p className="mt-1 max-w-2xl text-muted">Dados de mercado, ferramentas, comunidade e acompanhamento para investir com método.</p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="card p-5">
+              <p className="flex items-center justify-between text-2xl"><span aria-hidden>{f.icon}</span>{f.pro && <span className="rounded-md bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-gold-soft">PREMIUM</span>}</p>
+              <h3 className="mt-2 font-semibold text-white">{f.title}</h3>
+              <p className="mt-1 text-sm text-muted">{f.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="card relative overflow-hidden border-gold/40 p-6 md:p-8">
+        <Image src={wolf} alt="" aria-hidden unoptimized className="pointer-events-none absolute right-2 top-1/2 hidden h-[125%] w-auto max-w-none -translate-y-1/2 select-none md:block" style={{ mixBlendMode: "screen", opacity: 0.9, WebkitMaskImage: "radial-gradient(circle at center, #000 33%, transparent 49%), radial-gradient(ellipse 50% 13% at 50% 64%, #000 55%, transparent 100%)", maskImage: "radial-gradient(circle at center, #000 33%, transparent 49%), radial-gradient(ellipse 50% 13% at 50% 64%, #000 55%, transparent 100%)" }} />
+        <div className="relative md:max-w-[58%]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Comunidade exclusiva do Premium</p>
+          <h2 className="mt-1 font-display text-3xl font-bold text-gold-soft">White Flame Society</h2>
+          <p className="mt-2 text-muted">Investidores que pensam em construir riqueza, com método, segurança e negócios entre membros.</p>
+          <ul className="mt-4 space-y-2 text-sm text-white/85">{WFS.map((w) => <li key={w}>✓ {w}</li>)}</ul>
+        </div>
+      </section>
+
       <section id="planos" className="py-14">
         <h2 className="font-display text-3xl font-bold text-gold-soft">Planos</h2>
-        <p className="mt-1 text-muted">Pagamento por Pix, cartão de crédito ou Bitcoin.</p>
+        <p className="mt-1 text-muted">Pagamento por Pix, cartão de crédito ou cripto.</p>
         {(!user || user.trialAvailable) && (
           <p className="mt-3 inline-block rounded-full border border-gold/60 bg-gold/10 px-4 py-1.5 text-sm font-semibold text-gold-soft">
             🎁 Novo por aqui? Use o Premium grátis por {trialDays()} dias, sem cartão e sem compromisso.
           </p>
         )}
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
+        <div className="mt-6 grid gap-5 lg:grid-cols-3">
           <div className="card p-6">
             <h3 className="text-lg font-semibold">Grátis</h3>
             <p className="mt-1 text-3xl font-bold">R$ 0</p>
@@ -173,6 +217,40 @@ export default async function Home() {
             </ul>
             {(!user || user.trialAvailable) && <p className="mt-4 text-sm text-gold-soft">Teste grátis por {trialDays()} dias, sem cartão.</p>}
             <Link href={user ? "/planos" : "/cadastrar"} className="btn btn-gold mt-3 w-full">{!user || user.trialAvailable ? `Testar ${trialDays()} dias grátis` : "Assinar o Premium"}</Link>
+          </div>
+          <div className="card relative overflow-hidden border-sky-300/50 p-6">
+            <Diamond size={64} className="absolute right-4 top-4 drop-shadow-[0_0_16px_rgba(150,200,255,0.45)]" />
+            <h3 className="text-lg font-semibold text-gold-soft">Plano Diamond</h3>
+            <p className="text-xs text-sky-200/90">Tudo do Premium + Mentoria</p>
+            <p className="mt-1 text-3xl font-bold">{formatBRL(diamondPriceCents())}</p>
+            <p className="text-sm text-muted">vitalício, pagamento único</p>
+            <ul className="mt-4 space-y-2 text-sm text-muted">
+              {DIAMOND_FEATURES.map((f) => (
+                <li key={f}>✓ {f}</li>
+              ))}
+            </ul>
+            <Link href={user ? "/planos#diamond" : "/cadastrar"} className="btn btn-gold mt-5 w-full">{user ? "Contratar o Diamond" : "Criar conta e contratar"}</Link>
+          </div>
+        </div>
+      </section>
+
+      <section id="mentoria" className="card relative mb-14 overflow-hidden border-sky-300/40 p-6 md:p-8">
+        <Diamond size={150} className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 drop-shadow-[0_0_30px_rgba(120,180,255,0.4)] md:block" />
+        <div className="relative md:max-w-[70%]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-200/90">Aberta a todos, inclusive ao plano Grátis</p>
+          <h2 className="mt-1 font-display text-3xl font-bold text-gold-soft">Mentoria com Niza</h2>
+          <p className="mt-2 text-muted">{MENTORIA_SESSIONS} aulas particulares de 1 hora (1 por mês) via Google Meet ou Teams, com foco em criptomoedas. A aula 01 avalia o seu nível para montar o seu caminho.</p>
+          <ul className="mt-4 grid gap-2 text-sm text-white/85 sm:grid-cols-2">
+            <li>✓ Avaliação da sua carteira frente ao Protocolo CR2FA</li>
+            <li>✓ Corretora, Pix e a primeira fração de Bitcoin</li>
+            <li>✓ Hot wallet, 12/24 palavras e autocustódia</li>
+            <li>✓ Racional dos pools de liquidez e seus riscos</li>
+          </ul>
+          <p className="mt-3 text-xs text-muted">Sem recomendação de ativos: a decisão e o risco são seus. Nenhum resultado é garantido.</p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <span className="font-display text-2xl font-bold text-white">{formatBRL(mentoriaPriceCents())}</span><span className="text-sm text-muted">pagamento único</span>
+            <Link href={user ? "/painel/mentoria" : "/cadastrar"} className="btn btn-gold">{user ? "Conhecer e contratar" : "Criar conta e conhecer"}</Link>
+            <Link href={user ? "/planos#diamond" : "/cadastrar"} className="btn btn-ghost">Ou leve junto o {DIAMOND_NAME.split(" (")[0]}</Link>
           </div>
         </div>
       </section>
