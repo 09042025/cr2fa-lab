@@ -8,7 +8,7 @@
 .wfm-gold { background: linear-gradient(180deg, #f6e6b4 0%, #d9b45a 60%, #b08a3a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 .wfm-hero { position: relative; }
-.wfm-hero img { display: block; width: 100%; height: auto; -webkit-mask-image: linear-gradient(transparent, #000 2%, #000 62%, transparent), linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(transparent, #000 2%, #000 62%, transparent), linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); mask-composite: intersect; }
+.wfm-hero img { display: block; width: 100%; height: auto; -webkit-mask-image: linear-gradient(transparent, #000 7%, #000 66%, transparent), linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(transparent, #000 7%, #000 66%, transparent), linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); mask-composite: intersect; }
 .wfm-hero { padding-top: 0.75rem; }
 .wfm-title { text-align: center; padding: 0 1.25rem 1.5rem; margin-top: -2.5rem; position: relative; }
 @media (max-width: 640px) { .wfm-title { margin-top: 0.25rem; } }
