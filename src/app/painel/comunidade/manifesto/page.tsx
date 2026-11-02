@@ -4,6 +4,8 @@ import "@fontsource/cinzel/latin-700.css";
 import "@fontsource/eb-garamond/latin-400.css";
 import "@fontsource/eb-garamond/latin-400-italic.css";
 import "@fontsource/eb-garamond/latin-500.css";
+import "@fontsource/im-fell-english/latin-400.css";
+import "@fontsource/im-fell-english/latin-400-italic.css";
 import "./manifesto.css";
 import hero from "@/assets/wfs/hero.webp";
 import tile from "@/assets/wfs/tile.webp";
@@ -176,10 +178,10 @@ export default function ManifestoPage() {
         <h2 className="wfm-goth wfm-silver" style={{ justifyContent: "center", textAlign: "center" }}>O Manifesto Final</h2>
         <Orn />
         <div className="wfm-body !px-0 !pt-0 !pb-0">
-          <p className="l wfm-pill-blue">A PÍLULA AZUL TE MANTÉM ADORMECIDO.</p>
-          <p className="l wfm-pill-red">A PÍLULA VERMELHA TE MOSTRA AS CORRENTES.</p>
-          <p className="l wfm-pill-black">A PÍLULA PRETA TE CONVENCE DE QUE ELAS SÃO ETERNAS.</p>
-          <p className="l wfm-pill-white">A PÍLULA BRANCA TE ENSINA A NÃO SER DEFINIDO POR ELAS.</p>
+          <p className="l wfm-pill-blue">A pílula azul te mantém adormecido.</p>
+          <p className="l wfm-pill-red">A pílula vermelha te mostra as correntes.</p>
+          <p className="l wfm-pill-black">A pílula preta te convence de que elas são eternas.</p>
+          <p className="l wfm-pill-white">A pílula branca te ensina a não ser definido por elas.</p>
           <div className="mt-8 text-left">
             <p>A verdadeira revolução não começa nas ruas.</p>
             <p>Começa no pensamento.</p>
@@ -187,17 +189,17 @@ export default function ManifestoPage() {
             <p>É sobre a mente indisciplinada, reativa e manipulável que existe dentro de nós.</p>
             <p>Porque, quando você vence a própria mente, o mundo pode continuar impondo obstáculos, mas deixa de determinar quem você é.</p>
             <p>A Matrix deixa de ser uma verdade absoluta e passa a ser uma realidade que você consegue questionar, compreender e enfrentar.</p>
-            <Q>A LIBERDADE COMEÇA QUANDO VOCÊ VÊ ALÉM DAS SOMBRAS.</Q>
+            <Q>A liberdade começa quando você vê além das sombras.</Q>
             <p>Mas só se completa quando você aprende a viver sob a luz da própria consciência.</p>
-            <Shout>NÃO SEJA TYLER, PRISIONEIRO DA REVOLTA.</Shout>
-            <Shout>NÃO SEJA ARTHUR, PRISIONEIRO DA DOR.</Shout>
-            <Shout>NÃO SEJA SMITH, PRISIONEIRO DO DESPREZO.</Shout>
-            <Q>SEJA AQUELE QUE DESPERTOU, ENFRENTOU O ABISMO E ESCOLHEU A LUCIDEZ.</Q>
+            <Shout>Não seja Tyler, prisioneiro da revolta.</Shout>
+            <Shout>Não seja Arthur, prisioneiro da dor.</Shout>
+            <Shout>Não seja Smith, prisioneiro do desprezo.</Shout>
+            <Q>Seja aquele que despertou, enfrentou o abismo e escolheu a lucidez.</Q>
             <p>Essa é a filosofia do White Flame Wolf.</p>
             <div className="wfm-shout wfm-lines">
-              <p>NÃO DE CONFORMISMO.</p><p>NÃO DE REVOLTA CEGA.</p><p>NÃO DE DESESPERO.</p>
+              <p>Não de conformismo.</p><p>Não de revolta cega.</p><p>Não de desespero.</p>
             </div>
-            <Q>MAS DE CONSCIÊNCIA, DISCIPLINA E LIBERDADE.</Q>
+            <Q>Mas de consciência, disciplina e liberdade.</Q>
             <p className="wfm-big">A maior luta é a mente. A maior conquista é governá-la.</p>
           </div>
         </div>

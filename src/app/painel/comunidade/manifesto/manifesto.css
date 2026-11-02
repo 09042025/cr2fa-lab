@@ -50,3 +50,12 @@
 .wfm-dawn-text { position: absolute; left: 0; right: 0; bottom: 6%; text-align: center; padding: 0 1rem; }
 .wfm-seal { text-align: center; padding: 1.2rem 1rem 3rem; }
 .wfm-seal .wfm-goth { font-size: clamp(1.8rem, 6vw, 3.2rem); }
+
+/* Manifesto final: tudo em letra gótica, em caixa baixa para ler com facilidade. */
+.wfm-final .l, .wfm-final .wfm-shout, .wfm-final .wfm-quote, .wfm-final .wfm-lines p { font-family: "UnifrakturMaguntia", "Old English Text MT", Georgia, serif; font-weight: 400; letter-spacing: 0.01em; text-transform: none; line-height: 1.3; font-size: clamp(1.55rem, 4.6vw, 2.25rem); text-shadow: 0 0 14px rgba(255, 255, 255, 0.12); }
+.wfm-final .l { margin: 0.45em 0; }
+.wfm-final .wfm-quote { color: #f6e6b4; padding: 1.1rem 1.25rem; }
+.wfm-final .wfm-shout, .wfm-final .wfm-lines { margin: 0.9em 0; }
+.wfm-final .wfm-lines p { margin: 0.1em 0; }
+.wfm-final .wfm-body p:not(.wfm-big) { font-family: "IM Fell English", "EB Garamond", Georgia, serif; font-size: clamp(1.2rem, 2.9vw, 1.42rem); }
+.wfm-final .wfm-big { font-family: "IM Fell English", Georgia, serif; }
