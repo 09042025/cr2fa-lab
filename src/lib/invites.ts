@@ -54,7 +54,7 @@ export function maskEmail(e: string): string {
 
 export type RedeemResult = { ok: true; days: number; expiresAt: number } | { ok: false; error: string };
 
-/** Usa o convite: libera o Pró por `days` dias, somando ao que a pessoa já tem. Uso único, com checagem do e-mail quando o convite é nominal. */
+/** Usa o convite: libera o Premium por `days` dias, somando ao que a pessoa já tem. Uso único, com checagem do e-mail quando o convite é nominal. */
 export function redeemInvite(code: string, userId: number): RedeemResult {
   const d = db();
   const run = d.transaction((): RedeemResult => {

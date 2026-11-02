@@ -14,7 +14,7 @@ export default async function OnchainPage({ searchParams }: { searchParams: Prom
     return (
       <>
         <PageTitle title="Análise on Chain" subtitle="Gráfico do Bitcoin com análise técnica e indicadores on-chain." />
-        <Locked feature="Análise on Chain (exclusivo do plano Pró)" text="O gráfico do TradingView e os indicadores on-chain do Bitcoin fazem parte do plano Pró." />
+        <Locked feature="Análise on Chain (exclusivo do plano Premium)" text="O gráfico do TradingView e os indicadores on-chain do Bitcoin fazem parte do plano Premium." />
       </>
     );
   }

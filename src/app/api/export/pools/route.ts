@@ -5,7 +5,7 @@ import { csvCell, filterPools } from "@/lib/pools";
 export async function GET(req: Request) {
   const user = await getUser();
   if (!user) return new Response("Faça login.", { status: 401 });
-  if (user.plan !== "pro") return new Response("Recurso do plano Pró.", { status: 403 });
+  if (user.plan !== "pro") return new Response("Recurso do plano Premium.", { status: 403 });
 
   const url = new URL(req.url);
   const pools = await getAllPools();

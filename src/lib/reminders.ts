@@ -11,7 +11,7 @@ export interface DueReminder {
 }
 
 /**
- * Quem deve receber lembrete agora: Pró com vencimento nos próximos 7 dias.
+ * Quem deve receber lembrete agora: Premium com vencimento nos próximos 7 dias.
  * Etapa 1 = a 7 dias ou menos do vencimento; etapa 2 = a 1 dia ou menos.
  * Cada etapa sai uma vez por vencimento. Ao renovar, o vencimento muda e o ciclo recomeça.
  */

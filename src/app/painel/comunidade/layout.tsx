@@ -7,8 +7,8 @@ export default async function CommunityLayout({ children }: { children: React.Re
   if (!pro) {
     return (
       <>
-        <PageTitle title="Comunidade" subtitle="Chat, canais e Lives VIP dos membros." />
-        <Locked feature="Comunidade (exclusivo do plano Pró)" text="A Comunidade inteira — chat, canais e Lives VIP — faz parte do plano Pró. No Grátis você continua com o Feed, as Notícias e as Lives Abertas." />
+        <PageTitle title="White Flame Society" subtitle="Chat, canais e Lives VIP dos membros." />
+        <Locked feature="White Flame Society (exclusivo do plano Premium)" text="A White Flame Society inteira — chat, canais e Lives VIP — faz parte do plano Premium. No Grátis você continua com o Feed, as Notícias e as Lives Abertas." />
       </>
     );
   }

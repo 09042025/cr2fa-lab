@@ -113,7 +113,7 @@ export default async function MarketViewPage({ searchParams }: { searchParams: P
               {PERIODS.map((p) => (isPro || p.d === 30) ? (
                 <Link key={p.d} href={`/painel/cripto?d=${p.d}`} className={`btn ${p.d === days ? "btn-gold" : "btn-ghost"}`}>{p.l}</Link>
               ) : (
-                <span key={p.d} className="btn btn-ghost cursor-not-allowed opacity-50" title="Períodos maiores no plano Pró">{p.l}</span>
+                <span key={p.d} className="btn btn-ghost cursor-not-allowed opacity-50" title="Períodos maiores no plano Premium">{p.l}</span>
               ))}
             </div>
           </div>

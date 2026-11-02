@@ -29,7 +29,7 @@ export function TrialButton({ days, className = "btn btn-gold w-full" }: { days:
 
   return (
     <div>
-      <button onClick={start} disabled={loading} className={className}>{loading ? "Aguarde..." : `Testar o Pró por ${days} dias grátis`}</button>
+      <button onClick={start} disabled={loading} className={className}>{loading ? "Aguarde..." : `Testar o Premium por ${days} dias grátis`}</button>
       {error && <p role="alert" className="mt-2 rounded-lg border border-down/40 bg-down/10 px-3 py-2 text-sm text-down">{error}</p>}
     </div>
   );

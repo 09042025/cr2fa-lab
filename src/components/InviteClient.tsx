@@ -19,7 +19,7 @@ export function RedeemInvite({ code, name }: { code: string; name: string }) {
     setTimeout(() => { router.push("/painel"); router.refresh(); }, 1500);
   }
 
-  if (done) return <p role="status" className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold-soft">Pronto! Seu acesso VIP ao Pró está ativo. Levando você ao painel…</p>;
+  if (done) return <p role="status" className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold-soft">Pronto! Seu acesso VIP ao Premium está ativo. Levando você ao painel…</p>;
   return (
     <div>
       <p className="mb-3 text-sm text-muted">Você está logado como <strong className="text-white">{name}</strong>.</p>
@@ -78,7 +78,7 @@ export function InvitesPanel({ invites, mailOn }: { invites: InviteRow[]; mailOn
   return (
     <section className="card mb-6 p-4">
       <h2 className="mb-1 font-semibold">Convites VIP</h2>
-      <p className="mb-4 text-sm text-muted">Gere um link de uso único que libera o plano Pró de graça pelo período escolhido. A pessoa abre o link, cria a conta (ou entra) e ativa. {mailOn ? "O envio por e-mail está ativo." : "O envio por e-mail não está configurado: copie o link e mande por WhatsApp ou onde preferir."}</p>
+      <p className="mb-4 text-sm text-muted">Gere um link de uso único que libera o plano Premium de graça pelo período escolhido. A pessoa abre o link, cria a conta (ou entra) e ativa. {mailOn ? "O envio por e-mail está ativo." : "O envio por e-mail não está configurado: copie o link e mande por WhatsApp ou onde preferir."}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm text-muted">E-mail do convidado (opcional)
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@email.com" className={input} />
@@ -87,7 +87,7 @@ export function InvitesPanel({ invites, mailOn }: { invites: InviteRow[]; mailOn
         <label className="text-sm text-muted">Recado (opcional)
           <input value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder="Ex.: Bem-vindo à turma fundadora!" className={input} />
         </label>
-        <label className="text-sm text-muted">Duração do acesso Pró
+        <label className="text-sm text-muted">Duração do acesso Premium
           <select value={days} onChange={(e) => setDays(Number(e.target.value))} className={input}>{DURATIONS.map((x) => <option key={x.d} value={x.d}>{x.l}</option>)}</select>
         </label>
         <label className="text-sm text-muted">Link vale por

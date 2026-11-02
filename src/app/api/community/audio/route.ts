@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const id = Number(new URL(req.url).searchParams.get("id"));
   const priv = privateMediaAllowed("audio", id, user.id);
   if (priv === false) return new Response("Não autorizado", { status: 403 });
-  if (priv === null && user.plan !== "pro" && user.role !== "admin" && !mediaIsFree("audio", id)) return new Response("Exclusivo do plano Pró", { status: 403 });
+  if (priv === null && user.plan !== "pro" && user.role !== "admin" && !mediaIsFree("audio", id)) return new Response("Exclusivo do plano Premium", { status: 403 });
   const a = getAudio(id);
   if (!a) return new Response("Não encontrado", { status: 404 });
   return new Response(new Uint8Array(a.data), {

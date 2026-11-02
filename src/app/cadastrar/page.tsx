@@ -20,7 +20,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         <div className="card p-6">
           <h1 className="mb-4 font-display text-2xl font-bold text-gold-soft">Criar conta grátis</h1>
           <p className="mb-4 rounded-lg border border-gold/60 bg-gold/10 px-3 py-2 text-sm text-gold-soft">
-            🎁 Ao criar sua conta você pode ativar <strong>{trialDays()} dias de Pró grátis</strong>, sem cartão. Depois, se não assinar, volta para o plano Grátis, sem cobrança.
+            🎁 Ao criar sua conta você pode ativar <strong>{trialDays()} dias de Premium grátis</strong>, sem cartão. Depois, se não assinar, volta para o plano Grátis, sem cobrança.
           </p>
           <AuthForm mode="register" after={after} />
           <p className="mt-4 text-center text-sm text-muted">

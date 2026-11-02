@@ -13,7 +13,7 @@ interface Data { totalCents: number; rows: Row[]; holdings: Holding[] }
 const brl = (cents: number) => "R$ " + (cents / 100).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 const input = { backgroundColor: C.ink, borderColor: C.line, borderWidth: 1, borderRadius: 10, color: C.white, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 } as const;
 
-/** Consolidador (Pró): patrimônio por bloco, quanto comprar/vender para voltar aos 20% e as posições. */
+/** Consolidador (Premium): patrimônio por bloco, quanto comprar/vender para voltar aos 20% e as posições. */
 export function PortfolioTab() {
   const { data, error, loading, reload } = useApi<Data>("/api/mobile/portfolio");
   const [block, setBlock] = useState("cripto");

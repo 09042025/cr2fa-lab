@@ -15,7 +15,7 @@ export default function Inicio() {
     <Screen title={`Olá, ${user?.name.split(" ")[0] ?? ""}`} subtitle="Resumo do seu hub de investimentos.">
       {!isPro && (
         <Card style={{ borderColor: C.gold }}>
-          <Text style={{ color: C.goldSoft, fontWeight: "700" }}>Teste o Pró por 30 dias, sem pagar.</Text>
+          <Text style={{ color: C.goldSoft, fontWeight: "700" }}>Teste o Premium por 30 dias, sem pagar.</Text>
           <Muted>Libere Portfólio, Carteiras, Cursos, Lives VIP e todos os canais.</Muted>
           <GoldButton label="Ver planos" onPress={() => router.push("/planos")} />
         </Card>

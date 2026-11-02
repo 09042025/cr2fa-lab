@@ -48,7 +48,7 @@ export default async function EtfPage({ searchParams }: { searchParams: Promise<
           <section className="card mb-5 p-4">
             <h2 className="mb-2 font-semibold">Fluxo líquido diário dos ETFs de {asset === "eth" ? "Ethereum" : "Bitcoin"} {!isPro && <span className="text-xs font-normal text-muted">(10 pregões)</span>}</h2>
             <FlowBars items={recent.map((r) => ({ label: short(r.date), value: r.total ?? 0 }))} format={(v) => `${Math.abs(v).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mi`} />
-            {!isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> Histórico de 90 pregões no plano Pró.</p>}
+            {!isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> Histórico de 90 pregões no plano Premium.</p>}
           </section>
           <h2 className="mb-3 flex items-center gap-2 font-display text-xl font-bold text-gold-soft">Fluxo por fundo {!isPro && <ProBadge />}</h2>
           {isPro ? (

@@ -13,7 +13,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
     return (
       <>
         <PageTitle title="Links Essenciais" subtitle="Os sites que usamos para acompanhar cripto, DeFi e economia, organizados por categoria e importância." />
-        <Locked feature="Links Essenciais" text="Este recurso faz parte do plano Pró. Assine para ver a seleção completa de sites, com para que serve cada um." />
+        <Locked feature="Links Essenciais" text="Este recurso faz parte do plano Premium. Assine para ver a seleção completa de sites, com para que serve cada um." />
       </>
     );
   }

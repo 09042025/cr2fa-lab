@@ -27,7 +27,7 @@ export default function Mercado() {
       ))}
       {data?.limited && (
         <Card style={{ gap: 10 }}>
-          <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}><ProBadge /><H2>Ranking completo no plano Pró</H2></View>
+          <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}><ProBadge /><H2>Ranking completo no plano Premium</H2></View>
           <GoldButton label="Ver planos" onPress={() => router.push("/planos")} />
         </Card>
       )}

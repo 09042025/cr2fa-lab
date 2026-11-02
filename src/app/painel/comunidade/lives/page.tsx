@@ -9,7 +9,7 @@ const day = (t: number) => new Date(t * 1000).toLocaleDateString("pt-BR", { time
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ v?: string }> }) {
   const user = await requireUser();
-  if (user.plan !== "pro" && user.role !== "admin") return <><PageTitle title="Lives VIP" subtitle="Transmissões ao vivo para assinantes Pró." /><Locked feature="Lives VIP (exclusivo do plano Pró)" text="Este espaço da comunidade faz parte do plano Pró. No Grátis você participa do Feed e das Notícias." /></>;
+  if (user.plan !== "pro" && user.role !== "admin") return <><PageTitle title="Lives VIP" subtitle="Transmissões ao vivo para assinantes Premium." /><Locked feature="Lives VIP (exclusivo do plano Premium)" text="Este espaço da comunidade faz parte do plano Premium. No Grátis você participa do Feed e das Notícias." /></>;
   const res = await getVideos();
   const vids = res.data ?? [];
   const wanted = (await searchParams).v;

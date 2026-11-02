@@ -26,7 +26,7 @@ export function Logo({ size = "md" }: { size?: "md" | "lg" }) {
 }
 
 export function ProBadge() {
-  return <span className="rounded-md bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">PRO</span>;
+  return <span className="rounded-md bg-gold/20 px-1 py-0.5 text-[9px] font-bold tracking-wide text-gold-soft">PREMIUM</span>;
 }
 
 export function PageTitle({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -62,7 +62,7 @@ export function Locked({ feature, text }: { feature: string; text?: string }) {
         <ProBadge />
         <h3 className="font-semibold">{feature}</h3>
       </div>
-      <p className="text-sm text-muted">{text ?? "Este recurso faz parte do plano Pro. Assine para liberar a lista completa, filtros, exportação e o portfólio com rebalanceamento."}</p>
+      <p className="text-sm text-muted">{text ?? "Este recurso faz parte do plano Premium. Assine para liberar a lista completa, filtros, exportação e o portfólio com rebalanceamento."}</p>
       <Link href="/planos" className="btn btn-gold">
         Ver planos
       </Link>

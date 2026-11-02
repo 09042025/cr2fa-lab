@@ -8,7 +8,7 @@ export default async function FinancingPage() {
     return (
       <>
         <PageTitle title="Simulador de Financiamentos" subtitle="Veja quanto fica a parcela de um imóvel ou veículo conforme o prazo." />
-        <Locked feature="Simulador de Financiamentos (exclusivo do plano Pró)" text="Simule a parcela mensal, o total de juros e compare prazos para imóveis e veículos, em Price ou SAC." />
+        <Locked feature="Simulador de Financiamentos (exclusivo do plano Premium)" text="Simule a parcela mensal, o total de juros e compare prazos para imóveis e veículos, em Price ou SAC." />
       </>
     );
   }

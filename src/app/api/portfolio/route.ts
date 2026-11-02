@@ -12,7 +12,7 @@ const addSchema = z.object({
 async function pro() {
   const user = await getUser();
   if (!user) return { error: fail("Faça login.", 401) };
-  if (user.plan !== "pro") return { error: fail("Recurso do plano Pró.", 403) };
+  if (user.plan !== "pro") return { error: fail("Recurso do plano Premium.", 403) };
   return { user };
 }
 

@@ -48,25 +48,25 @@ export function renewalEmail(name: string, daysLeft: number, expiresAt: Date, li
   if (trial) {
     const endsWhen = daysLeft <= 1 ? "termina amanhã" : `termina em ${daysLeft} dias`;
     return {
-      subject: daysLeft <= 1 ? `Seu teste grátis do Pró termina amanhã - ${app}` : `Seu teste grátis do Pró termina em ${daysLeft} dias - ${app}`,
-      text: `${hello}\n\nSeu teste grátis do Pró no ${app} ${endsWhen} (${date}). Para continuar com o acesso completo, assine pelo link:\n\n${link}\n\nO tempo que ainda resta do teste é mantido: ao assinar, o plano começa a contar depois dele. Se não assinar, sua conta volta para o plano Grátis, sem nenhuma cobrança.`,
+      subject: daysLeft <= 1 ? `Seu teste grátis do Premium termina amanhã - ${app}` : `Seu teste grátis do Premium termina em ${daysLeft} dias - ${app}`,
+      text: `${hello}\n\nSeu teste grátis do Premium no ${app} ${endsWhen} (${date}). Para continuar com o acesso completo, assine pelo link:\n\n${link}\n\nO tempo que ainda resta do teste é mantido: ao assinar, o plano começa a contar depois dele. Se não assinar, sua conta volta para o plano Grátis, sem nenhuma cobrança.`,
       html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1a1a1a">
 <h2 style="color:#b8860b">${escapeHtml(app)}</h2>
 <p>${escapeHtml(hello)}</p>
-<p>Seu <strong>teste grátis do Pró</strong> ${escapeHtml(endsWhen)} (<strong>${escapeHtml(date)}</strong>). Para continuar com o acesso completo, assine pelo botão abaixo.</p>
-<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#d4a82f;color:#111;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Assinar o Pró</a></p>
+<p>Seu <strong>teste grátis do Premium</strong> ${escapeHtml(endsWhen)} (<strong>${escapeHtml(date)}</strong>). Para continuar com o acesso completo, assine pelo botão abaixo.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#d4a82f;color:#111;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Assinar o Premium</a></p>
 <p style="font-size:13px;color:#555">O tempo que ainda resta do teste é mantido: ao assinar, o plano começa a contar depois dele. Se não assinar, sua conta volta para o plano Grátis, sem nenhuma cobrança.</p>
 </div>`,
     };
   }
   return {
-    subject: daysLeft <= 1 ? `Seu plano Pró vence amanhã - ${app}` : `Seu plano Pró vence em ${daysLeft} dias - ${app}`,
-    text: `${hello}\n\nSeu plano Pró no ${app} ${when} (${date}). Para continuar com o acesso completo, renove pelo link:\n\n${link}\n\nA renovação soma ao tempo que ainda resta, então você não perde nada ao antecipar. Se já renovou, ignore este e-mail.`,
+    subject: daysLeft <= 1 ? `Seu plano Premium vence amanhã - ${app}` : `Seu plano Premium vence em ${daysLeft} dias - ${app}`,
+    text: `${hello}\n\nSeu plano Premium no ${app} ${when} (${date}). Para continuar com o acesso completo, renove pelo link:\n\n${link}\n\nA renovação soma ao tempo que ainda resta, então você não perde nada ao antecipar. Se já renovou, ignore este e-mail.`,
     html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1a1a1a">
 <h2 style="color:#b8860b">${escapeHtml(app)}</h2>
 <p>${escapeHtml(hello)}</p>
-<p>Seu plano <strong>Pró</strong> ${escapeHtml(when)} (<strong>${escapeHtml(date)}</strong>). Para continuar com o acesso completo, renove pelo botão abaixo.</p>
-<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#d4a82f;color:#111;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Renovar o Pró</a></p>
+<p>Seu plano <strong>Premium</strong> ${escapeHtml(when)} (<strong>${escapeHtml(date)}</strong>). Para continuar com o acesso completo, renove pelo botão abaixo.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#d4a82f;color:#111;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Renovar o Premium</a></p>
 <p style="font-size:13px;color:#555">A renovação soma ao tempo que ainda resta, então você não perde nada ao antecipar. Se já renovou, ignore este e-mail.</p>
 </div>`,
   };
@@ -79,11 +79,11 @@ export function inviteEmail(name: string, days: number, link: string, note: stri
   const periodo = days >= 365 && days % 365 === 0 ? `${days / 365} ${days === 365 ? "ano" : "anos"}` : `${days} dias`;
   return {
     subject: `Você recebeu um convite VIP do ${app}`,
-    text: `${hello}\n\nVocê foi convidado(a) para o ${app} com acesso VIP ao plano Pró por ${periodo}, sem custo.${note ? `\n\n${note}` : ""}\n\nAbra o link para ativar (crie sua conta ou entre, e confirme):\n\n${link}\n\nO convite é pessoal e de uso único.`,
+    text: `${hello}\n\nVocê foi convidado(a) para o ${app} com acesso VIP ao plano Premium por ${periodo}, sem custo.${note ? `\n\n${note}` : ""}\n\nAbra o link para ativar (crie sua conta ou entre, e confirme):\n\n${link}\n\nO convite é pessoal e de uso único.`,
     html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1a1a1a">
 <h2 style="color:#b8860b">${escapeHtml(app)}</h2>
 <p>${escapeHtml(hello)}</p>
-<p>Você foi convidado(a) com <strong>acesso VIP ao plano Pró por ${escapeHtml(periodo)}</strong>, sem custo.</p>
+<p>Você foi convidado(a) com <strong>acesso VIP ao plano Premium por ${escapeHtml(periodo)}</strong>, sem custo.</p>
 ${note ? `<p style="background:#faf5e4;border-radius:8px;padding:10px 14px">${escapeHtml(note)}</p>` : ""}
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#d4a82f;color:#111;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ativar meu acesso VIP</a></p>
 <p style="font-size:13px;color:#555">Se o botão não abrir, copie este endereço no navegador:<br>${escapeHtml(link)}</p>

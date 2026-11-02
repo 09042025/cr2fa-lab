@@ -37,8 +37,8 @@ export default async function InvitePage({ params }: { params: Promise<{ code: s
           ) : (
             <>
               <p className="mb-2 inline-block rounded-full border border-gold/60 bg-gold/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gold-soft">Convite VIP</p>
-              <h1 className="mb-2 font-display text-2xl font-bold text-gold-soft">Acesso Pró por {periodo(inv.days)}</h1>
-              <p className="mb-1 text-sm text-muted">Você foi convidado(a) para o NIZA INVEST com todos os recursos do plano Pró, sem custo.</p>
+              <h1 className="mb-2 font-display text-2xl font-bold text-gold-soft">Acesso Premium por {periodo(inv.days)}</h1>
+              <p className="mb-1 text-sm text-muted">Você foi convidado(a) para o NIZA INVEST com todos os recursos do plano Premium, sem custo.</p>
               {inv.note && <p className="mx-auto my-3 rounded-lg bg-panel-2 px-3 py-2 text-sm">{inv.note}</p>}
               <p className="mb-5 text-xs text-muted">Válido até {date(inv.expiresAt)} · uso único{inv.email ? ` · para ${maskEmail(inv.email)}` : ""}</p>
               {user ? (
