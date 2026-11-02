@@ -108,6 +108,8 @@ function migrate(db: Database.Database) {
   const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
   const orderCols = db.prepare("PRAGMA table_info(orders)").all() as { name: string }[];
   if (!orderCols.some((c) => c.name === "product")) db.exec("ALTER TABLE orders ADD COLUMN product TEXT NOT NULL DEFAULT 'premium'");
+  const meetCols = db.prepare("PRAGMA table_info(meeting_events)").all() as { name: string }[];
+  if (meetCols.length && !meetCols.some((c) => c.name === "kind")) db.exec("ALTER TABLE meeting_events ADD COLUMN kind TEXT NOT NULL DEFAULT 'reuniao'");
   const mentCols = db.prepare("PRAGMA table_info(mentorships)").all() as { name: string }[];
   if (mentCols.length && !mentCols.some((c) => c.name === "kind")) db.exec("ALTER TABLE mentorships ADD COLUMN kind TEXT NOT NULL DEFAULT 'mentoria'");
   if (mentCols.length && !mentCols.some((c) => c.name === "turma")) db.exec("ALTER TABLE mentorships ADD COLUMN turma INTEGER NOT NULL DEFAULT 1");
@@ -254,6 +256,7 @@ function migrate(db: Database.Database) {
       ends_at INTEGER NOT NULL,
       link TEXT NOT NULL DEFAULT '',
       notes TEXT NOT NULL DEFAULT '',
+      kind TEXT NOT NULL DEFAULT 'reuniao',
       created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );

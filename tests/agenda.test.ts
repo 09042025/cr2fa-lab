@@ -48,3 +48,15 @@ test("aviso diário: 08:00, só Premium, 1x/dia, para após o evento", async () 
   assert.equal(await runAgendaMail(send, evStart + 3 * 3600, 0), 0); // após a reunião: nada
   assert.equal(await runAgendaMail(send, day0 + 3 * 86400 + 8 * 3600, 0), 0);
 });
+
+test("sala de reuniões: só reuniões (não eventos) ainda não terminadas", async () => {
+  const { roomMeetings } = await import("../src/lib/agenda");
+  const uid = Number(db().prepare("INSERT INTO users (email, name, password_hash, role, plan) VALUES ('room@x.com', 'Adm', 'x', 'admin', 'pro')").run().lastInsertRowid);
+  db().prepare("DELETE FROM meeting_events").run();
+  const t = now();
+  addEvent(uid, { title: "Reunião mensal", startsAt: t + 3600, durationMin: 60, link: "meet.google.com/a", notes: "" });
+  addEvent(uid, { title: "Evento especial", startsAt: t + 7200, durationMin: 60, link: "zoom.us/j/1", notes: "", kind: "evento" });
+  addEvent(uid, { title: "Passada", startsAt: t - 7200, durationMin: 30, link: "", notes: "" });
+  const titles = roomMeetings(t).map((m) => m.title);
+  assert.deepEqual(titles, ["Reunião mensal"]);
+});
