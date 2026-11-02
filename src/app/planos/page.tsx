@@ -9,7 +9,8 @@ import { Disclaimer, Logo, PageTitle } from "@/components/ui";
 import { date, dateTime } from "@/lib/format";
 import { now } from "@/lib/db";
 import { TrialButton } from "@/components/TrialButton";
-import { MentoriaCheckout } from "@/components/MentoriaCheckout";
+import { MentoriaCheckout, SoldOut, SpotsBadge } from "@/components/MentoriaCheckout";
+import { spots as getSpots } from "@/lib/mentoria";
 import { Diamond } from "@/components/Diamond";
 import { mentoriaCheckoutProps } from "@/lib/mentoria-view";
 import { MENTORIA_SESSIONS, DIAMOND_FEATURES, DIAMOND_NAME, diamondPriceCents } from "@/lib/plans";
@@ -23,6 +24,7 @@ export default async function PlansPage() {
   expireStaleOrders();
   const orders = listOrdersForUser(user.id);
   const diamond = hasDiamond(user.id);
+  const sp2 = getSpots();
 
   const pending: CryptoOrderView[] = orders
     .filter((o) => o.product === "premium" && o.method === "crypto" && o.status === "pending" && o.expires_at && o.expires_at > now() && o.crypto_network && o.crypto_amount)
@@ -86,9 +88,10 @@ export default async function PlansPage() {
         <div className="card mb-4 border-sky-300/30 p-5">
           <h2 className="flex items-center gap-2 font-display text-xl font-bold text-gold-soft"><Diamond size={26} /> Mentoria com Niza · Plano Diamond</h2>
           <p className="mt-2 text-sm text-muted">{MENTORIA_SESSIONS} aulas particulares de 1 hora (1 por mês) via Google Meet ou Teams, com foco em criptomoedas: da primeira corretora e do Pix até o Bitcoin na sua própria carteira, avaliação da sua carteira pelo Protocolo CR2FA e o racional dos pools de liquidez. A aula 01 avalia o seu nível de conhecimento. Pagamento único, à parte do Premium, e sem recomendação de ativos.</p>
+          <p className="mt-3"><SpotsBadge left={sp2.left} limit={sp2.limit} turma={sp2.turma} /></p>
           <p className="mt-2 text-sm"><Link href="/painel/mentoria" className="text-gold-soft underline">Ver todos os detalhes da mentoria</Link></p>
         </div>
-        <MentoriaCheckout {...mentoriaCheckoutProps(orders)} />
+        {sp2.full ? <SoldOut /> : <MentoriaCheckout {...mentoriaCheckoutProps(orders)} />}
       </section>
 
       {orders.length > 0 && (

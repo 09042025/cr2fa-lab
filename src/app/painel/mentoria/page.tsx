@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { Diamond } from "@/components/Diamond";
-import { MentoriaCheckout, SessionsAdmin } from "@/components/MentoriaCheckout";
+import { MentoriaCheckout, NewTurmaButton, SessionsAdmin, SoldOut, SpotsBadge } from "@/components/MentoriaCheckout";
 import { mentoriaCheckoutProps } from "@/lib/mentoria-view";
-import { listAll, listMine } from "@/lib/mentoria";
+import { listAll, listMine, spots as getSpots } from "@/lib/mentoria";
 import { expireStaleOrders, listOrdersForUser } from "@/lib/orders";
 import { MENTORIA_SESSIONS } from "@/lib/plans";
 import { date } from "@/lib/format";
@@ -26,17 +26,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   const mine = listMine(user.id);
   const all = user.role === "admin" ? listAll() : [];
   const props = mentoriaCheckoutProps(orders);
+  const sp2 = getSpots();
   const awaiting = !!sp.pedido && mine.length === 0 && !sp.falhou;
 
   return (
     <>
       <section className="relative mb-6 overflow-hidden rounded-2xl border border-sky-300/25 bg-gradient-to-br from-panel-2 via-panel to-ink p-6 md:p-8">
-        <Diamond size={150} className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 opacity-90 drop-shadow-[0_0_30px_rgba(120,180,255,0.35)] md:block" />
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[28%] items-center justify-center md:flex"><Diamond size={170} className="drop-shadow-[0_0_30px_rgba(120,180,255,0.4)]" /></div>
         <p className="relative flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-sky-200/90"><Diamond size={16} /> Plano Diamond</p>
         <h1 className="relative mt-1 font-display text-2xl font-bold text-gold-soft md:text-4xl">Mentoria com Niza</h1>
         <p className="relative mt-3 max-w-2xl text-sm leading-relaxed text-muted md:text-base">
           Acompanhamento individual e personalizado, com foco em criptomoedas, para você sair do zero e investir com método e segurança. Aberta a todos: você não precisa ser Premium para contratar, e pode entrar no Premium depois, durante o aprendizado.
         </p>
+        <p className="relative mt-4"><SpotsBadge left={sp2.left} limit={sp2.limit} turma={sp2.turma} /></p>
         <dl className="relative mt-5 grid max-w-2xl gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-line bg-ink/50 p-3"><dt className="text-[11px] uppercase tracking-wide text-muted">Investimento</dt><dd className="font-display text-xl font-bold text-gold-soft">{props.price}</dd><dd className="text-xs text-muted">pagamento único</dd></div>
           <div className="rounded-xl border border-line bg-ink/50 p-3"><dt className="text-[11px] uppercase tracking-wide text-muted">Aulas</dt><dd className="font-display text-xl font-bold text-white">{MENTORIA_SESSIONS} de 1 hora</dd><dd className="text-xs text-muted">particulares, 1 por mês</dd></div>
@@ -73,7 +75,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
         <p>Não há recomendação de compra de ativos. As aulas ensinam método, segurança e riscos; a avaliação da carteira compara a sua situação atual com o Protocolo CR2FA. Toda decisão de investimento, e o risco dela, é exclusivamente sua. Investir em criptomoedas envolve risco de perda total do capital, e a mentoria não garante resultado financeiro.</p>
       </section>
 
-      <MentoriaCheckout {...props} />
+      {sp2.full ? <SoldOut /> : <MentoriaCheckout {...props} />}
 
       <p className="mt-4 rounded-lg border border-sky-300/30 bg-sky-400/5 px-4 py-3 text-sm text-muted">
         Quer o Premium para sempre junto com a mentoria? Veja o <Link href="/planos#diamond" className="font-semibold text-gold-soft underline">Plano Diamond (Tudo do Premium + Mentoria)</Link> (Premium vitalício e uma única mentoria de 12 aulas).
@@ -81,7 +83,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
 
       {user.role === "admin" && (
         <section className="card mt-8 p-5">
-          <h2 className="mb-3 font-display text-lg font-bold text-gold-soft">Alunos da mentoria (só você vê)</h2>
+          <div className="mb-3 flex flex-wrap items-center gap-3"><h2 className="font-display text-lg font-bold text-gold-soft">Alunos da mentoria (só você vê)</h2><SpotsBadge left={sp2.left} limit={sp2.limit} turma={sp2.turma} /><NewTurmaButton /></div>
           {all.length === 0 ? <p className="text-sm text-muted">Nenhuma mentoria contratada ainda.</p> : (
             <div className="overflow-x-auto">
               <table className="data">

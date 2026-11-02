@@ -85,3 +85,31 @@ export function SessionsAdmin({ id, done }: { id: number; done: number }) {
     </span>
   );
 }
+
+export function NewTurmaButton() {
+  const router = useRouter();
+  return (
+    <button type="button" className="btn btn-ghost" onClick={async () => {
+      if (!confirm("Abrir uma nova turma? As vagas voltam a ficar todas livres (a turma atual continua registrada).")) return;
+      await fetch("/api/admin/mentoria", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "new-turma" }) });
+      router.refresh();
+    }}>Abrir nova turma</button>
+  );
+}
+
+export function SoldOut() {
+  return (
+    <div className="card border-down/40 p-5 text-sm text-muted">
+      <p className="font-semibold text-white">Vagas esgotadas nesta turma</p>
+      <p className="mt-1">A Turma SPOT da Mentoria com Niza está completa por enquanto. Fale com a equipe para entrar na lista de espera, ou garanta já o <a href="/planos#diamond" className="text-gold-soft underline">Plano Diamond</a> (Premium vitalício + Mentoria), que não tem limite de vagas.</p>
+    </div>
+  );
+}
+
+export function SpotsBadge({ left, limit, turma }: { left: number; limit: number; turma: number }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${left === 0 ? "border-down/50 bg-down/10 text-down" : left <= 8 ? "border-gold/60 bg-gold/10 text-gold-soft" : "border-sky-300/40 bg-sky-400/10 text-sky-200"}`}>
+      Turma SPOT {turma} · {left === 0 ? "vagas esgotadas" : `${left} de ${limit} vagas restantes`}
+    </span>
+  );
+}

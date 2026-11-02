@@ -108,6 +108,10 @@ function migrate(db: Database.Database) {
   const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
   const orderCols = db.prepare("PRAGMA table_info(orders)").all() as { name: string }[];
   if (!orderCols.some((c) => c.name === "product")) db.exec("ALTER TABLE orders ADD COLUMN product TEXT NOT NULL DEFAULT 'premium'");
+  const mentCols = db.prepare("PRAGMA table_info(mentorships)").all() as { name: string }[];
+  if (mentCols.length && !mentCols.some((c) => c.name === "kind")) db.exec("ALTER TABLE mentorships ADD COLUMN kind TEXT NOT NULL DEFAULT 'mentoria'");
+  if (mentCols.length && !mentCols.some((c) => c.name === "turma")) db.exec("ALTER TABLE mentorships ADD COLUMN turma INTEGER NOT NULL DEFAULT 1");
+  if (mentCols.length) db.exec("UPDATE mentorships SET kind = 'diamond' WHERE kind = 'mentoria' AND order_id IN (SELECT id FROM orders WHERE product = 'diamond')");
   if (!userCols.some((c) => c.name === "reminder_expiry")) db.exec("ALTER TABLE users ADD COLUMN reminder_expiry INTEGER");
   if (!userCols.some((c) => c.name === "reminder_stage")) db.exec("ALTER TABLE users ADD COLUMN reminder_stage INTEGER NOT NULL DEFAULT 0");
   // Teste grátis do Premium: guarda quando ele termina. Preenchido = o teste já foi usado (cada conta tem direito a um).
@@ -301,8 +305,11 @@ function migrate(db: Database.Database) {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       order_id TEXT UNIQUE REFERENCES orders(id) ON DELETE SET NULL,
       sessions_done INTEGER NOT NULL DEFAULT 0,
+      kind TEXT NOT NULL DEFAULT 'mentoria',
+      turma INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+    CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS stories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
