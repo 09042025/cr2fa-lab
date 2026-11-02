@@ -46,7 +46,7 @@ export function formatBRL(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export type Product = "premium" | "mentoria" | "diamond";
+export type Product = "premium" | "mentoria" | "diamond" | "black";
 export const MENTORIA_SESSIONS = 12;
 
 /** Mentoria com Niza (Diamond): pagamento único. Preço em MENTORIA_PRICE_BRL (padrão R$ 1.500,00). */
@@ -67,4 +67,18 @@ export const DIAMOND_FEATURES = [
 export function diamondPriceCents(): number {
   const v = Number((process.env.DIAMOND_PRICE_BRL || "3000").replace(",", "."));
   return Number.isFinite(v) && v > 0 ? Math.round(v * 100) : 300000;
+}
+
+export const BLACK_NAME = "Diamond Black VIP";
+export const BLACK_FEATURES = [
+  "Tudo do Premium e tudo do Plano Diamond (inclui a Mentoria com Niza, 12 aulas)",
+  "Encontros presenciais VIP periódicos para falar de negócios e fazer network",
+  "Grupo seleto, por convite, com pessoas de alto nível em conhecimento e sucesso financeiro",
+  "Foco em riqueza, empreendedorismo, negócios e investimentos. Inicialmente em São Paulo",
+] as const;
+
+/** Diamond Black VIP: anuidade. Preço em BLACK_PRICE_BRL (padrão R$ 10.000,00 por ano). */
+export function blackPriceCents(): number {
+  const v = Number((process.env.BLACK_PRICE_BRL || "10000").replace(",", "."));
+  return Number.isFinite(v) && v > 0 ? Math.round(v * 100) : 1000000;
 }

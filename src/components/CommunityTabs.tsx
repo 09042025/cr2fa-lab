@@ -13,9 +13,10 @@ const TABS = [
   { href: "/painel/financiamento", label: "Financiamentos" },
   { href: "/painel/negocios", label: "Negócios" },
   { href: "/painel/mentoria", label: "Mentoria com Niza", diamond: true },
+  { href: "/painel/black", label: "Diamond Black VIP", black: true },
   { href: "/painel/protocolo", label: "Protocolo CR2FA" },
 ];
-const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/financiamento", "/painel/negocios", "/painel/mentoria", "/painel/protocolo"];
+const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/financiamento", "/painel/negocios", "/painel/mentoria", "/painel/black", "/painel/protocolo"];
 
 /** Abas da área Premium (White Flame Society): aparecem em todas as páginas dela. */
 export function CommunityTabs(_props: { pro?: boolean }) {
@@ -28,7 +29,7 @@ export function CommunityTabs(_props: { pro?: boolean }) {
         return (
           <Link key={t.href} href={t.href} aria-current={active ? "page" : undefined}
             className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${active ? "border-gold text-gold-soft" : "border-transparent text-muted hover:text-white"}`}>
-            {"diamond" in t && <Diamond size={14} className="mr-1.5 inline-block -translate-y-px" />}{t.label}
+            {"diamond" in t && <Diamond size={14} className="mr-1.5 inline-block -translate-y-px" />}{"black" in t && <Diamond black size={14} className="mr-1.5 inline-block -translate-y-px" />}{t.label}
           </Link>
         );
       })}

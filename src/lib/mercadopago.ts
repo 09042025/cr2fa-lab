@@ -38,14 +38,15 @@ export async function createCheckout(order: OrderRow, payerEmail: string): Promi
   const base = appUrl();
   const mentoria = order.product === "mentoria";
   const diamond = order.product === "diamond";
-  const back = mentoria ? `${base}/painel/mentoria` : `${base}/planos`;
+  const black = order.product === "black";
+  const back = black ? `${base}/painel/black` : mentoria ? `${base}/painel/mentoria` : `${base}/planos`;
   const pref = await mp<{ init_point: string }>("/checkout/preferences", {
     method: "POST",
     body: JSON.stringify({
       items: [
         {
-          id: diamond ? "plano-diamond" : mentoria ? "mentoria-diamond" : `pro-${order.period}`,
-          title: diamond ? `Plano Diamond vitalício (Premium + Mentoria) - ${process.env.APP_NAME || "NIZA INVEST"}` : mentoria ? `Mentoria com Niza (Diamond, 12 aulas) - ${process.env.APP_NAME || "NIZA INVEST"}` : `Plano Premium ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
+          id: black ? "diamond-black-vip" : diamond ? "plano-diamond" : mentoria ? "mentoria-diamond" : `pro-${order.period}`,
+          title: black ? `Diamond Black VIP (anuidade) - ${process.env.APP_NAME || "NIZA INVEST"}` : diamond ? `Plano Diamond vitalício (Premium + Mentoria) - ${process.env.APP_NAME || "NIZA INVEST"}` : mentoria ? `Mentoria com Niza (Diamond, 12 aulas) - ${process.env.APP_NAME || "NIZA INVEST"}` : `Plano Premium ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
           quantity: 1,
           currency_id: "BRL",
           unit_price: order.amount_cents / 100,

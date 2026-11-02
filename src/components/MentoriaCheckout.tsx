@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CryptoOrderCard, type CryptoOrderView, type NetworkOption } from "./Checkout";
 
-export function MentoriaCheckout({ price, mpEnabled, networks, pending, product = "mentoria", title, subtitle }: { price: string; mpEnabled: boolean; networks: NetworkOption[]; pending: CryptoOrderView[]; product?: "mentoria" | "diamond"; title?: string; subtitle?: string }) {
+export function MentoriaCheckout({ price, mpEnabled, networks, pending, product = "mentoria", title, subtitle }: { price: string; mpEnabled: boolean; networks: NetworkOption[]; pending: CryptoOrderView[]; product?: "mentoria" | "diamond" | "black"; title?: string; subtitle?: string }) {
   const router = useRouter();
   const [method, setMethod] = useState<"mp" | "crypto">(mpEnabled ? "mp" : "crypto");
   const [networkId, setNetworkId] = useState(networks[0]?.id ?? "");

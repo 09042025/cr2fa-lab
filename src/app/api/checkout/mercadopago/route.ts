@@ -2,10 +2,11 @@ import { z } from "zod";
 import { getUser } from "@/lib/auth";
 import { fail, json, sameOrigin } from "@/lib/http";
 import { spots } from "@/lib/mentoria";
+import { canBuyBlack } from "@/lib/black";
 import { createCheckout, mercadoPagoEnabled } from "@/lib/mercadopago";
 import { createOrder } from "@/lib/orders";
 
-const schema = z.object({ period: z.enum(["monthly", "yearly"]).default("monthly"), product: z.enum(["premium", "mentoria", "diamond"]).default("premium") });
+const schema = z.object({ period: z.enum(["monthly", "yearly"]).default("monthly"), product: z.enum(["premium", "mentoria", "diamond", "black"]).default("premium") });
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return fail("Origem inválida.", 403);
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return fail("Plano inválido.");
 
+  if (parsed.data.product === "black" && !canBuyBlack(user)) return fail("O Diamond Black VIP é por convite. Solicite o seu convite na página do plano.", 403);
   if (parsed.data.product === "mentoria" && spots().full) return fail("As vagas desta turma da Mentoria estão esgotadas. O Plano Diamond continua disponível.", 409);
 
   const order = createOrder({ userId: user.id, period: parsed.data.period, product: parsed.data.product, method: "mercadopago" });
