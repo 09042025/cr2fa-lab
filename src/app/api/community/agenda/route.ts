@@ -11,6 +11,7 @@ const schema = z.object({
   durationMin: z.number().int().min(5).max(1440),
   link: z.string().max(500).default(""),
   notes: z.string().max(600).default(""),
+  kind: z.enum(["reuniao", "evento"]).default("reuniao"),
 });
 
 export async function GET() {

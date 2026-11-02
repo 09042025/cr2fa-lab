@@ -1,7 +1,7 @@
 import { db, now } from "./db";
 
 /** Agenda de reuniões e lives (estilo Outlook): o administrador cadastra, os membros Premium veem e entram pelo link. */
-export interface MeetingEvent { id: number; title: string; startsAt: number; endsAt: number; link: string; notes: string }
+export interface MeetingEvent { id: number; title: string; startsAt: number; endsAt: number; link: string; notes: string; kind: "reuniao" | "evento" }
 
 /** Aceita só endereços http(s); devolve o link limpo ou "" se for inválido. */
 export function cleanLink(raw: string): string {
@@ -26,24 +26,24 @@ export function plataforma(link: string): string {
   return link ? "Link da reunião" : "";
 }
 
-type Row = { id: number; title: string; starts_at: number; ends_at: number; link: string; notes: string };
-const map = (r: Row): MeetingEvent => ({ id: r.id, title: r.title, startsAt: r.starts_at, endsAt: r.ends_at, link: r.link, notes: r.notes });
+type Row = { id: number; title: string; starts_at: number; ends_at: number; link: string; notes: string; kind: string };
+const map = (r: Row): MeetingEvent => ({ id: r.id, title: r.title, startsAt: r.starts_at, endsAt: r.ends_at, link: r.link, notes: r.notes, kind: r.kind === "evento" ? "evento" : "reuniao" });
 
 /** Eventos a partir de `from` (padrão: 45 dias atrás), em ordem de data. */
 export function listEvents(from = now() - 45 * 86400): MeetingEvent[] {
-  return (db().prepare("SELECT id, title, starts_at, ends_at, link, notes FROM meeting_events WHERE ends_at >= ? ORDER BY starts_at, id LIMIT 500").all(from) as Row[]).map(map);
+  return (db().prepare("SELECT id, title, starts_at, ends_at, link, notes, kind FROM meeting_events WHERE ends_at >= ? ORDER BY starts_at, id LIMIT 500").all(from) as Row[]).map(map);
 }
 
-export function addEvent(userId: number, input: { title: string; startsAt: number; durationMin: number; link: string; notes: string }): MeetingEvent | null {
+export function addEvent(userId: number, input: { title: string; startsAt: number; durationMin: number; link: string; notes: string; kind?: string }): MeetingEvent | null {
   const title = input.title.trim().slice(0, 120);
   const durationMin = Math.min(24 * 60, Math.max(5, Math.round(input.durationMin) || 60));
   if (!title || !Number.isInteger(input.startsAt) || input.startsAt < 946684800 || input.startsAt > 4102444800) return null;
   const link = cleanLink(input.link);
   if (input.link.trim() && !link) return null;
   const r = db()
-    .prepare("INSERT INTO meeting_events (title, starts_at, ends_at, link, notes, created_by) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(title, input.startsAt, input.startsAt + durationMin * 60, link.slice(0, 500), input.notes.trim().slice(0, 600), userId);
-  return map(db().prepare("SELECT id, title, starts_at, ends_at, link, notes FROM meeting_events WHERE id = ?").get(r.lastInsertRowid) as Row);
+    .prepare("INSERT INTO meeting_events (title, starts_at, ends_at, link, notes, kind, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(title, input.startsAt, input.startsAt + durationMin * 60, link.slice(0, 500), input.notes.trim().slice(0, 600), input.kind === "evento" ? "evento" : "reuniao", userId);
+  return map(db().prepare("SELECT id, title, starts_at, ends_at, link, notes, kind FROM meeting_events WHERE id = ?").get(r.lastInsertRowid) as Row);
 }
 
 export function deleteEvent(id: number): boolean {
@@ -67,7 +67,7 @@ type Sender = (to: string, mail: { subject: string; html: string; text: string }
 export async function runAgendaMail(send: Sender = (to, m) => sendMail({ to, ...m }), t: number = now(), pauseMs = 600): Promise<number> {
   if (brHour(t) < 8) return 0;
   const today = brDay(t);
-  const events = (db().prepare("SELECT id, title, starts_at, ends_at, link, notes FROM meeting_events WHERE ends_at > ? ORDER BY starts_at").all(t) as Row[]).map(map).filter((e) => brDay(e.startsAt) >= today);
+  const events = (db().prepare("SELECT id, title, starts_at, ends_at, link, notes, kind FROM meeting_events WHERE ends_at > ? ORDER BY starts_at").all(t) as Row[]).map(map).filter((e) => brDay(e.startsAt) >= today);
   if (!events.length) return 0;
   const users = (db().prepare("SELECT * FROM users WHERE role = 'user'").all() as UserRow[]).filter((u) => effectivePlan(u) === "pro");
   const base = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -104,4 +104,9 @@ export function startAgendaMailJob(): void {
   setTimeout(tick, 90 * 1000).unref?.();
   g.__agendaTimer = setInterval(tick, 10 * 60 * 1000);
   g.__agendaTimer.unref?.();
+}
+
+/** Reuniões online (não eventos) que ainda não terminaram, em ordem: aparecem na Sala de Reuniões. */
+export function roomMeetings(t: number = now()): MeetingEvent[] {
+  return (db().prepare("SELECT id, title, starts_at, ends_at, link, notes, kind FROM meeting_events WHERE kind = 'reuniao' AND ends_at >= ? ORDER BY starts_at, id LIMIT 50").all(t) as Row[]).map(map);
 }

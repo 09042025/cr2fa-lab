@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-interface Ev { id: number; title: string; startsAt: number; endsAt: number; link: string; notes: string }
+interface Ev { id: number; title: string; startsAt: number; endsAt: number; link: string; notes: string; kind: "reuniao" | "evento" }
 
 // Horário de Brasília (UTC-3, sem horário de verão): trabalhamos com "relógio de Brasília" deslocando 3h.
 const OFF = 3 * 3600;
@@ -37,7 +37,7 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
   const today = key(Math.floor(Date.now() / 1000));
   const [ym, setYm] = useState(today.slice(0, 7));
   const [sel, setSel] = useState(today);
-  const [form, setForm] = useState({ title: "", date: today, time: "20:00", dur: "60", link: "", notes: "" });
+  const [form, setForm] = useState({ title: "", date: today, time: "20:00", dur: "60", link: "", notes: "", kind: "reuniao" });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -66,7 +66,7 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
     const startsAt = Math.floor(new Date(`${form.date}T${form.time}:00-03:00`).getTime() / 1000);
     if (!form.title.trim() || Number.isNaN(startsAt)) return setErr("Preencha o título, a data e a hora.");
     setBusy(true);
-    const r = await fetch("/api/community/agenda", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: form.title, startsAt, durationMin: Number(form.dur) || 60, link: form.link, notes: form.notes }) });
+    const r = await fetch("/api/community/agenda", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: form.title, startsAt, durationMin: Number(form.dur) || 60, link: form.link, notes: form.notes, kind: form.kind }) });
     setBusy(false);
     if (!r.ok) return setErr((await r.json().catch(() => ({}))).error ?? "Erro ao salvar.");
     setForm({ ...form, title: "", link: "", notes: "" });
@@ -95,6 +95,12 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
 
       {isAdmin && open && (
         <form onSubmit={save} className="mb-4 grid gap-2 rounded-lg border border-gold/30 bg-ink/60 p-3 sm:grid-cols-6">
+          <label className="text-xs text-muted sm:col-span-6">Tipo
+            <select className={inp} value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as "reuniao" | "evento" })}>
+              <option value="reuniao">Reunião online (aparece automaticamente na Sala de Reuniões)</option>
+              <option value="evento">Evento (divulgação própria, não vai para a Sala de Reuniões)</option>
+            </select>
+          </label>
           <input className={`${inp} sm:col-span-6`} placeholder="Título (ex.: Live de análise semanal)" maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <label className="text-xs text-muted sm:col-span-2">Data<input type="date" className={inp} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label>
           <label className="text-xs text-muted sm:col-span-2">Hora (Brasília)<input type="time" className={inp} value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label>
@@ -158,7 +164,7 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
 function EventCard({ e, isAdmin, onDelete }: { e: Ev; isAdmin: boolean; onDelete: (id: number) => void }) {
   return (
     <li className="rounded-lg border border-gold/25 bg-ink/60 p-3 text-sm">
-      <p className="font-semibold text-white">{e.title}</p>
+      <p className="font-semibold text-white">{e.title} <span className={`ml-1 rounded px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase ${e.kind === "evento" ? "bg-gold/20 text-gold-soft" : "bg-up/15 text-up"}`}>{e.kind === "evento" ? "Evento" : "Reunião"}</span></p>
       <p className="text-xs text-gold-soft">{hm(e.startsAt)} – {hm(e.endsAt)} (Brasília)</p>
       {e.notes && <p className="mt-1 whitespace-pre-wrap break-words text-xs text-muted">{e.notes}</p>}
       <p className="mt-2 flex flex-wrap items-center gap-3 text-xs">

@@ -66,7 +66,8 @@ export const CATEGORIES: Category[] = [
   },
 ];
 
-export const VOICE = [{ name: "Lounge", icon: "headset" }, { name: "Sala de reuniões", icon: "video" }];
+/** Sala de Reuniões: onde os membros entram nas reuniões online cadastradas na Agenda (o Lounge foi desativado). */
+export const ROOM = { slug: "sala-de-reunioes", name: "Sala de Reuniões", icon: "video" };
 
 export const MAX_BODY = 1000;
 
