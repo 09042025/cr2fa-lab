@@ -10,16 +10,17 @@ import { db } from "@/lib/db";
 import { getMember } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { CommunityTabs, PremiumBackdrop } from "@/components/CommunityTabs";
+import wfsMark from "@/assets/white-flame-society-mark.webp";
+import { CommunityTabs } from "@/components/CommunityTabs";
 import { MobileDrawer } from "@/components/MobileDrawer";
 
-type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean };
+type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean; logo?: boolean };
 
 /** O Feed é sempre o primeiro (e a página inicial). O resto segue a ordem alfabética. */
 const FEED: NavItem = { href: "/painel/feed", label: "Feed" };
 const OTHERS: NavItem[] = [
   { href: "/painel/acoes", label: "Ações" },
-  { href: "/painel/comunidade", label: "White Flame Society", pro: true },
+  { href: "/painel/comunidade", label: "White Flame Society", pro: true, logo: true },
   { href: "/painel/cripto", label: "Cripto" },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
   { href: "/painel/lives", label: "Lives Abertas" },
@@ -57,7 +58,10 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <nav className="mt-3 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden" aria-label="Principal">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className={`${ITEM} text-muted hover:text-white`}>
-                <span className="flex items-center gap-2">{n.saved && <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z" /></svg>}{n.label}</span>
+                <span className="flex items-center gap-2">{n.saved && <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z" /></svg>}{n.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={wfsMark.src} alt="White Flame Society" title="White Flame Society" className="h-10 w-10 rounded-full ring-1 ring-gold/40" />
+                ) : n.label}</span>
                 {n.pro && <ProBadge />}
                 {n.href === "/painel/feed/mensagens" && unread > 0 && <span className="rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink" aria-label={`${unread} mensagens não lidas`}>{unread}</span>}
               </Link>
@@ -77,8 +81,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           </div>
         </div>
       </MobileDrawer>
-      <main className="relative isolate min-w-0 flex-1">
-        <PremiumBackdrop />
+      <main className="min-w-0 flex-1">
         {user.trialAvailable && (
           <div className="card mb-5 flex flex-col gap-3 border-gold/50 p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm"><span className="font-semibold text-gold-soft">Teste o Premium por {trialDays()} dias, sem pagar.</span> <span className="text-muted">Sem cartão e sem cobrança no fim.</span></p>

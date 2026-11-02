@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import logo from "@/assets/white-flame-society.webp";
 
 const TABS = [
   { href: "/painel/comunidade", label: "Chat" },
@@ -13,20 +12,6 @@ const TABS = [
   { href: "/painel/protocolo", label: "Protocolo CR2FA" },
 ];
 const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/financiamento", "/painel/protocolo"];
-
-/** Logo da White Flame Society como marca d'água no fundo das páginas da área Premium. */
-export function PremiumBackdrop() {
-  const path = usePathname() || "";
-  if (!AREA.some((a) => path === a || path.startsWith(a + "/"))) return null;
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-2xl">
-      <div className="sticky top-16 flex h-[min(80vh,720px)] items-center justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo.src} alt="" className="w-[min(86%,620px)] opacity-[0.2] [mask-image:radial-gradient(circle,#000_52%,transparent_72%)]" />
-      </div>
-    </div>
-  );
-}
 
 /** Abas da área Premium (White Flame Society): aparecem em todas as páginas dela. */
 export function CommunityTabs(_props: { pro?: boolean }) {
