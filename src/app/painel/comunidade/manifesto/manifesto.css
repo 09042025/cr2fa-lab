@@ -1,14 +1,15 @@
 
 .wfm { font-family: "EB Garamond", Georgia, serif; color: #d7dcea; position: relative; isolation: isolate; }
 /* Fundo que se dissolve nas bordas: a arte vira parte da página, sem moldura. */
-.wfm-bg { position: absolute; inset: 0 -1.5rem; z-index: -1; pointer-events: none; -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent), linear-gradient(transparent, #000 4%, #000 96%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent), linear-gradient(transparent, #000 4%, #000 96%, transparent); mask-composite: intersect; }
+.wfm-bg { filter: saturate(0.6) brightness(0.95); position: absolute; inset: 0 -1.5rem; z-index: -1; pointer-events: none; -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent), linear-gradient(transparent, #000 4%, #000 96%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent), linear-gradient(transparent, #000 4%, #000 96%, transparent); mask-composite: intersect; }
 .wfm-goth { font-family: "UnifrakturMaguntia", "Old English Text MT", Georgia, serif; font-weight: 400; }
 .wfm-cin { font-family: "Cinzel", Georgia, serif; }
-.wfm-silver { background: linear-gradient(180deg, #f3f6fc 0%, #cdd6e8 55%, #a9b6d0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 20px rgba(130, 170, 240, 0.22)); letter-spacing: 0.02em; opacity: 0.94; }
+.wfm-silver { background: linear-gradient(180deg, #f3f6fc 0%, #cdd6e8 55%, #a9b6d0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 20px rgba(255, 255, 255, 0.12)); letter-spacing: 0.02em; opacity: 0.94; }
 .wfm-gold { background: linear-gradient(180deg, #f6e6b4 0%, #d9b45a 60%, #b08a3a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 .wfm-hero { position: relative; }
-.wfm-hero img { display: block; width: 100%; height: auto; -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 60%, transparent), linear-gradient(to right, transparent, #000 12%, #000 88%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(transparent, #000 12%, #000 60%, transparent), linear-gradient(to right, transparent, #000 12%, #000 88%, transparent); mask-composite: intersect; }
+.wfm-hero img { display: block; width: 100%; height: auto; -webkit-mask-image: linear-gradient(transparent, #000 2%, #000 62%, transparent), linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(transparent, #000 2%, #000 62%, transparent), linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); mask-composite: intersect; }
+.wfm-hero { padding-top: 0.75rem; }
 .wfm-title { text-align: center; padding: 0 1.25rem 1.5rem; margin-top: -2.5rem; position: relative; }
 @media (max-width: 640px) { .wfm-title { margin-top: 0.25rem; } }
 .wfm-dawn-text p { font-size: clamp(0.62rem, 2.1vw, 1.2rem); max-width: 44rem; margin: 0 auto; font-family: "Cinzel", serif; font-weight: 700; letter-spacing: 0.03em; color: #fff0c2; text-shadow: 0 0 14px rgba(255, 170, 40, 0.85), 0 2px 6px #000; }
@@ -45,7 +46,7 @@
 .wfm-final .l { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: 0.05em; font-size: clamp(1rem, 2.7vw, 1.3rem); margin: 0.5em 0; }
 
 .wfm-dawn { position: relative; margin-top: 1.5rem; }
-.wfm-dawn img { display: block; width: 100%; height: auto; -webkit-mask-image: linear-gradient(transparent, #000 35%); mask-image: linear-gradient(transparent, #000 35%); }
+.wfm-dawn img { display: block; width: 100%; height: auto; -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 70%, transparent); mask-image: linear-gradient(transparent, #000 35%, #000 70%, transparent); }
 .wfm-dawn-text { position: absolute; left: 0; right: 0; bottom: 6%; text-align: center; padding: 0 1rem; }
-.wfm-seal { text-align: center; padding: 1.2rem 1rem 2rem; background: linear-gradient(transparent, rgba(0, 0, 0, 0.75)); }
+.wfm-seal { text-align: center; padding: 1.2rem 1rem 3rem; }
 .wfm-seal .wfm-goth { font-size: clamp(1.8rem, 6vw, 3.2rem); }

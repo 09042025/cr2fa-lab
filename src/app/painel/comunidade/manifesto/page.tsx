@@ -28,10 +28,18 @@ function Pill({ tone, title, sub, children }: { tone: "blue" | "red" | "black" |
 export default function ManifestoPage() {
   return (
     <article className="wfm">
+      {/* Esta página usa fundo totalmente preto (sem o azul do resto do site). */}
+      <style>{`body{background:#000 !important}`}</style>
       <div
         aria-hidden
         className="wfm-bg"
-        style={{ backgroundImage: `linear-gradient(rgba(4,6,14,0.78), rgba(4,6,14,0.86)), url(${tile.src})`, backgroundSize: "100% 100%, 100% auto", backgroundRepeat: "no-repeat, repeat-y" }}
+        style={{
+          backgroundColor: "#000",
+          // escurece o topo suavemente, mantém os raios no meio e termina em preto puro
+          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.92) 0, rgba(0,0,0,0.66) 1500px, rgba(0,0,0,0.62) calc(100% - 2200px), rgba(0,0,0,0.9) calc(100% - 700px), #000 calc(100% - 120px)), url(${tile.src})`,
+          backgroundSize: "100% 100%, 100% auto",
+          backgroundRepeat: "no-repeat, repeat-y",
+        }}
       />
       <header className="wfm-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
