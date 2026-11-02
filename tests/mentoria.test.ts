@@ -50,3 +50,31 @@ test("Plano Diamond: R$ 3.000, Premium vitalício + uma mentoria", async () => {
   assert.equal(hasDiamond(uid), true);
   assert.equal(listMine(uid).length, 1); // uma mentoria, uma vez só
 });
+
+test("turma SPOT: limita só a mentoria avulsa; Diamond não ocupa vaga; nova turma zera", async () => {
+  const { spots, openNewTurma, currentTurma } = await import("../src/lib/mentoria");
+  process.env.MENTORIA_SPOTS = "2";
+  const mkU = (e: string) => Number(db().prepare("INSERT INTO users (email, name, password_hash, role, plan) VALUES (?, 'T', 'x', 'user', 'free')").run(e).lastInsertRowid);
+  const before = spots();
+  assert.equal(before.limit, 2);
+  const free0 = before.left;
+  // Diamond não ocupa vaga
+  const d = createOrder({ userId: mkU("t-d@x.com"), period: "monthly", product: "diamond", method: "mercadopago" });
+  markPaid(d.id, { providerRef: "td" });
+  assert.equal(spots().taken, before.taken);
+  // pedido pendente reserva vaga; pago ocupa
+  const m1 = createOrder({ userId: mkU("t-1@x.com"), period: "monthly", product: "mentoria", method: "mercadopago" });
+  assert.equal(spots().taken, before.taken + 1);
+  markPaid(m1.id, { providerRef: "t1" });
+  assert.equal(spots().taken, before.taken + 1);
+  const m2 = createOrder({ userId: mkU("t-2@x.com"), period: "monthly", product: "mentoria", method: "mercadopago" });
+  markPaid(m2.id, { providerRef: "t2" });
+  assert.equal(spots().full, true);
+  assert.ok(free0 >= 0);
+  const t = currentTurma();
+  assert.equal(openNewTurma(), t + 1);
+  assert.equal(spots().taken, 0);
+  assert.equal(spots().full, false);
+  delete process.env.MENTORIA_SPOTS;
+  assert.equal(spots().limit, 30);
+});

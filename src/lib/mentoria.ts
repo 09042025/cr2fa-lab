@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db, now } from "./db";
 import { MENTORIA_SESSIONS } from "./plans";
 
 export interface Mentorship { id: number; userId: number; name: string; email: string; sessionsDone: number; createdAt: number }
@@ -16,4 +16,35 @@ export function listAll(): Mentorship[] {
 export function setSessions(id: number, done: number): boolean {
   const n = Math.min(MENTORIA_SESSIONS, Math.max(0, Math.round(done)));
   return db().prepare("UPDATE mentorships SET sessions_done = ? WHERE id = ?").run(n, id).changes > 0;
+}
+
+/* ---------- Vagas da turma SPOT (só a mentoria avulsa; o Plano Diamond não tem limite) ---------- */
+export function spotsLimit(): number {
+  const n = Number(process.env.MENTORIA_SPOTS);
+  return Number.isInteger(n) && n >= 0 && n <= 1000 ? n : 30;
+}
+
+export function currentTurma(): number {
+  const r = db().prepare("SELECT value FROM app_settings WHERE key = 'mentoria_turma'").get() as { value: string } | undefined;
+  const n = Number(r?.value);
+  return Number.isInteger(n) && n >= 1 ? n : 1;
+}
+
+/** Abre uma nova turma: as vagas voltam a ficar todas livres. */
+export function openNewTurma(): number {
+  const n = currentTurma() + 1;
+  db().prepare("INSERT INTO app_settings (key, value) VALUES ('mentoria_turma', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(String(n));
+  return n;
+}
+
+export interface Spots { turma: number; limit: number; taken: number; left: number; full: boolean }
+
+/** Vagas ocupadas = mentorias avulsas pagas na turma atual + pedidos em andamento (reserva por 2h; cripto expira em 30 min). */
+export function spots(): Spots {
+  const turma = currentTurma();
+  const limit = spotsLimit();
+  const paid = (db().prepare("SELECT COUNT(*) c FROM mentorships WHERE kind = 'mentoria' AND turma = ?").get(turma) as { c: number }).c;
+  const reserved = (db().prepare("SELECT COUNT(*) c FROM orders WHERE product = 'mentoria' AND status = 'pending' AND created_at > ? AND (expires_at IS NULL OR expires_at > ?)").get(now() - 2 * 3600, now()) as { c: number }).c;
+  const taken = paid + reserved;
+  return { turma, limit, taken, left: Math.max(0, limit - taken), full: taken >= limit };
 }

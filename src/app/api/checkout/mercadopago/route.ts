@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getUser } from "@/lib/auth";
 import { fail, json, sameOrigin } from "@/lib/http";
+import { spots } from "@/lib/mentoria";
 import { createCheckout, mercadoPagoEnabled } from "@/lib/mercadopago";
 import { createOrder } from "@/lib/orders";
 
@@ -13,6 +14,8 @@ export async function POST(req: Request) {
   if (!mercadoPagoEnabled()) return fail("Pagamento por Pix e cartão ainda não está disponível.", 503);
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return fail("Plano inválido.");
+
+  if (parsed.data.product === "mentoria" && spots().full) return fail("As vagas desta turma da Mentoria estão esgotadas. O Plano Diamond continua disponível.", 409);
 
   const order = createOrder({ userId: user.id, period: parsed.data.period, product: parsed.data.product, method: "mercadopago" });
   try {

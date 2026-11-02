@@ -4,6 +4,8 @@ import { getUser } from "@/lib/auth";
 import { BLOCKS, EMERGENCY_RESERVE_MONTHS } from "@/lib/protocol";
 import { DIAMOND_FEATURES, DIAMOND_NAME, FREE_LIMITS, MENTORIA_SESSIONS, PLAN_FEATURES, diamondPriceCents, formatBRL, mentoriaPriceCents, priceCents } from "@/lib/plans";
 import { Diamond } from "@/components/Diamond";
+import { SpotsBadge } from "@/components/MentoriaCheckout";
+import { spots as getSpots } from "@/lib/mentoria";
 import wolf from "@/assets/wfs/logo-wolf.webp";
 import { Disclaimer, Logo } from "@/components/ui";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -30,6 +32,7 @@ const WFS = [
 
 export default async function Home() {
   const user = await getUser();
+  const sp2 = getSpots();
   return (
     <div className="mx-auto max-w-6xl px-5 pb-16">
       {(!user || user.trialAvailable) && (
@@ -235,7 +238,7 @@ export default async function Home() {
       </section>
 
       <section id="mentoria" className="card relative mb-14 overflow-hidden border-sky-300/40 p-6 md:p-8">
-        <Diamond size={150} className="pointer-events-none absolute -right-2 top-1/2 hidden -translate-y-1/2 drop-shadow-[0_0_30px_rgba(120,180,255,0.4)] md:block" />
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[28%] items-center justify-center md:flex"><Diamond size={170} className="drop-shadow-[0_0_30px_rgba(120,180,255,0.4)]" /></div>
         <div className="relative md:max-w-[70%]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-200/90">Aberta a todos, inclusive ao plano Grátis</p>
           <h2 className="mt-1 font-display text-3xl font-bold text-gold-soft">Mentoria com Niza</h2>
@@ -246,10 +249,11 @@ export default async function Home() {
             <li>✓ Hot wallet, 12/24 palavras e autocustódia</li>
             <li>✓ Racional dos pools de liquidez e seus riscos</li>
           </ul>
-          <p className="mt-3 text-xs text-muted">Sem recomendação de ativos: a decisão e o risco são seus. Nenhum resultado é garantido.</p>
+          <p className="mt-3"><SpotsBadge left={sp2.left} limit={sp2.limit} turma={sp2.turma} /></p>
+          <p className="mt-3 text-xs text-muted">Sem recomendação de ativos: a decisão e o risco são seus. Nenhum resultado é garantido. O Plano Diamond não tem limite de vagas.</p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <span className="font-display text-2xl font-bold text-white">{formatBRL(mentoriaPriceCents())}</span><span className="text-sm text-muted">pagamento único</span>
-            <Link href={user ? "/painel/mentoria" : "/cadastrar"} className="btn btn-gold">{user ? "Conhecer e contratar" : "Criar conta e conhecer"}</Link>
+            <Link href={user ? "/painel/mentoria" : "/cadastrar"} className="btn btn-gold">{sp2.full ? "Ver detalhes" : user ? "Conhecer e contratar" : "Criar conta e conhecer"}</Link>
             <Link href={user ? "/planos#diamond" : "/cadastrar"} className="btn btn-ghost">Ou leve junto o {DIAMOND_NAME.split(" (")[0]}</Link>
           </div>
         </div>

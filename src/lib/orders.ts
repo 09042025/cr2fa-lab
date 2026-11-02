@@ -53,13 +53,13 @@ export function markPaid(orderId: string, extra: { providerRef?: string; txHash?
 
     if (order.product === "mentoria") {
       // Mentoria é produto à parte: não altera o plano (Grátis/Premium) do aluno.
-      d.prepare("INSERT OR IGNORE INTO mentorships (user_id, order_id) VALUES (?, ?)").run(order.user_id, order.id);
+      d.prepare("INSERT OR IGNORE INTO mentorships (user_id, order_id, kind, turma) VALUES (?, ?, 'mentoria', COALESCE((SELECT CAST(value AS INTEGER) FROM app_settings WHERE key = 'mentoria_turma'), 1))").run(order.user_id, order.id);
       return true;
     }
     if (order.product === "diamond") {
       // Plano Diamond: Premium vitalício (sem vencimento) + uma mentoria (12 aulas, uma única vez).
       d.prepare("UPDATE users SET plan = 'pro', plan_expires_at = NULL WHERE id = ?").run(order.user_id);
-      d.prepare("INSERT OR IGNORE INTO mentorships (user_id, order_id) VALUES (?, ?)").run(order.user_id, order.id);
+      d.prepare("INSERT OR IGNORE INTO mentorships (user_id, order_id, kind) VALUES (?, ?, 'diamond')").run(order.user_id, order.id);
       return true;
     }
     const user = d.prepare("SELECT * FROM users WHERE id = ?").get(order.user_id) as UserRow;
