@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
+  { href: "/painel/comunidade/manifesto", label: "Manifesto" },
   { href: "/painel/comunidade", label: "Chat" },
   { href: "/painel/comunidade/lives", label: "Lives VIP" },
   { href: "/painel/cursos", label: "Cursos" },

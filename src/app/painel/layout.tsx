@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
 import { getMember } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import wfsMark from "@/assets/white-flame-society-mark.webp";
+import wfsTitle from "@/assets/wfs/title.webp";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { MobileDrawer } from "@/components/MobileDrawer";
 
@@ -20,7 +20,7 @@ type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; save
 const FEED: NavItem = { href: "/painel/feed", label: "Feed" };
 const OTHERS: NavItem[] = [
   { href: "/painel/acoes", label: "Ações" },
-  { href: "/painel/comunidade", label: "White Flame Society", pro: true, logo: true },
+  { href: "/painel/comunidade/manifesto", label: "White Flame Society", pro: true, logo: true },
   { href: "/painel/cripto", label: "Cripto" },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
   { href: "/painel/lives", label: "Lives Abertas" },
@@ -56,12 +56,15 @@ export default async function PanelLayout({ children }: { children: React.ReactN
             </div>
           </div>
           <nav className="mt-3 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden" aria-label="Principal">
-            {NAV.map((n) => (
+            {NAV.map((n) => n.logo ? (
+              <Link key={n.href} href={n.href} aria-label="White Flame Society (Premium)" title="White Flame Society" className="relative my-1 block shrink-0 overflow-hidden rounded-lg border border-gold/40 shadow-[0_0_18px_rgba(60,120,255,0.18)] transition hover:border-gold hover:shadow-[0_0_22px_rgba(217,169,60,0.35)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={wfsTitle.src} alt="White Flame Society" className="block h-auto w-full" />
+                <span className="flex justify-center bg-black/70 py-1"><ProBadge /></span>
+              </Link>
+            ) : (
               <Link key={n.href} href={n.href} className={`${ITEM} text-muted hover:text-white`}>
-                <span className="flex items-center gap-2">{n.saved && <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z" /></svg>}{n.logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={wfsMark.src} alt="White Flame Society" title="White Flame Society" className="h-10 w-10 rounded-full ring-1 ring-gold/40" />
-                ) : n.label}</span>
+                <span className="flex items-center gap-2">{n.saved && <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z" /></svg>}{n.label}</span>
                 {n.pro && <ProBadge />}
                 {n.href === "/painel/feed/mensagens" && unread > 0 && <span className="rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink" aria-label={`${unread} mensagens não lidas`}>{unread}</span>}
               </Link>
