@@ -36,14 +36,14 @@ export function ProBadge() {
   return <View style={s.badge}><Text style={s.badgeText}>PRÓ</Text></View>;
 }
 
-/** Tela/trecho exclusivo do plano Pró: quem é Grátis vê o cadeado e o botão para os planos. */
+/** Tela/trecho exclusivo do plano Premium: quem é Grátis vê o cadeado e o botão para os planos. */
 export function ProGate({ feature, children }: { feature: string; children: ReactNode }) {
   const { isPro } = useAuth();
   if (isPro) return <>{children}</>;
   return (
     <Card style={{ alignItems: "flex-start", gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><ProBadge /><Text style={s.h2}>{feature}</Text></View>
-      <Text style={s.muted}>Este recurso faz parte do plano Pró. Assine para liberar.</Text>
+      <Text style={s.muted}>Este recurso faz parte do plano Premium. Assine para liberar.</Text>
       <GoldButton label="Ver planos" onPress={() => router.push("/planos")} />
     </Card>
   );

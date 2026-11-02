@@ -19,7 +19,7 @@ interface Auth {
 }
 
 const Ctx = createContext<Auth | null>(null);
-const demo = (plan: Plan): User => ({ id: 0, name: plan === "pro" ? "Assinante Pró" : "Usuário Grátis", email: "teste@exemplo.com", role: "user", plan, planExpiresAt: null, onTrial: false });
+const demo = (plan: Plan): User => ({ id: 0, name: plan === "pro" ? "Assinante Premium" : "Usuário Grátis", email: "teste@exemplo.com", role: "user", plan, planExpiresAt: null, onTrial: false });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

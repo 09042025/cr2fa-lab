@@ -16,12 +16,12 @@ export function trialAvailable(u: Pick<UserRow, "id" | "role" | "plan" | "plan_e
   return !paid;
 }
 
-/** O Pró atual ainda é o do teste? (Se a pessoa pagar, o vencimento passa a ser maior que o fim do teste.) */
+/** O Premium atual ainda é o do teste? (Se a pessoa pagar, o vencimento passa a ser maior que o fim do teste.) */
 export function onTrial(u: Pick<UserRow, "role" | "plan" | "plan_expires_at" | "trial_ends_at">): boolean {
   return u.role === "user" && u.plan === "pro" && u.trial_ends_at !== null && u.plan_expires_at === u.trial_ends_at && u.trial_ends_at > now();
 }
 
-/** Libera o Pró pelo período do teste. Uma vez por conta. */
+/** Libera o Premium pelo período do teste. Uma vez por conta. */
 export function startTrial(userId: number): { ok: true; expiresAt: number } | { ok: false; error: string } {
   const d = db();
   const run = d.transaction((): { ok: true; expiresAt: number } | { ok: false; error: string } => {

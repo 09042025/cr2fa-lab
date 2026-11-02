@@ -63,13 +63,13 @@ export default async function CoinPage({ params, searchParams }: { params: Promi
             {PERIODS.map((p) => (isPro || p.d === 30) ? (
               <Link key={p.d} href={`${base}?d=${p.d}`} className={`btn ${p.d === days ? "btn-gold" : "btn-ghost"}`}>{p.l}</Link>
             ) : (
-              <span key={p.d} className="btn btn-ghost cursor-not-allowed opacity-50" title="Períodos maiores no plano Pró">{p.l}</span>
+              <span key={p.d} className="btn btn-ghost cursor-not-allowed opacity-50" title="Períodos maiores no plano Premium">{p.l}</span>
             ))}
           </div>
         </div>
         <DataStatus result={chart} source="CoinGecko" />
         {series.length > 1 && <LineChart points={series.map((r) => r[1])} color="auto" height={280} format={(v) => usd(v)} startTs={series[0][0]} endTs={series[series.length - 1][0]} />}
-        {chart.data && !isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> Períodos de 7 dias, 90 dias e 1 ano no plano Pró.</p>}
+        {chart.data && !isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> Períodos de 7 dias, 90 dias e 1 ano no plano Premium.</p>}
       </section>
 
       <h2 className="mb-3 flex items-center gap-2 font-display text-xl font-bold text-gold-soft">Informações {!isPro && <ProBadge />}</h2>

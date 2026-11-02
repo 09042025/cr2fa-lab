@@ -1,4 +1,4 @@
-/** Links Essenciais (plano Pró): sites úteis, por categoria e nível de importância. Edite aqui para acrescentar links. */
+/** Links Essenciais (plano Premium): sites úteis, por categoria e nível de importância. Edite aqui para acrescentar links. */
 
 export type Level = 1 | 2 | 3;
 export const LEVELS: Record<Level, { name: string; hint: string }> = {

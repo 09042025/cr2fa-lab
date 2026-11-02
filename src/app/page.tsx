@@ -16,7 +16,7 @@ export default async function Home() {
     <div className="mx-auto max-w-6xl px-5 pb-16">
       {(!user || user.trialAvailable) && (
         <Link href={user ? "/planos" : "/cadastrar"} className="mt-4 block rounded-xl border border-gold/60 bg-gold/10 px-4 py-3 text-center text-sm font-semibold text-gold-soft transition hover:bg-gold/20">
-          🎁 Teste o plano Pró grátis por {trialDays()} dias, sem cartão. Crie sua conta e comece agora →
+          🎁 Teste o plano Premium grátis por {trialDays()} dias, sem cartão. Crie sua conta e comece agora →
         </Link>
       )}
       <nav className="flex items-center justify-between py-5">
@@ -45,7 +45,7 @@ export default async function Home() {
             desenho original.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link href="/cadastrar" className="btn btn-gold">{!user || user.trialAvailable ? `Testar o Pró ${trialDays()} dias grátis` : "Começar grátis"}</Link>
+            <Link href="/cadastrar" className="btn btn-gold">{!user || user.trialAvailable ? `Testar o Premium ${trialDays()} dias grátis` : "Começar grátis"}</Link>
             <Link href="#planos" className="btn btn-ghost">Ver planos</Link>
           </div>
           <a href="#autor" className="mt-7 inline-flex items-center gap-3 rounded-full border border-line bg-panel/60 py-1.5 pl-1.5 pr-4 transition hover:border-gold">
@@ -142,7 +142,7 @@ export default async function Home() {
         <p className="mt-1 text-muted">Pagamento por Pix, cartão de crédito ou Bitcoin.</p>
         {(!user || user.trialAvailable) && (
           <p className="mt-3 inline-block rounded-full border border-gold/60 bg-gold/10 px-4 py-1.5 text-sm font-semibold text-gold-soft">
-            🎁 Novo por aqui? Use o Pró grátis por {trialDays()} dias, sem cartão e sem compromisso.
+            🎁 Novo por aqui? Use o Premium grátis por {trialDays()} dias, sem cartão e sem compromisso.
           </p>
         )}
         <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -160,7 +160,7 @@ export default async function Home() {
             <Link href="/cadastrar" className="btn btn-ghost mt-5 w-full">Criar conta grátis</Link>
           </div>
           <div className="card border-gold/60 p-6">
-            <h3 className="text-lg font-semibold text-gold-soft">Pró</h3>
+            <h3 className="text-lg font-semibold text-gold-soft">Premium</h3>
             <p className="mt-1 text-3xl font-bold">
               {formatBRL(priceCents("monthly"))}
               <span className="text-sm font-normal text-muted"> /mês</span>
@@ -172,7 +172,7 @@ export default async function Home() {
               ))}
             </ul>
             {(!user || user.trialAvailable) && <p className="mt-4 text-sm text-gold-soft">Teste grátis por {trialDays()} dias, sem cartão.</p>}
-            <Link href={user ? "/planos" : "/cadastrar"} className="btn btn-gold mt-3 w-full">{!user || user.trialAvailable ? `Testar ${trialDays()} dias grátis` : "Assinar o Pró"}</Link>
+            <Link href={user ? "/planos" : "/cadastrar"} className="btn btn-gold mt-3 w-full">{!user || user.trialAvailable ? `Testar ${trialDays()} dias grátis` : "Assinar o Premium"}</Link>
           </div>
         </div>
       </section>

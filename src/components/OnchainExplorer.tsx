@@ -87,7 +87,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
     setSelected((cur) => {
       if (cur.includes(id)) return cur.filter((x) => x !== id);
       if (cur.length >= limit) {
-        setNotice(`O plano Grátis permite ${FREE_MAX_INDICATORS} indicadores ao mesmo tempo. Desative um para ligar outro, ou assine o Pró para usar todos juntos.`);
+        setNotice(`O plano Grátis permite ${FREE_MAX_INDICATORS} indicadores ao mesmo tempo. Desative um para ligar outro, ou assine o Premium para usar todos juntos.`);
         return cur;
       }
       return [...cur, id];
@@ -96,7 +96,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
 
   const applyPreset = (ids: string[]) => {
     const usable = ids.filter((id) => !unavailable.has(id));
-    setNotice(usable.length > limit ? `Atalho aplicado com os ${limit} primeiros indicadores. O Pró liga todos juntos.` : "");
+    setNotice(usable.length > limit ? `Atalho aplicado com os ${limit} primeiros indicadores. O Premium liga todos juntos.` : "");
     setSelected(usable.slice(0, limit));
   };
 
@@ -216,7 +216,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
             {isPro ? (
               <button type="button" onClick={showAll} className="text-gold-soft underline">Mostrar todos</button>
             ) : (
-              <span className="inline-flex items-center gap-1.5 text-muted"><ProBadge /> Todos juntos no Pró</span>
+              <span className="inline-flex items-center gap-1.5 text-muted"><ProBadge /> Todos juntos no Premium</span>
             )}
             <span className="text-line">|</span>
             <button type="button" onClick={() => { setSelected([]); setNotice(""); }} className="text-gold-soft underline">Ocultar todos</button>

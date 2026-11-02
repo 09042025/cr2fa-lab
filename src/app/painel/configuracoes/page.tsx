@@ -38,7 +38,7 @@ export default async function SettingsPage() {
       <section className="card mb-6 p-5">
         <h2 className="mb-2 font-semibold">Plano</h2>
         <p className="text-sm text-muted">
-          Plano atual: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : ""}>{user.plan === "pro" ? "Pró" : "Grátis"}</span>
+          Plano atual: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : ""}>{user.plan === "pro" ? "Premium" : "Grátis"}</span>
           {user.role === "admin" ? " · acesso total (administrador)" : null}
           {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? ` · ${user.onTrial ? "teste grátis até" : "ativo até"} ${date(user.planExpiresAt)}` : null}
         </p>

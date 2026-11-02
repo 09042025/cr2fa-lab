@@ -27,7 +27,7 @@ export function AdminPlanButtons({ userId, isPro, email, isAdmin = false }: { us
   }
   return (
     <div className="flex gap-2">
-      {!isAdmin && <button className="btn btn-ghost !px-2 !py-1 text-xs" onClick={() => set("pro", 31)}>+ Pró 31 dias</button>}
+      {!isAdmin && <button className="btn btn-ghost !px-2 !py-1 text-xs" onClick={() => set("pro", 31)}>+ Premium 31 dias</button>}
       {!isAdmin && isPro && <button className="btn btn-ghost !px-2 !py-1 text-xs" onClick={() => set("free")}>Tornar grátis</button>}
       <button className="btn btn-ghost !px-2 !py-1 text-xs" onClick={() => setRole(isAdmin ? "user" : "admin")}>{isAdmin ? "Remover admin" : "Tornar admin"}</button>
       <button className="btn btn-ghost !px-2 !py-1 text-xs !text-down" onClick={remove}>Excluir</button>

@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   if (!user) return fail("Faça login.", 401);
   if (isBanned(user.id)) return fail("Você foi suspenso da comunidade pela moderação.", 403);
   const parsed = schema.safeParse(await req.json().catch(() => null));
-  if (parsed.success && user.plan !== "pro" && user.role !== "admin" && !messageIsFree(parsed.data.messageId)) return fail("Este canal é exclusivo do plano Pró.", 403);
+  if (parsed.success && user.plan !== "pro" && user.role !== "admin" && !messageIsFree(parsed.data.messageId)) return fail("Este canal é exclusivo do plano Premium.", 403);
   if (!parsed.success || !toggleReaction(parsed.data.messageId, user.id, parsed.data.emoji)) return fail("Reação inválida.");
   return json({ ok: true });
 }

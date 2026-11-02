@@ -9,10 +9,10 @@ export default function Planos() {
     <Screen subtitle="Escolha como quer usar o NIZA INVEST.">
       <Card><H2>Grátis</H2><Muted>Conteúdos básicos, Feed, Notícias e chat-geral.</Muted></Card>
       <Card style={{ borderColor: C.gold }}>
-        <H2>Pró</H2>
+        <H2>Premium</H2>
         <Text style={{ color: C.goldSoft, fontSize: 20, fontWeight: "700" }}>R$ 49,90/mês · R$ 499,90/ano</Text>
         <Muted>Portfólio, Carteiras Recomendadas, Cursos, Lives VIP e todos os canais. 30 dias de teste grátis.</Muted>
-        {isPro ? <Muted>Você já é Pró.</Muted> : <GoldButton label="Assinar (pagamento na próxima etapa)" onPress={() => {}} />}
+        {isPro ? <Muted>Você já é Premium.</Muted> : <GoldButton label="Assinar (pagamento na próxima etapa)" onPress={() => {}} />}
       </Card>
     </Screen>
   );

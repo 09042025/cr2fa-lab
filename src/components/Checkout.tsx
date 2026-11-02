@@ -52,7 +52,7 @@ export function Checkout({
   return (
     <div className="space-y-6">
       <div className="card p-5">
-        <h2 className="mb-4 font-semibold">Assinar o Pró</h2>
+        <h2 className="mb-4 font-semibold">Assinar o Premium</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {(["monthly", "yearly"] as Period[]).map((p) => (
             <button key={p} onClick={() => setPeriod(p)} className={`rounded-xl border p-4 text-left ${period === p ? "border-gold bg-gold/10" : "border-line"}`}>
@@ -72,7 +72,7 @@ export function Checkout({
 
         {method === "pix_card" && mpEnabled && (
           <div className="mt-5">
-            <p className="mb-3 text-sm text-muted">Você será levado ao checkout seguro do Mercado Pago, onde escolhe Pix (aprovação na hora) ou cartão de crédito. O Pró é liberado automaticamente após a confirmação.</p>
+            <p className="mb-3 text-sm text-muted">Você será levado ao checkout seguro do Mercado Pago, onde escolhe Pix (aprovação na hora) ou cartão de crédito. O Premium é liberado automaticamente após a confirmação.</p>
             <button className="btn btn-gold" onClick={payMp} disabled={busy}>{busy ? "Aguarde..." : `Pagar ${prices[period]}`}</button>
           </div>
         )}
@@ -123,7 +123,7 @@ function CryptoOrderCard({ order, onPaid }: { order: CryptoOrderView; onPaid: ()
     const res = await fetch("/api/checkout/crypto/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: order.orderId, txHash: hash }) });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
-    if (data.ok) { setMsg({ ok: true, text: "Pagamento confirmado! O plano Pró foi liberado." }); setTimeout(onPaid, 1200); }
+    if (data.ok) { setMsg({ ok: true, text: "Pagamento confirmado! O plano Premium foi liberado." }); setTimeout(onPaid, 1200); }
     else setMsg({ ok: false, text: data.reason || data.error || "Não foi possível confirmar." });
   }
 

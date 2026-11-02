@@ -45,10 +45,10 @@ export default async function FuturesPage({ searchParams }: { searchParams: Prom
         <>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <Link href={`/painel/cripto/futuros?a=btc&i=${interval}`} className={tab(asset === "BTC")}>Bitcoin</Link>
-            {isPro ? <Link href={`/painel/cripto/futuros?a=eth&i=${interval}`} className={tab(asset === "ETH")}>Ethereum</Link> : <span className="btn btn-ghost cursor-not-allowed opacity-50" title="Ethereum no plano Pró">Ethereum <ProBadge /></span>}
+            {isPro ? <Link href={`/painel/cripto/futuros?a=eth&i=${interval}`} className={tab(asset === "ETH")}>Ethereum</Link> : <span className="btn btn-ghost cursor-not-allowed opacity-50" title="Ethereum no plano Premium">Ethereum <ProBadge /></span>}
             <span className="mx-1 text-line">|</span>
             <Link href={`/painel/cripto/futuros?a=${asset.toLowerCase()}&i=daily`} className={tab(interval === "daily")}>Diário</Link>
-            {isPro ? <Link href={`/painel/cripto/futuros?a=${asset.toLowerCase()}&i=1hour`} className={tab(interval === "1hour")}>Por hora (48 h)</Link> : <span className="btn btn-ghost cursor-not-allowed opacity-50" title="Visão por hora no plano Pró">Por hora <ProBadge /></span>}
+            {isPro ? <Link href={`/painel/cripto/futuros?a=${asset.toLowerCase()}&i=1hour`} className={tab(interval === "1hour")}>Por hora (48 h)</Link> : <span className="btn btn-ghost cursor-not-allowed opacity-50" title="Visão por hora no plano Premium">Por hora <ProBadge /></span>}
           </div>
           {liq && <DataStatus result={liq} source="Coinalyze (principais corretoras somadas)" />}
           {pts.length > 1 && (
@@ -67,7 +67,7 @@ export default async function FuturesPage({ searchParams }: { searchParams: Prom
                   items={pts.map((p) => ({ label: interval === "daily" ? day(p.t) : hour(p.t), a: p.longUsd, b: p.shortUsd }))}
                   format={usdCompact} aLabel="Longs" bLabel="Shorts"
                 />
-                {!isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> 90 dias, visão por hora e Ethereum no plano Pró.</p>}
+                {!isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> 90 dias, visão por hora e Ethereum no plano Premium.</p>}
               </section>
             </>
           )}

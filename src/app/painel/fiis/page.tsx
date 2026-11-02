@@ -40,7 +40,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
               <button className="btn btn-gold">Filtrar</button>
             </form>
           ) : (
-            <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por segmento e busca no plano Pró.</div>
+            <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por segmento e busca no plano Premium.</div>
           )}
           {isPro && <p className="mb-2 text-xs text-muted">{rows.length} de {all.length} ativos. Clique no código para abrir gráfico e informações.</p>}
           <QuotesTable rows={rows} origem="fiis" />

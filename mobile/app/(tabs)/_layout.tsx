@@ -15,7 +15,7 @@ export default function TabsLayout() {
     }}>
       <Tabs.Screen name="index" options={{ title: "Início", tabBarIcon: icon("◆") }} />
       <Tabs.Screen name="mercado" options={{ title: "Mercado", tabBarIcon: icon("↗") }} />
-      <Tabs.Screen name="comunidade" options={{ title: "Comunidade", tabBarIcon: icon("☰") }} />
+      <Tabs.Screen name="comunidade" options={{ title: "White Flame Society", tabBarIcon: icon("☰") }} />
       <Tabs.Screen name="portfolio" options={{ title: "Portfólio", tabBarIcon: icon("▣") }} />
       <Tabs.Screen name="perfil" options={{ title: "Perfil", tabBarIcon: icon("☺") }} />
     </Tabs>

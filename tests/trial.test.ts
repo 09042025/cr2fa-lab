@@ -12,7 +12,7 @@ function newUser(email: string, role = "user"): number {
 }
 const row = (id: number) => db().prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow;
 
-test("o teste libera o Pró por 30 dias, uma vez só", () => {
+test("o teste libera o Premium por 30 dias, uma vez só", () => {
   const id = newUser("t1@t.com");
   assert.equal(trialAvailable(row(id)), true);
   const r = startTrial(id);

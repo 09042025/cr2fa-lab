@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   if (!parsed.success || (!parsed.data.body && !parsed.data.imageId && !parsed.data.audioId)) return fail(`Escreva uma mensagem de até ${MAX_BODY} caracteres.`);
   const ch = findChannel(parsed.data.channel, user.role === "admin");
   if (ch.slug !== parsed.data.channel) return fail("Canal inválido.");
-  if (!canView(ch, user)) return fail("Este canal é exclusivo do plano Pró.", 403);
+  if (!canView(ch, user)) return fail("Este canal é exclusivo do plano Premium.", 403);
   if (!canPost(ch, user)) return fail("Só a equipe pode escrever neste canal.", 403);
   if (isBanned(user.id)) return fail("Você foi suspenso da comunidade pela moderação.", 403);
   if (!rateLimit(`community:${user.id}`, 20, 60_000)) return fail("Calma! Muitas mensagens seguidas. Tente em instantes.", 429);

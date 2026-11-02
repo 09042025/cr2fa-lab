@@ -79,7 +79,7 @@ function migrate(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_community_channel ON community_messages(channel, id);
 
-    -- Convites VIP: link de uso único que libera o Pró por um período, criado pelo administrador.
+    -- Convites VIP: link de uso único que libera o Premium por um período, criado pelo administrador.
     CREATE TABLE IF NOT EXISTS vip_invites (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT NOT NULL UNIQUE,
@@ -108,7 +108,7 @@ function migrate(db: Database.Database) {
   const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
   if (!userCols.some((c) => c.name === "reminder_expiry")) db.exec("ALTER TABLE users ADD COLUMN reminder_expiry INTEGER");
   if (!userCols.some((c) => c.name === "reminder_stage")) db.exec("ALTER TABLE users ADD COLUMN reminder_stage INTEGER NOT NULL DEFAULT 0");
-  // Teste grátis do Pró: guarda quando ele termina. Preenchido = o teste já foi usado (cada conta tem direito a um).
+  // Teste grátis do Premium: guarda quando ele termina. Preenchido = o teste já foi usado (cada conta tem direito a um).
   if (!userCols.some((c) => c.name === "trial_ends_at")) db.exec("ALTER TABLE users ADD COLUMN trial_ends_at INTEGER");
   // Comunidade: membro banido não escreve (só o administrador altera).
   if (!userCols.some((c) => c.name === "community_banned")) db.exec("ALTER TABLE users ADD COLUMN community_banned INTEGER NOT NULL DEFAULT 0");

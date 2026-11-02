@@ -27,7 +27,7 @@ export default async function AdminPage() {
     <>
       <PageTitle title="Administração" subtitle="Usuários, planos, convites VIP e pedidos." />
       <section className="mb-6 grid gap-4 sm:grid-cols-4">
-        {[["Usuários", users.length], ["Assinantes Pró", pros], ["Pedidos pagos", paid.length], ["Receita (BRL, pedidos listados)", formatBRL(revenue)]].map(([l, v]) => (
+        {[["Usuários", users.length], ["Assinantes Premium", pros], ["Pedidos pagos", paid.length], ["Receita (BRL, pedidos listados)", formatBRL(revenue)]].map(([l, v]) => (
           <div key={l as string} className="card p-4"><p className="text-xs text-muted">{l}</p><p className="mt-1 text-2xl font-bold text-gold-soft">{v}</p></div>
         ))}
       </section>
@@ -38,12 +38,12 @@ export default async function AdminPage() {
         <h2 className="mb-3 font-semibold">Usuários</h2>
         <div className="overflow-x-auto">
           <table className="data">
-            <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Plano</th><th>Pró até</th><th>Cadastro</th><th></th></tr></thead>
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Plano</th><th>Premium até</th><th>Cadastro</th><th></th></tr></thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
                   <td>{u.name}</td><td className="text-muted">{u.email}</td><td>{u.role === "admin" ? "admin" : "usuário"}</td>
-                  <td>{effectivePlan(u) === "pro" ? "Pró" : "Grátis"}</td><td>{u.role === "admin" ? "—" : date(u.plan_expires_at)}</td><td>{date(u.created_at)}</td>
+                  <td>{effectivePlan(u) === "pro" ? "Premium" : "Grátis"}</td><td>{u.role === "admin" ? "—" : date(u.plan_expires_at)}</td><td>{date(u.created_at)}</td>
                   <td>{u.id !== me.id && <AdminPlanButtons userId={u.id} isPro={effectivePlan(u) === "pro"} email={u.email} isAdmin={u.role === "admin"} />}</td>
                 </tr>
               ))}

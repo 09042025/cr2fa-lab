@@ -56,11 +56,11 @@ async function FearGreedPage({ isPro, d }: { isPro: boolean; d?: string }) {
                 <div className="flex gap-1 text-sm">
                   {PERIODS.map((p) => (isPro || p.d === 30) ? (
                     <Link key={p.d} href={`/painel/cripto/indice/medo-ganancia?d=${p.d}`} className={`btn ${p.d === days ? "btn-gold" : "btn-ghost"}`}>{p.l}</Link>
-                  ) : <span key={p.d} className="btn btn-ghost cursor-not-allowed opacity-50" title="Períodos maiores no plano Pró">{p.l}</span>)}
+                  ) : <span key={p.d} className="btn btn-ghost cursor-not-allowed opacity-50" title="Períodos maiores no plano Premium">{p.l}</span>)}
                 </div>
               </div>
               <LineChart points={[...h].reverse().map((x) => x.value)} color="#d9a520" height={260} format={(v) => String(Math.round(v))} startTs={h.length ? h[h.length - 1].ts * 1000 : undefined} endTs={h.length ? h[0].ts * 1000 : undefined} />
-              {!isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> 90 dias e 1 ano no plano Pró.</p>}
+              {!isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> 90 dias e 1 ano no plano Premium.</p>}
             </section>
           </div>
           <section className="card mt-5 p-4">

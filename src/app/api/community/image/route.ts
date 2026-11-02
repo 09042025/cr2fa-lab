@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const id = Number(new URL(req.url).searchParams.get("id"));
   const priv = privateMediaAllowed("image", id, user.id);
   if (priv === false) return new Response("Não autorizado", { status: 403 });
-  if (priv === null && user.plan !== "pro" && user.role !== "admin" && !mediaIsFree("image", id)) return new Response("Exclusivo do plano Pró", { status: 403 });
+  if (priv === null && user.plan !== "pro" && user.role !== "admin" && !mediaIsFree("image", id)) return new Response("Exclusivo do plano Premium", { status: 403 });
   const img = getImage(id);
   if (!img) return new Response("Não encontrada", { status: 404 });
   return new Response(new Uint8Array(img.data), {

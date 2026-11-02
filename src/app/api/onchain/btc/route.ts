@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const user = await getUser();
   if (!user) return Response.json({ error: "Faça login." }, { status: 401 });
 
-  if (user.plan !== "pro" && user.role !== "admin") return Response.json({ error: "Exclusivo do plano Pró." }, { status: 403 });
+  if (user.plan !== "pro" && user.role !== "admin") return Response.json({ error: "Exclusivo do plano Premium." }, { status: 403 });
 
   const ids = parseIds(new URL(req.url).searchParams.get("i"), INDICATORS.length);
   const raw = await getBtcOnchain();

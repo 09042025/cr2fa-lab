@@ -38,7 +38,7 @@ export default async function CryptoMarketPage({ searchParams }: { searchParams:
             <button className="btn btn-gold">Buscar</button>
           </form>
         ) : (
-          <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Ranking completo (até 1.000 criptomoedas) e busca no plano Pró.</div>
+          <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Ranking completo (até 1.000 criptomoedas) e busca no plano Premium.</div>
         )}
         {result.data && <CoinTable coins={rows} start={start} />}
         {isPro && result.data && (

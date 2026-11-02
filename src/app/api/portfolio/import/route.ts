@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   if (!sameOrigin(req)) return fail("Origem inválida.", 403);
   const user = await getUser();
   if (!user) return fail("Faça login.", 401);
-  if (user.plan !== "pro") return fail("Recurso do plano Pró.", 403);
+  if (user.plan !== "pro") return fail("Recurso do plano Premium.", 403);
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return fail("Confira as linhas selecionadas.");
 

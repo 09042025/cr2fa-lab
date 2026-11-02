@@ -6,7 +6,7 @@ import { NoticiasTab } from "../../src/NoticiasTab";
 import { C } from "../../src/theme";
 import { Card, H2, Muted, ProBadge, ProGate, Screen } from "../../src/ui";
 
-// Mesma divisão do site: Chat (só chat-geral livre), Feed e Notícias livres, Lives VIP é Pró.
+// Mesma divisão do site: Chat (só chat-geral livre), Feed e Notícias livres, Lives VIP é Premium.
 const TABS = ["Chat", "Feed", "Notícias", "Lives VIP"] as const;
 const CANAIS = [
   { nome: "chat-geral", pro: false },
@@ -55,13 +55,13 @@ export default function Comunidade() {
   const [canal, setCanal] = useState("chat-geral");
   const pro = CANAIS.find((c) => c.nome === canal)?.pro ?? false;
   return (
-    <Screen title="Comunidade">
+    <Screen title="White Flame Society">
       <SegTabs items={TABS} value={tab} onChange={setTab} badge={(t) => t === "Lives VIP"} />
       {tab === "Chat" && (
         <>
           <ListPick prefix="# " items={CANAIS.map((c) => c.nome)} value={canal} onChange={setCanal} badge={(n) => !!CANAIS.find((c) => c.nome === n)?.pro} />
           {pro ? (
-            <ProGate feature={`${canal} (exclusivo do plano Pró)`}><ChatTab channel={canal} /></ProGate>
+            <ProGate feature={`${canal} (exclusivo do plano Premium)`}><ChatTab channel={canal} /></ProGate>
           ) : (
             <ChatTab channel="chat-geral" />
           )}
@@ -69,7 +69,7 @@ export default function Comunidade() {
       )}
       {tab === "Feed" && <FeedTab />}
       {tab === "Notícias" && <NoticiasTab />}
-      {tab === "Lives VIP" && <ProGate feature="Lives VIP (exclusivo do plano Pró)"><Card><H2>Ao vivo</H2><Muted>A live do canal @EMERSON-NIZA aparece aqui.</Muted></Card></ProGate>}
+      {tab === "Lives VIP" && <ProGate feature="Lives VIP (exclusivo do plano Premium)"><Card><H2>Ao vivo</H2><Muted>A live do canal @EMERSON-NIZA aparece aqui.</Muted></Card></ProGate>}
     </Screen>
   );
 }

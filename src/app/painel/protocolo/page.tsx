@@ -10,7 +10,7 @@ export default async function ProtocolPage() {
     return (
       <>
         <PageTitle title="Protocolo CR2FA" subtitle="Cinco blocos de 20%. Diversificação em duas camadas." />
-        <Locked feature="Protocolo CR2FA (exclusivo do plano Pró)" text="A calculadora e a metodologia completa do Protocolo CR2FA fazem parte do plano Pró." />
+        <Locked feature="Protocolo CR2FA (exclusivo do plano Premium)" text="A calculadora e a metodologia completa do Protocolo CR2FA fazem parte do plano Premium." />
       </>
     );
   }

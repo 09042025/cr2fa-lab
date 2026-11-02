@@ -19,7 +19,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
     return (
       <>
         <PageTitle title="HUB DEFI" subtitle="Pools de liquidez e rendimento em dezenas de redes." />
-        <Locked feature="HUB DEFI (exclusivo do plano Pró)" text="Os pools de liquidez e rendimento, com filtros por rede, DEX, TVL e simulador de retorno, fazem parte do plano Pró." />
+        <Locked feature="HUB DEFI (exclusivo do plano Premium)" text="Os pools de liquidez e rendimento, com filtros por rede, DEX, TVL e simulador de retorno, fazem parte do plano Premium." />
       </>
     );
   }
@@ -102,7 +102,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
             </div>
           </form>
         ) : (
-          <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Filtros por rede, DEX, TVL, volume e simulador de retorno no plano Pró.</div>
+          <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Filtros por rede, DEX, TVL, volume e simulador de retorno no plano Premium.</div>
         )}
 
         {pools.data && (

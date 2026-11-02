@@ -3,7 +3,7 @@
  * Sem dependências de servidor: usado tanto pela API quanto pela tela.
  */
 
-/** Plano Grátis: quantos indicadores ao mesmo tempo. O Pró não tem limite. */
+/** Plano Grátis: quantos indicadores ao mesmo tempo. O Premium não tem limite. */
 export const FREE_MAX_INDICATORS = 2;
 
 export type Fmt = "ratio" | "usd" | "compact" | "pct" | "eh" | "trillion";

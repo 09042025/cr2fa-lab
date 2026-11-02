@@ -3,7 +3,7 @@ import { fail, json } from "@/lib/http";
 import { getCryptoMarkets } from "@/lib/market";
 import { FREE_LIMITS } from "@/lib/plans";
 
-/** Ranking de criptomoedas para o app. Grátis vê o início da lista; Pró vê tudo (mesma regra do site). */
+/** Ranking de criptomoedas para o app. Grátis vê o início da lista; Premium vê tudo (mesma regra do site). */
 export async function GET() {
   const user = await getUser();
   if (!user) return fail("Sessão expirada. Entre de novo.", 401);

@@ -49,7 +49,7 @@ export default function Entrar() {
           <Text style={{ color: C.white, fontWeight: "600" }}>Modo de teste (só aparece no desenvolvimento)</Text>
           <View style={{ gap: 10, marginTop: 6 }}>
             <GoldButton label="Ver como plano Grátis" ghost onPress={() => signInDemo("free")} />
-            <GoldButton label="Ver como plano Pró" ghost onPress={() => signInDemo("pro")} />
+            <GoldButton label="Ver como plano Premium" ghost onPress={() => signInDemo("pro")} />
           </View>
         </Card>
       )}

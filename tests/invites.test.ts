@@ -7,7 +7,7 @@ import { inviteEmail } from "../src/lib/mail";
 const mk = (email: string, role = "user") => Number(db().prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, 'Lia', 'x', ?)").run(email, role).lastInsertRowid);
 const row = (id: number) => db().prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow;
 
-test("convite VIP libera o Pró por N dias e só vale uma vez", () => {
+test("convite VIP libera o Premium por N dias e só vale uma vez", () => {
   const adm = mk("i1@t.com", "admin"), u = mk("i2@t.com"), v = mk("i3@t.com");
   const inv = createInvite(adm, { days: 90, validDays: 7, note: "Boas-vindas" });
   assert.equal(inviteStatus(inv), "pendente");
@@ -28,7 +28,7 @@ test("convite nominal só vale para o e-mail certo; admin não usa; soma ao temp
   assert.equal(bad.ok, false);
   assert.equal(effectivePlan(row(outro)), "free");
   assert.equal(redeemInvite(inv.code, adm).ok, false);
-  // já tinha 10 dias de Pró: soma
+  // já tinha 10 dias de Premium: soma
   db().prepare("UPDATE users SET plan = 'pro', plan_expires_at = ? WHERE id = ?").run(now() + 10 * 86400, alvo);
   const ok = redeemInvite(inv.code, alvo);
   assert.ok(ok.ok);

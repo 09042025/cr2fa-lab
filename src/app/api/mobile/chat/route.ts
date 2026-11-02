@@ -2,14 +2,14 @@ import { getUser } from "@/lib/auth";
 import { canPost, canView, findChannel, isBanned, listMessages, REACTIONS, REPORT_REASONS } from "@/lib/community";
 import { fail, json } from "@/lib/http";
 
-/** Mensagens de um canal para o app. Grátis só lê os canais livres (chat-geral); o resto é Pró. */
+/** Mensagens de um canal para o app. Grátis só lê os canais livres (chat-geral); o resto é Premium. */
 export async function GET(req: Request) {
   const user = await getUser();
   if (!user) return fail("Sessão expirada. Entre de novo.", 401);
   const slug = new URL(req.url).searchParams.get("c") ?? "chat-geral";
   const ch = findChannel(slug, user.role === "admin");
   if (ch.slug !== slug) return fail("Canal inválido.", 404);
-  if (!canView(ch, user)) return fail("Este canal é exclusivo do plano Pró.", 403);
+  if (!canView(ch, user)) return fail("Este canal é exclusivo do plano Premium.", 403);
   const banned = user.role !== "admin" && isBanned(user.id);
   return json({
     channel: { slug: ch.slug, name: ch.name, description: ch.description },

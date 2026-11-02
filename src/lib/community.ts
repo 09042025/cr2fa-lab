@@ -79,7 +79,7 @@ export function findChannel(slug: string | undefined, isAdmin: boolean): Channel
   return all.find((c) => c.slug === slug) ?? all.find((c) => c.slug === "chat-geral")!;
 }
 
-/** Quem pode ler o canal: Pró vê todos; Grátis só os canais marcados como livres. */
+/** Quem pode ler o canal: Premium vê todos; Grátis só os canais marcados como livres. */
 export function canView(ch: Channel, user: { role: string; plan: string }): boolean {
   return user.role === "admin" || user.plan === "pro" || !!ch.free;
 }

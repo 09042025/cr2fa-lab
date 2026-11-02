@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
 import { getMember } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { CommunityTabs } from "@/components/CommunityTabs";
+import { CommunityTabs, PremiumBackdrop } from "@/components/CommunityTabs";
 import { MobileDrawer } from "@/components/MobileDrawer";
 
 type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean };
@@ -19,7 +19,7 @@ type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; save
 const FEED: NavItem = { href: "/painel/feed", label: "Feed" };
 const OTHERS: NavItem[] = [
   { href: "/painel/acoes", label: "Ações" },
-  { href: "/painel/comunidade", label: "Comunidade", pro: true },
+  { href: "/painel/comunidade", label: "White Flame Society", pro: true },
   { href: "/painel/cripto", label: "Cripto" },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
   { href: "/painel/lives", label: "Lives Abertas" },
@@ -71,22 +71,23 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <div className="mt-4 shrink-0 border-t border-line pt-4">
             <LanguageSwitcher className="mb-3 w-full" />
             <p className="text-xs">
-              Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{user.plan === "pro" ? "Pró" : "Grátis"}</span>
+              Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{user.plan === "pro" ? "Premium" : "Grátis"}</span>
               {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-muted"> {user.onTrial ? "(teste) " : ""}até {date(user.planExpiresAt)}</span> : null}
             </p>
           </div>
         </div>
       </MobileDrawer>
-      <main className="min-w-0 flex-1">
+      <main className="relative isolate min-w-0 flex-1">
+        <PremiumBackdrop />
         {user.trialAvailable && (
           <div className="card mb-5 flex flex-col gap-3 border-gold/50 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm"><span className="font-semibold text-gold-soft">Teste o Pró por {trialDays()} dias, sem pagar.</span> <span className="text-muted">Sem cartão e sem cobrança no fim.</span></p>
+            <p className="text-sm"><span className="font-semibold text-gold-soft">Teste o Premium por {trialDays()} dias, sem pagar.</span> <span className="text-muted">Sem cartão e sem cobrança no fim.</span></p>
             <TrialButton days={trialDays()} className="btn btn-gold whitespace-nowrap" />
           </div>
         )}
         {user.onTrial && user.planExpiresAt ? (
           <p className="mb-5 rounded-lg border border-line bg-panel-2 px-4 py-2 text-sm text-muted">
-            Você está no teste grátis do Pró até <span className="text-gold-soft">{date(user.planExpiresAt)}</span>. <Link href="/planos" className="text-gold-soft underline">Ver planos</Link>
+            Você está no teste grátis do Premium até <span className="text-gold-soft">{date(user.planExpiresAt)}</span>. <Link href="/planos" className="text-gold-soft underline">Ver planos</Link>
           </p>
         ) : null}
         <CommunityTabs />

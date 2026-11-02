@@ -9,7 +9,7 @@ function newUser(email: string): number {
 }
 const user = (id: number) => db().prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow;
 
-test("pagar libera o Pró e é idempotente", () => {
+test("pagar libera o Premium e é idempotente", () => {
   const id = newUser("a@t.com");
   const order = createOrder({ userId: id, period: "monthly", method: "mercadopago" });
   assert.equal(order.amount_cents, priceCents("monthly"));
@@ -43,7 +43,7 @@ test("o mesmo hash de transação não vale para dois pedidos", () => {
   assert.equal(getOrder(o2.id)!.status, "pending"); // transação desfeita
 });
 
-test("Pró expirado volta a ser grátis; admin é sempre Pró", () => {
+test("Premium expirado volta a ser grátis; admin é sempre Premium", () => {
   assert.equal(effectivePlan({ plan: "pro", plan_expires_at: now() - 10, role: "user" }), "free");
   assert.equal(effectivePlan({ plan: "free", plan_expires_at: null, role: "admin" }), "pro");
 });

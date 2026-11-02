@@ -30,12 +30,12 @@ export default async function PlansPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       <div className="mb-6 flex items-center justify-between"><Logo /><Link href="/painel" className="btn btn-ghost">Voltar ao painel</Link></div>
-      <PageTitle title="Planos e pagamento" subtitle="Pague por Pix, cartão de crédito ou cripto. O Pró é liberado assim que o pagamento é confirmado." />
+      <PageTitle title="Planos e pagamento" subtitle="Pague por Pix, cartão de crédito ou cripto. O Premium é liberado assim que o pagamento é confirmado." />
 
       <div className="card mb-6 p-5">
         <p className="text-sm text-muted">Seu plano</p>
         <p className="text-xl font-bold text-gold-soft">
-          {user.plan === "pro" ? "Pró" : "Grátis"}
+          {user.plan === "pro" ? "Premium" : "Grátis"}
           {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-sm font-normal text-muted"> · {user.onTrial ? "teste grátis até" : "ativo até"} {date(user.planExpiresAt)}</span> : null}
           {user.role === "admin" ? <span className="text-sm font-normal text-muted"> · acesso total (administrador)</span> : null}
         </p>
@@ -44,8 +44,8 @@ export default async function PlansPage() {
 
       {user.trialAvailable && (
         <div className="card mb-6 border-gold/50 p-5">
-          <h2 className="font-semibold text-gold-soft">Teste o Pró por {trialDays()} dias, sem pagar</h2>
-          <p className="mb-3 mt-1 text-sm text-muted">Libera todos os recursos do Pró agora. Não pedimos cartão e nada é cobrado no fim: o plano volta para o Grátis, e você assina só se quiser.</p>
+          <h2 className="font-semibold text-gold-soft">Teste o Premium por {trialDays()} dias, sem pagar</h2>
+          <p className="mb-3 mt-1 text-sm text-muted">Libera todos os recursos do Premium agora. Não pedimos cartão e nada é cobrado no fim: o plano volta para o Grátis, e você assina só se quiser.</p>
           <TrialButton days={trialDays()} />
         </div>
       )}
