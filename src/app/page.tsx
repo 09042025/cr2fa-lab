@@ -10,7 +10,7 @@ import wolf from "@/assets/wfs/logo-wolf.webp";
 import { Disclaimer, Logo } from "@/components/ui";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { trialDays } from "@/lib/trial";
-import pizza from "@/assets/protocolo-pizza.webp";
+import { ProtocolPizza } from "@/components/ProtocolPizza";
 import autor from "@/assets/emerson-niza.webp";
 import autorAvatar from "@/assets/emerson-niza-avatar.webp";
 
@@ -80,13 +80,7 @@ export default async function Home() {
         </div>
         <div className="relative isolate flex justify-center">
           <div aria-hidden className="absolute left-1/2 top-1/2 -z-10 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/25 blur-3xl" />
-          <Image
-            src={pizza}
-            alt="Protocolo CR2FA: cinco blocos de 20% — criptomoedas, fundos imobiliários, ações, renda fixa e reserva para oportunidades"
-            priority
-            unoptimized
-            className="float-slow w-full max-w-[470px] drop-shadow-[0_28px_36px_rgba(0,0,0,0.6)]"
-          />
+          <ProtocolPizza priority className="float-slow w-full max-w-[470px] drop-shadow-[0_28px_36px_rgba(0,0,0,0.6)]" />
         </div>
       </section>
 
