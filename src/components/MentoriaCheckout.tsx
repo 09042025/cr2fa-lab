@@ -113,3 +113,23 @@ export function SpotsBadge({ left, limit, turma }: { left: number; limit: number
     </span>
   );
 }
+
+export function GuestForm() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  async function go(e: React.FormEvent) {
+    e.preventDefault();
+    const r = await fetch("/api/admin/mentoria", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "add-guest", email }) });
+    const d = await r.json().catch(() => ({}));
+    setMsg(r.ok ? { ok: true, t: "Convidado adicionado. Ocupa uma vaga da turma." } : { ok: false, t: d.error ?? "Não foi possível." });
+    if (r.ok) { setEmail(""); router.refresh(); }
+  }
+  return (
+    <form onSubmit={go} className="mb-4 flex flex-wrap items-center gap-2">
+      <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail do membro convidado (sem pagamento)" aria-label="E-mail do convidado" className="input min-w-[18rem] flex-1" />
+      <button className="btn btn-gold" type="submit">Convidar para a mentoria</button>
+      {msg && <span role="status" className={`text-sm ${msg.ok ? "text-up" : "text-down"}`}>{msg.t}</span>}
+    </form>
+  );
+}
