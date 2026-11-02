@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import wolf from "@/assets/wfs/logo-wolf.webp";
 import { requireUser } from "@/lib/auth";
 import { Locked, PageTitle } from "@/components/ui";
 import { BIZ_DISCLAIMER, ListingCard } from "@/components/BizBits";
@@ -39,12 +41,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
   return (
     <>
       <section className="relative mb-6 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-to-br from-panel-2 via-panel to-ink p-6 md:p-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold/80">White Flame Society</p>
-        <h1 className="mt-1 font-display text-2xl font-bold text-gold-soft md:text-4xl">Negócios dos membros</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted md:text-base">
+        <Image src={wolf} alt="" aria-hidden unoptimized priority className="pointer-events-none absolute right-0 top-1/2 hidden h-[128%] w-auto max-w-none -translate-y-1/2 select-none md:block"
+          style={{ mixBlendMode: "screen", opacity: 0.95, WebkitMaskImage: "radial-gradient(circle at center, #000 33%, transparent 49%), radial-gradient(ellipse 50% 13% at 50% 64%, #000 55%, transparent 100%)", maskImage: "radial-gradient(circle at center, #000 33%, transparent 49%), radial-gradient(ellipse 50% 13% at 50% 64%, #000 55%, transparent 100%)" }} />
+        <p className="relative text-[11px] font-semibold uppercase tracking-[0.25em] text-gold/80">White Flame Society</p>
+        <h1 className="relative mt-1 font-display text-2xl font-bold text-gold-soft md:text-4xl">Negócios dos membros</h1>
+        <p className="relative mt-3 max-w-3xl text-sm leading-relaxed text-muted md:max-w-[58%] md:text-base">
           Criar riqueza também é fazer negócios entre nós. Aqui, membros que são profissionais e pequenos empreendedores ganham a exposição que as redes sociais nem sempre dão, e quem precisa de um serviço ou produto encontra gente da própria comunidade, com histórico, indicações e cases à vista.
         </p>
-        <div className="mt-5 flex flex-wrap gap-3">
+        <div className="relative mt-5 flex flex-wrap gap-3">
           <Link href="/painel/negocios/novo" className="rounded-lg bg-gradient-to-b from-gold-soft to-gold px-5 py-2.5 text-sm font-bold text-black">Anunciar meu negócio</Link>
           <a href="#anuncios" className="rounded-lg border border-gold/40 px-5 py-2.5 text-sm font-semibold text-gold-soft hover:bg-gold/10">Encontrar profissionais</a>
         </div>
