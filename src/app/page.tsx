@@ -192,7 +192,7 @@ export default async function Home() {
             🎁 Novo por aqui? Use o Premium grátis por {trialDays()} dias, sem cartão e sem compromisso.
           </p>
         )}
-        <div className="mt-6 grid gap-5 lg:grid-cols-3">
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
           <div className="card p-6">
             <h3 className="text-lg font-semibold">Grátis</h3>
             <p className="mt-1 text-3xl font-bold">R$ 0</p>
@@ -221,23 +221,10 @@ export default async function Home() {
             {(!user || user.trialAvailable) && <p className="mt-4 text-sm text-gold-soft">Teste grátis por {trialDays()} dias, sem cartão.</p>}
             <Link href={user ? "/planos" : "/cadastrar"} className="btn btn-gold mt-3 w-full">{!user || user.trialAvailable ? `Testar ${trialDays()} dias grátis` : "Assinar o Premium"}</Link>
           </div>
-          <div className="card relative overflow-hidden border-sky-300/50 p-6">
-            <Diamond size={64} className="absolute right-4 top-4 drop-shadow-[0_0_16px_rgba(150,200,255,0.45)]" />
-            <h3 className="text-lg font-semibold text-gold-soft">Plano Diamond</h3>
-            <p className="text-xs text-sky-200/90">Tudo do Premium + Mentoria</p>
-            <p className="mt-1 text-3xl font-bold">{formatBRL(diamondPriceCents())}</p>
-            <p className="text-sm text-muted">vitalício, pagamento único</p>
-            <ul className="mt-4 space-y-2 text-sm text-muted">
-              {DIAMOND_FEATURES.map((f) => (
-                <li key={f}>✓ {f}</li>
-              ))}
-            </ul>
-            <Link href={user ? "/planos#diamond" : "/cadastrar"} className="btn btn-gold mt-5 w-full">{user ? "Contratar o Diamond" : "Criar conta e contratar"}</Link>
-          </div>
         </div>
       </section>
 
-      <section id="mentoria" className="card relative mb-14 overflow-hidden border-sky-300/40 p-6 md:p-8">
+      <section id="mentoria" className="card relative mb-8 overflow-hidden border-sky-300/40 p-6 md:p-8">
         <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[28%] items-center justify-center md:flex"><Diamond size={170} className="drop-shadow-[0_0_30px_rgba(120,180,255,0.4)]" /></div>
         <div className="relative md:max-w-[70%]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-200/90">Aberta a todos, inclusive ao plano Grátis</p>
@@ -256,6 +243,21 @@ export default async function Home() {
             <Link href={user ? "/painel/mentoria" : "/cadastrar"} className="btn btn-gold">{sp2.full ? "Ver detalhes" : user ? "Conhecer e contratar" : "Criar conta e conhecer"}</Link>
             <Link href={user ? "/planos#diamond" : "/cadastrar"} className="btn btn-ghost">Ou leve junto o {DIAMOND_NAME.split(" (")[0]}</Link>
           </div>
+        </div>
+      </section>
+
+      <section id="diamond" className="card relative mb-14 overflow-hidden border-sky-300/60 bg-gradient-to-br from-panel-2 via-panel to-ink p-6 md:p-8">
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[26%] items-center justify-center md:flex"><Diamond size={150} className="drop-shadow-[0_0_30px_rgba(120,180,255,0.45)]" /></div>
+        <div className="relative md:max-w-[72%]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-200/90">O plano completo · Tudo do Premium + Mentoria</p>
+          <h2 className="mt-1 font-display text-3xl font-bold text-gold-soft">Plano Diamond</h2>
+          <p className="mt-1 flex flex-wrap items-baseline gap-2"><span className="text-4xl font-bold">{formatBRL(diamondPriceCents())}</span><span className="text-sm text-muted">vitalício, pagamento único · sem limite de vagas</span></p>
+          <ul className="mt-4 grid gap-2 text-sm text-muted sm:grid-cols-2">
+            {DIAMOND_FEATURES.map((f) => (
+              <li key={f}>✓ {f}</li>
+            ))}
+          </ul>
+          <Link href={user ? "/planos#diamond" : "/cadastrar"} className="btn btn-gold mt-6">{user ? "Contratar o Diamond" : "Criar conta e contratar"}</Link>
         </div>
       </section>
 

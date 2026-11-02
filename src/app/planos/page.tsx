@@ -64,8 +64,18 @@ export default async function PlansPage() {
         pending={pending}
       />
 
+      <section id="mentoria" className="mt-10">
+        <div className="card mb-4 border-sky-300/30 p-5">
+          <h2 className="flex items-center gap-2 font-display text-xl font-bold text-gold-soft"><Diamond size={26} /> Mentoria com Niza · Plano Diamond</h2>
+          <p className="mt-2 text-sm text-muted">{MENTORIA_SESSIONS} aulas particulares de 1 hora (1 por mês) via Google Meet ou Teams, com foco em criptomoedas: da primeira corretora e do Pix até o Bitcoin na sua própria carteira, avaliação da sua carteira pelo Protocolo CR2FA e o racional dos pools de liquidez. A aula 01 avalia o seu nível de conhecimento. Pagamento único, à parte do Premium, e sem recomendação de ativos.</p>
+          <p className="mt-3"><SpotsBadge left={sp2.left} limit={sp2.limit} turma={sp2.turma} /></p>
+          <p className="mt-2 text-sm"><Link href="/painel/mentoria" className="text-gold-soft underline">Ver todos os detalhes da mentoria</Link></p>
+        </div>
+        {sp2.full ? <SoldOut /> : <MentoriaCheckout {...mentoriaCheckoutProps(orders)} />}
+      </section>
+
       {!diamond && (
-        <details id="diamond" className="group mt-10 overflow-hidden rounded-2xl border border-sky-300/40 bg-gradient-to-br from-panel-2 via-panel to-ink open:border-gold/60">
+        <details id="diamond" className="group mt-8 overflow-hidden rounded-2xl border border-sky-300/40 bg-gradient-to-br from-panel-2 via-panel to-ink open:border-gold/60">
           <summary className="flex cursor-pointer list-none flex-wrap items-center gap-4 p-5 [&::-webkit-details-marker]:hidden">
             <Diamond size={72} className="shrink-0 drop-shadow-[0_0_18px_rgba(150,200,255,0.45)]" />
             <div className="min-w-0 flex-1">
@@ -83,16 +93,6 @@ export default async function PlansPage() {
           </div>
         </details>
       )}
-
-      <section id="mentoria" className="mt-10">
-        <div className="card mb-4 border-sky-300/30 p-5">
-          <h2 className="flex items-center gap-2 font-display text-xl font-bold text-gold-soft"><Diamond size={26} /> Mentoria com Niza · Plano Diamond</h2>
-          <p className="mt-2 text-sm text-muted">{MENTORIA_SESSIONS} aulas particulares de 1 hora (1 por mês) via Google Meet ou Teams, com foco em criptomoedas: da primeira corretora e do Pix até o Bitcoin na sua própria carteira, avaliação da sua carteira pelo Protocolo CR2FA e o racional dos pools de liquidez. A aula 01 avalia o seu nível de conhecimento. Pagamento único, à parte do Premium, e sem recomendação de ativos.</p>
-          <p className="mt-3"><SpotsBadge left={sp2.left} limit={sp2.limit} turma={sp2.turma} /></p>
-          <p className="mt-2 text-sm"><Link href="/painel/mentoria" className="text-gold-soft underline">Ver todos os detalhes da mentoria</Link></p>
-        </div>
-        {sp2.full ? <SoldOut /> : <MentoriaCheckout {...mentoriaCheckoutProps(orders)} />}
-      </section>
 
       {orders.length > 0 && (
         <section className="card mt-8 p-4">
