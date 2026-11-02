@@ -57,3 +57,16 @@ test("Evento Diamond Black VIP: só Black (ou admin) se inscreve", () => {
   assert.ok("error" in register(ev.id, { id: pro, role: "user", plan: "pro" }));
   assert.deepEqual(register(ev.id, { id: blk, role: "user", plan: "pro" }), { status: "pending" });
 });
+
+import { addGuest, openNewTurma, spots } from "../src/lib/mentoria";
+test("convidado na mentoria ocupa uma vaga real da turma, sem duplicar", () => {
+  const u = mk("gst@x.com");
+  const before = spots().left;
+  assert.deepEqual(addGuest("GST@x.com"), { ok: true });
+  assert.equal(spots().left, before - 1);
+  assert.ok("error" in addGuest("gst@x.com"));
+  assert.ok("error" in addGuest("ninguem@x.com"));
+  openNewTurma();
+  assert.equal(spots().left, spots().limit);
+  void u;
+});

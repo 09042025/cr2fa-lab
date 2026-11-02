@@ -48,3 +48,14 @@ export function spots(): Spots {
   const taken = paid + reserved;
   return { turma, limit, taken, left: Math.max(0, limit - taken), full: taken >= limit };
 }
+
+/** Convida um membro para a mentoria sem pagamento (só o administrador). Ocupa uma vaga da turma atual. */
+export function addGuest(email: string): { ok: true } | { error: string } {
+  const u = db().prepare("SELECT id FROM users WHERE lower(email) = lower(?)").get(email.trim()) as { id: number } | undefined;
+  if (!u) return { error: "Não existe conta com esse e-mail." };
+  const turma = currentTurma();
+  if (db().prepare("SELECT 1 FROM mentorships WHERE user_id = ? AND turma = ? AND kind = 'mentoria'").get(u.id, turma)) return { error: "Esse membro já está nesta turma." };
+  if (spots().full) return { error: "A turma está cheia. Abra uma nova turma para convidar mais alunos." };
+  db().prepare("INSERT INTO mentorships (user_id, order_id, kind, turma) VALUES (?, NULL, 'mentoria', ?)").run(u.id, turma);
+  return { ok: true };
+}

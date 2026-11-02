@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { Diamond } from "@/components/Diamond";
-import { MentoriaCheckout, NewTurmaButton, SessionsAdmin, SoldOut, SpotsBadge } from "@/components/MentoriaCheckout";
+import { GuestForm, MentoriaCheckout, NewTurmaButton, SessionsAdmin, SoldOut, SpotsBadge } from "@/components/MentoriaCheckout";
 import { mentoriaCheckoutProps } from "@/lib/mentoria-view";
 import { listAll, listMine, spots as getSpots } from "@/lib/mentoria";
 import { expireStaleOrders, listOrdersForUser } from "@/lib/orders";
@@ -84,6 +84,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       {user.role === "admin" && (
         <section className="card mt-8 p-5">
           <div className="mb-3 flex flex-wrap items-center gap-3"><h2 className="font-display text-lg font-bold text-gold-soft">Alunos da mentoria (só você vê)</h2><SpotsBadge left={sp2.left} limit={sp2.limit} turma={sp2.turma} /><NewTurmaButton /></div>
+          <GuestForm />
           {all.length === 0 ? <p className="text-sm text-muted">Nenhuma mentoria contratada ainda.</p> : (
             <div className="overflow-x-auto">
               <table className="data">
