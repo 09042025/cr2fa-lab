@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export interface NetworkOption { id: string; name: string; assets: string[] }
-export interface CryptoOrderView { orderId: string; network: string; asset: string; address: string; amount: string; expiresAt: number | null }
+export interface CryptoOrderView { orderId: string; network: string; asset: string; address: string; amount: string; expiresAt: number | null; product?: string }
 
 type Period = "monthly" | "yearly";
 type Method = "pix_card" | "crypto";
@@ -104,7 +104,7 @@ export function Checkout({
   );
 }
 
-function CryptoOrderCard({ order, onPaid }: { order: CryptoOrderView; onPaid: () => void }) {
+export function CryptoOrderCard({ order, onPaid }: { order: CryptoOrderView; onPaid: () => void }) {
   const [hash, setHash] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -123,7 +123,7 @@ function CryptoOrderCard({ order, onPaid }: { order: CryptoOrderView; onPaid: ()
     const res = await fetch("/api/checkout/crypto/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: order.orderId, txHash: hash }) });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
-    if (data.ok) { setMsg({ ok: true, text: "Pagamento confirmado! O plano Premium foi liberado." }); setTimeout(onPaid, 1200); }
+    if (data.ok) { setMsg({ ok: true, text: order.product === "mentoria" ? "Pagamento confirmado! Sua Mentoria com Niza está ativa." : "Pagamento confirmado! O plano Premium foi liberado." }); setTimeout(onPaid, 1200); }
     else setMsg({ ok: false, text: data.reason || data.error || "Não foi possível confirmar." });
   }
 

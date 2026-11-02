@@ -36,13 +36,15 @@ async function mp<T>(path: string, init: RequestInit = {}): Promise<T> {
  */
 export async function createCheckout(order: OrderRow, payerEmail: string): Promise<{ url: string }> {
   const base = appUrl();
+  const mentoria = order.product === "mentoria";
+  const back = mentoria ? `${base}/painel/mentoria` : `${base}/planos`;
   const pref = await mp<{ init_point: string }>("/checkout/preferences", {
     method: "POST",
     body: JSON.stringify({
       items: [
         {
-          id: `pro-${order.period}`,
-          title: `Plano Premium ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
+          id: mentoria ? "mentoria-diamond" : `pro-${order.period}`,
+          title: mentoria ? `Mentoria com Niza (Diamond, 12 aulas) - ${process.env.APP_NAME || "NIZA INVEST"}` : `Plano Premium ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
           quantity: 1,
           currency_id: "BRL",
           unit_price: order.amount_cents / 100,
@@ -52,12 +54,12 @@ export async function createCheckout(order: OrderRow, payerEmail: string): Promi
       external_reference: order.id,
       notification_url: `${base}/api/webhooks/mercadopago`,
       back_urls: {
-        success: `${base}/planos?pedido=${order.id}`,
-        pending: `${base}/planos?pedido=${order.id}`,
-        failure: `${base}/planos?pedido=${order.id}&falhou=1`,
+        success: `${back}?pedido=${order.id}`,
+        pending: `${back}?pedido=${order.id}`,
+        failure: `${back}?pedido=${order.id}&falhou=1`,
       },
       auto_return: "approved",
-      payment_methods: { installments: 12 },
+      payment_methods: { installments: mentoria ? 12 : 12 },
     }),
   });
   return { url: pref.init_point };

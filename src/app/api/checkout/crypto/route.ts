@@ -3,7 +3,7 @@ import { getUser } from "@/lib/auth";
 import { createCryptoOrder, formatUnits, findNetwork } from "@/lib/crypto";
 import { fail, json, sameOrigin } from "@/lib/http";
 
-const schema = z.object({ period: z.enum(["monthly", "yearly"]), network: z.string().max(20), asset: z.string().max(10) });
+const schema = z.object({ period: z.enum(["monthly", "yearly"]).default("monthly"), product: z.enum(["premium", "mentoria"]).default("premium"), network: z.string().max(20), asset: z.string().max(10) });
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return fail("Origem inválida.", 403);
@@ -17,6 +17,7 @@ export async function POST(req: Request) {
     const asset = net.assets.find((a) => a.symbol === order.crypto_asset)!;
     return json({
       orderId: order.id,
+      product: order.product,
       network: net.name,
       asset: asset.symbol,
       address: order.crypto_address,

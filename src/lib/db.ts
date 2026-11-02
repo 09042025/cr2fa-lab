@@ -106,6 +106,8 @@ function migrate(db: Database.Database) {
   if (!cols.some((c) => c.name === "source")) db.exec("ALTER TABLE holdings ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'");
   // Controle dos lembretes de renovação: para qual vencimento já avisamos e em que etapa (1 = 7 dias antes, 2 = 1 dia antes).
   const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  const orderCols = db.prepare("PRAGMA table_info(orders)").all() as { name: string }[];
+  if (!orderCols.some((c) => c.name === "product")) db.exec("ALTER TABLE orders ADD COLUMN product TEXT NOT NULL DEFAULT 'premium'");
   if (!userCols.some((c) => c.name === "reminder_expiry")) db.exec("ALTER TABLE users ADD COLUMN reminder_expiry INTEGER");
   if (!userCols.some((c) => c.name === "reminder_stage")) db.exec("ALTER TABLE users ADD COLUMN reminder_stage INTEGER NOT NULL DEFAULT 0");
   // Teste grátis do Premium: guarda quando ele termina. Preenchido = o teste já foi usado (cada conta tem direito a um).
@@ -294,6 +296,13 @@ function migrate(db: Database.Database) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (listing_id, user_id)
     );
+    CREATE TABLE IF NOT EXISTS mentorships (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      order_id TEXT UNIQUE REFERENCES orders(id) ON DELETE SET NULL,
+      sessions_done INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
     CREATE TABLE IF NOT EXISTS stories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -369,6 +378,7 @@ export interface OrderRow {
   id: string;
   user_id: number;
   period: "monthly" | "yearly";
+  product: "premium" | "mentoria";
   amount_cents: number;
   method: "mercadopago" | "crypto";
   status: "pending" | "paid" | "expired";

@@ -9,6 +9,10 @@ import { Disclaimer, Logo, PageTitle } from "@/components/ui";
 import { date, dateTime } from "@/lib/format";
 import { now } from "@/lib/db";
 import { TrialButton } from "@/components/TrialButton";
+import { MentoriaCheckout } from "@/components/MentoriaCheckout";
+import { Diamond } from "@/components/Diamond";
+import { mentoriaCheckoutProps } from "@/lib/mentoria-view";
+import { MENTORIA_SESSIONS } from "@/lib/plans";
 import { trialDays } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
@@ -20,11 +24,11 @@ export default async function PlansPage() {
   const orders = listOrdersForUser(user.id);
 
   const pending: CryptoOrderView[] = orders
-    .filter((o) => o.method === "crypto" && o.status === "pending" && o.expires_at && o.expires_at > now() && o.crypto_network && o.crypto_amount)
+    .filter((o) => o.product !== "mentoria" && o.method === "crypto" && o.status === "pending" && o.expires_at && o.expires_at > now() && o.crypto_network && o.crypto_amount)
     .map((o) => {
       const net = findNetwork(o.crypto_network!)!;
       const asset = net.assets.find((a) => a.symbol === o.crypto_asset)!;
-      return { orderId: o.id, network: net.name, asset: asset.symbol, address: o.crypto_address!, amount: formatUnits(o.crypto_amount!, asset.decimals), expiresAt: o.expires_at };
+      return { product: o.product, orderId: o.id, network: net.name, asset: asset.symbol, address: o.crypto_address!, amount: formatUnits(o.crypto_amount!, asset.decimals), expiresAt: o.expires_at };
     });
 
   return (
@@ -57,6 +61,15 @@ export default async function PlansPage() {
         pending={pending}
       />
 
+      <section id="mentoria" className="mt-10">
+        <div className="card mb-4 border-sky-300/30 p-5">
+          <h2 className="flex items-center gap-2 font-display text-xl font-bold text-gold-soft"><Diamond size={26} /> Mentoria com Niza · Plano Diamond</h2>
+          <p className="mt-2 text-sm text-muted">{MENTORIA_SESSIONS} aulas particulares de 1 hora (1 por mês) via Google Meet ou Teams, com foco em criptomoedas: da primeira corretora e do Pix até o Bitcoin na sua própria carteira, avaliação da sua carteira pelo Protocolo CR2FA e o racional dos pools de liquidez. A aula 01 avalia o seu nível de conhecimento. Pagamento único, à parte do Premium, e sem recomendação de ativos.</p>
+          <p className="mt-2 text-sm"><Link href="/painel/mentoria" className="text-gold-soft underline">Ver todos os detalhes da mentoria</Link></p>
+        </div>
+        <MentoriaCheckout {...mentoriaCheckoutProps(orders)} />
+      </section>
+
       {orders.length > 0 && (
         <section className="card mt-8 p-4">
           <h2 className="mb-3 font-semibold">Seus pedidos</h2>
@@ -67,7 +80,7 @@ export default async function PlansPage() {
                 {orders.map((o) => (
                   <tr key={o.id}>
                     <td>{dateTime(o.created_at)}</td>
-                    <td>{periodLabel(o.period)}</td>
+                    <td>{o.product === "mentoria" ? "Mentoria Diamond" : periodLabel(o.period)}</td>
                     <td>{o.method === "crypto" ? `${o.crypto_asset} (${findNetwork(o.crypto_network || "")?.name ?? ""})` : "Pix/cartão"}</td>
                     <td className="num">{formatBRL(o.amount_cents)}</td>
                     <td className={o.status === "paid" ? "text-up" : o.status === "expired" ? "text-muted" : "text-gold-soft"}>{o.status === "paid" ? "Pago" : o.status === "expired" ? "Expirado" : "Aguardando"}</td>

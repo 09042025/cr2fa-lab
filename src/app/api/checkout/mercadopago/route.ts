@@ -4,7 +4,7 @@ import { fail, json, sameOrigin } from "@/lib/http";
 import { createCheckout, mercadoPagoEnabled } from "@/lib/mercadopago";
 import { createOrder } from "@/lib/orders";
 
-const schema = z.object({ period: z.enum(["monthly", "yearly"]) });
+const schema = z.object({ period: z.enum(["monthly", "yearly"]).default("monthly"), product: z.enum(["premium", "mentoria"]).default("premium") });
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return fail("Origem inválida.", 403);
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return fail("Plano inválido.");
 
-  const order = createOrder({ userId: user.id, period: parsed.data.period, method: "mercadopago" });
+  const order = createOrder({ userId: user.id, period: parsed.data.period, product: parsed.data.product, method: "mercadopago" });
   try {
     const { url } = await createCheckout(order, user.email);
     return json({ url, orderId: order.id });

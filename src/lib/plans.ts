@@ -45,3 +45,12 @@ export function periodLabel(period: Period): string {
 export function formatBRL(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+export type Product = "premium" | "mentoria";
+export const MENTORIA_SESSIONS = 12;
+
+/** Mentoria com Niza (Diamond): pagamento único. Preço em MENTORIA_PRICE_BRL (padrão R$ 1.500,00). */
+export function mentoriaPriceCents(): number {
+  const v = Number((process.env.MENTORIA_PRICE_BRL || "1500").replace(",", "."));
+  return Number.isFinite(v) && v > 0 ? Math.round(v * 100) : 150000;
+}
