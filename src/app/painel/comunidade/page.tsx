@@ -8,6 +8,8 @@ import { Locked, PageTitle } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 import { LinkPreview } from "@/components/LinkPreview";
 import { RichText } from "@/components/RichText";
+import { AgendaCalendar } from "@/components/AgendaCalendar";
+import { listEvents } from "@/lib/agenda";
 import { EmbossDefs, EmbossedIcon } from "@/components/EmbossedIcon";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const blocked = listBlocked(user.id);
   const reports = isAdmin && ch.slug === "moderador" ? listReports() : [];
   const postReports = isAdmin && ch.slug === "moderador" ? listPostReports() : [];
+  const agenda = allowed && ch.slug === "planejamento-de-reunioes" ? listEvents() : null;
   const firstName = user.name.split(" ")[0].toLowerCase();
 
   return (
@@ -97,6 +100,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
             </div>
           )}
           {!allowed ? <Locked feature={`${ch.name} (exclusivo do plano Premium)`} text="Este espaço da comunidade faz parte do plano Premium. No Grátis você participa do Feed e das Notícias." /> : <>
+          {agenda && <AgendaCalendar events={agenda} isAdmin={isAdmin} />}
           <ul className="flex max-h-[32rem] flex-1 flex-col gap-3 overflow-y-auto pr-1">
             {messages.length === 0 && <li className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center text-sm text-muted"><EmbossedIcon name={ch.icon} size={64} active /><span>Ainda não há mensagens neste canal.{writable ? " Seja o primeiro!" : ""}</span></li>}
             {messages.map((m) => (
