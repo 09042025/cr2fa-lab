@@ -10,7 +10,7 @@
   --color-muted: #93a0c4;
   --color-up: #34d399;
   --color-down: #f87171;
-  --font-display: Georgia, "Times New Roman", serif;
+  --font-display: "Times New Roman", Times, "Liberation Serif", serif;
 }
 
 html {
@@ -128,5 +128,5 @@ body { top: 0 !important; }
 .goog-text-highlight { background: none !important; box-shadow: none !important; }
 font[style] { background: transparent !important; }
 
-/* Georgia usa números "antigos" (2, 0, 5 menores e achatados). Força números alinhados e do mesmo tamanho. */
-.font-display, h1, h2, h3 { font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum" 1; }
+/* Fonte dos títulos: Times tem números alinhados (Georgia desenha 2, 0, 5 menores e achatados). */
+.font-display, h1, h2, h3 { font-variant-numeric: lining-nums; }
