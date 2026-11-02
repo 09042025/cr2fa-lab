@@ -57,10 +57,10 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           </div>
           <nav className="mt-3 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden" aria-label="Principal">
             {NAV.map((n) => n.logo ? (
-              <Link key={n.href} href={n.href} aria-label="White Flame Society (Premium)" title="White Flame Society" className="relative my-1 block shrink-0 overflow-hidden rounded-lg border border-gold/40 shadow-[0_0_18px_rgba(60,120,255,0.18)] transition hover:border-gold hover:shadow-[0_0_22px_rgba(217,169,60,0.35)]">
+              <Link key={n.href} href={n.href} aria-label="White Flame Society (Premium)" title="White Flame Society" className="group relative my-1 flex shrink-0 flex-col items-center gap-1 rounded-xl py-1 transition">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={wfsTitle.src} alt="White Flame Society" className="block h-auto w-full" />
-                <span className="flex justify-center bg-black/70 py-1"><ProBadge /></span>
+                <img src={wfsTitle.src} alt="White Flame Society" className="block h-auto w-full opacity-90 transition group-hover:opacity-100 [mask-image:radial-gradient(ellipse_72%_78%_at_50%_50%,#000_55%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_72%_78%_at_50%_50%,#000_55%,transparent_100%)]" />
+                <ProBadge />
               </Link>
             ) : (
               <Link key={n.href} href={n.href} className={`${ITEM} text-muted hover:text-white`}>
