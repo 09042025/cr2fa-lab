@@ -56,7 +56,7 @@ export const CATEGORIES: Category[] = [
     label: "Estratégia Personalizada",
     channels: [
       { slug: "geral", name: "Pergunte ao Niza", icon: "trend", post: "pro", description: "Tire suas dúvidas do dia a dia sobre mercado e investimentos." },
-      { slug: "planejamento-de-reunioes", name: "Reuniões e Eventos", icon: "calendar", post: "pro", description: "Calendário de lives e reuniões, com os links para entrar e sugestões de temas." },
+      { slug: "planejamento-de-reunioes", name: "Reuniões e Eventos", icon: "calendar", post: "pro", description: "Calendário de Reuniões, Lives e Eventos Presenciais, com os links para entrar e sugestões de temas." },
     ],
   },
   {
