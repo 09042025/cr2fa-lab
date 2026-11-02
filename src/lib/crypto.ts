@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { db, type OrderRow } from "./db";
 import { getSpotBrl } from "./market";
 import { createOrder } from "./orders";
-import type { Period } from "./plans";
+import type { Period, Product } from "./plans";
 
 export type NetworkId = "bitcoin" | "ethereum" | "arbitrum" | "base" | "polygon" | "optimism" | "solana";
 type Family = "evm" | "solana" | "bitcoin";
@@ -116,6 +116,7 @@ function tailFor(asset: AssetDef): number {
 export async function createCryptoOrder(params: {
   userId: number;
   period: Period;
+  product?: Product;
   network: string;
   asset: string;
 }): Promise<OrderRow> {
@@ -128,7 +129,7 @@ export async function createCryptoOrder(params: {
 
   // Cotação primeiro: se falhar, nenhum pedido órfão é criado.
   const spot = await getSpotBrl(asset.priceId);
-  const order = createOrder({ userId: params.userId, period: params.period, method: "crypto", expiresInSec: 30 * 60 });
+  const order = createOrder({ userId: params.userId, period: params.period, product: params.product, method: "crypto", expiresInSec: 30 * 60 });
 
   const taken = new Set(
     (

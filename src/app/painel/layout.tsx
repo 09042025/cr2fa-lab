@@ -12,9 +12,10 @@ import { Avatar } from "@/components/Avatar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import wfsTitle from "@/assets/wfs/title.webp";
 import { CommunityTabs } from "@/components/CommunityTabs";
+import { Diamond } from "@/components/Diamond";
 import { MobileDrawer } from "@/components/MobileDrawer";
 
-type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean; logo?: boolean };
+type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean; logo?: boolean; diamond?: boolean };
 
 /** O Feed é sempre o primeiro (e a página inicial). O resto segue a ordem alfabética. */
 const FEED: NavItem = { href: "/painel/feed", label: "Feed" };
@@ -24,6 +25,7 @@ const OTHERS: NavItem[] = [
   { href: "/painel/cripto", label: "Cripto" },
   { href: "/painel/fiis", label: "Fundos imobiliários" },
   { href: "/painel/lives", label: "Lives Abertas" },
+  { href: "/painel/mentoria", label: "Mentoria com Niza", diamond: true },
   { href: "/painel/feed/mensagens", label: "Mensagens" },
   { href: "/painel/noticias", label: "Notícias" },
   { href: "/planos", label: "Planos e pagamento" },
@@ -64,7 +66,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
               </Link>
             ) : (
               <Link key={n.href} href={n.href} className={`${ITEM} text-muted hover:text-white`}>
-                <span className="flex items-center gap-2">{n.saved && <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z" /></svg>}{n.label}</span>
+                <span className="flex items-center gap-2">{n.diamond && <Diamond size={16} className="shrink-0" />}{n.saved && <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z" /></svg>}{n.label}</span>
                 {n.pro && <ProBadge />}
                 {n.href === "/painel/feed/mensagens" && unread > 0 && <span className="rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink" aria-label={`${unread} mensagens não lidas`}>{unread}</span>}
               </Link>
