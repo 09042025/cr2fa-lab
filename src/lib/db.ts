@@ -313,6 +313,26 @@ function migrate(db: Database.Database) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS event_details (
+      event_id INTEGER PRIMARY KEY REFERENCES meeting_events(id) ON DELETE CASCADE,
+      banner_id INTEGER,
+      location TEXT NOT NULL DEFAULT '',
+      cost_mode TEXT NOT NULL DEFAULT 'none',
+      cost_note TEXT NOT NULL DEFAULT '',
+      capacity INTEGER,
+      approval INTEGER NOT NULL DEFAULT 0,
+      audience TEXT NOT NULL DEFAULT 'premium'
+    );
+    CREATE TABLE IF NOT EXISTS event_rsvps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id INTEGER NOT NULL REFERENCES meeting_events(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      code TEXT NOT NULL UNIQUE,
+      checked_in_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE (event_id, user_id)
+    );
     CREATE TABLE IF NOT EXISTS stories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

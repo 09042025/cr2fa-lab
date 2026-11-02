@@ -127,3 +127,6 @@ body { top: 0 !important; }
 .skiptranslate iframe.goog-te-banner-frame, iframe.skiptranslate, .VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, #goog-gt-tt, .goog-te-balloon-frame, .goog-tooltip { display: none !important; }
 .goog-text-highlight { background: none !important; box-shadow: none !important; }
 font[style] { background: transparent !important; }
+
+/* Georgia usa números "antigos" (2, 0, 5 menores e achatados). Força números alinhados e do mesmo tamanho. */
+.font-display, h1, h2, h3 { font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum" 1; }
