@@ -37,14 +37,15 @@ async function mp<T>(path: string, init: RequestInit = {}): Promise<T> {
 export async function createCheckout(order: OrderRow, payerEmail: string): Promise<{ url: string }> {
   const base = appUrl();
   const mentoria = order.product === "mentoria";
+  const diamond = order.product === "diamond";
   const back = mentoria ? `${base}/painel/mentoria` : `${base}/planos`;
   const pref = await mp<{ init_point: string }>("/checkout/preferences", {
     method: "POST",
     body: JSON.stringify({
       items: [
         {
-          id: mentoria ? "mentoria-diamond" : `pro-${order.period}`,
-          title: mentoria ? `Mentoria com Niza (Diamond, 12 aulas) - ${process.env.APP_NAME || "NIZA INVEST"}` : `Plano Premium ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
+          id: diamond ? "plano-diamond" : mentoria ? "mentoria-diamond" : `pro-${order.period}`,
+          title: diamond ? `Plano Diamond vitalício (Premium + Mentoria) - ${process.env.APP_NAME || "NIZA INVEST"}` : mentoria ? `Mentoria com Niza (Diamond, 12 aulas) - ${process.env.APP_NAME || "NIZA INVEST"}` : `Plano Premium ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
           quantity: 1,
           currency_id: "BRL",
           unit_price: order.amount_cents / 100,

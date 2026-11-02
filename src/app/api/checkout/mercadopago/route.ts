@@ -4,7 +4,7 @@ import { fail, json, sameOrigin } from "@/lib/http";
 import { createCheckout, mercadoPagoEnabled } from "@/lib/mercadopago";
 import { createOrder } from "@/lib/orders";
 
-const schema = z.object({ period: z.enum(["monthly", "yearly"]).default("monthly"), product: z.enum(["premium", "mentoria"]).default("premium") });
+const schema = z.object({ period: z.enum(["monthly", "yearly"]).default("monthly"), product: z.enum(["premium", "mentoria", "diamond"]).default("premium") });
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return fail("Origem inválida.", 403);

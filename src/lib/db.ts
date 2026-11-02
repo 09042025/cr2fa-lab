@@ -378,7 +378,7 @@ export interface OrderRow {
   id: string;
   user_id: number;
   period: "monthly" | "yearly";
-  product: "premium" | "mentoria";
+  product: "premium" | "mentoria" | "diamond";
   amount_cents: number;
   method: "mercadopago" | "crypto";
   status: "pending" | "paid" | "expired";

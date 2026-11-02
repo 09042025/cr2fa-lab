@@ -32,3 +32,21 @@ test("plano Premium continua estendendo o plano normalmente", () => {
   assert.equal((db().prepare("SELECT plan FROM users WHERE id = ?").get(uid) as { plan: string }).plan, "pro");
   assert.equal(listMine(uid).length, 0);
 });
+
+test("Plano Diamond: R$ 3.000, Premium vitalício + uma mentoria", async () => {
+  const { diamondPriceCents } = await import("../src/lib/plans");
+  const { hasDiamond } = await import("../src/lib/orders");
+  const { effectivePlan } = await import("../src/lib/db");
+  const uid = Number(db().prepare("INSERT INTO users (email, name, password_hash, role, plan, plan_expires_at) VALUES ('dia@x.com', 'D', 'x', 'user', 'pro', 1000)").run().lastInsertRowid);
+  assert.equal(diamondPriceCents(), 300000);
+  const o = createOrder({ userId: uid, period: "monthly", product: "diamond", method: "mercadopago" });
+  assert.equal(o.amount_cents, 300000);
+  assert.equal(hasDiamond(uid), false);
+  assert.equal(markPaid(o.id, { providerRef: "pay-d" }), true);
+  assert.equal(markPaid(o.id), false);
+  const u = db().prepare("SELECT * FROM users WHERE id = ?").get(uid) as Parameters<typeof effectivePlan>[0] & { plan_expires_at: number | null };
+  assert.equal(u.plan_expires_at, null); // vitalício
+  assert.equal(effectivePlan(u), "pro");
+  assert.equal(hasDiamond(uid), true);
+  assert.equal(listMine(uid).length, 1); // uma mentoria, uma vez só
+});

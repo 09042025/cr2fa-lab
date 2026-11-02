@@ -75,6 +75,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
 
       <MentoriaCheckout {...props} />
 
+      <p className="mt-4 rounded-lg border border-sky-300/30 bg-sky-400/5 px-4 py-3 text-sm text-muted">
+        Quer o Premium para sempre junto com a mentoria? Veja o <Link href="/planos#diamond" className="font-semibold text-gold-soft underline">Plano Diamond (Tudo do Premium + Mentoria)</Link> (Premium vitalício e uma única mentoria de 12 aulas).
+      </p>
+
       {user.role === "admin" && (
         <section className="card mt-8 p-5">
           <h2 className="mb-3 font-display text-lg font-bold text-gold-soft">Alunos da mentoria (só você vê)</h2>

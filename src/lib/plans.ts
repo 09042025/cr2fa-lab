@@ -46,11 +46,25 @@ export function formatBRL(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export type Product = "premium" | "mentoria";
+export type Product = "premium" | "mentoria" | "diamond";
 export const MENTORIA_SESSIONS = 12;
 
 /** Mentoria com Niza (Diamond): pagamento único. Preço em MENTORIA_PRICE_BRL (padrão R$ 1.500,00). */
 export function mentoriaPriceCents(): number {
   const v = Number((process.env.MENTORIA_PRICE_BRL || "1500").replace(",", "."));
   return Number.isFinite(v) && v > 0 ? Math.round(v * 100) : 150000;
+}
+
+export const DIAMOND_NAME = "Plano Diamond (Tudo do Premium + Mentoria)";
+export const DIAMOND_FEATURES = [
+  "Premium vitalício: todos os recursos do Premium, para sempre, sem renovação",
+  `Mentoria com Niza incluída: ${MENTORIA_SESSIONS} aulas particulares de 1 hora (1 por mês), uma única vez`,
+  "Aula 01 para avaliar o seu nível e montar o seu caminho de aprendizagem",
+  "Avaliação da carteira pelo Protocolo CR2FA, cripto do zero e racional dos pools de liquidez",
+] as const;
+
+/** Plano Diamond: Premium vitalício + 1 mentoria. Preço em DIAMOND_PRICE_BRL (padrão R$ 3.000,00). */
+export function diamondPriceCents(): number {
+  const v = Number((process.env.DIAMOND_PRICE_BRL || "3000").replace(",", "."));
+  return Number.isFinite(v) && v > 0 ? Math.round(v * 100) : 300000;
 }

@@ -7,6 +7,7 @@ import { unreadCount } from "@/lib/dm";
 import { TrialButton } from "@/components/TrialButton";
 import { trialDays } from "@/lib/trial";
 import { db } from "@/lib/db";
+import { hasDiamond } from "@/lib/orders";
 import { getMember } from "@/lib/feed";
 import { Avatar } from "@/components/Avatar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -80,7 +81,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <div className="mt-4 shrink-0 border-t border-line pt-4">
             <LanguageSwitcher className="mb-3 w-full" />
             <p className="text-xs">
-              Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{user.plan === "pro" ? "Premium" : "Grátis"}</span>
+              Plano: <span className={user.plan === "pro" ? "font-semibold text-gold-soft" : "text-muted"}>{hasDiamond(user.id) ? "Diamond" : user.plan === "pro" ? "Premium" : "Grátis"}</span>
               {user.plan === "pro" && user.role !== "admin" && user.planExpiresAt ? <span className="text-muted"> {user.onTrial ? "(teste) " : ""}até {date(user.planExpiresAt)}</span> : null}
             </p>
           </div>
