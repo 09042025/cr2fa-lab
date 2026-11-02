@@ -36,7 +36,7 @@ export const CATEGORIES: Category[] = [
     label: "Informações",
     channels: [
       {
-        slug: "boas-vindas-e-regras", name: "boas-vindas-e-regras", icon: "shield", post: "admin",
+        slug: "boas-vindas-e-regras", name: "Boas Vindas e Regras", icon: "shield", post: "admin",
         description: "Regras da comunidade e como ela funciona.",
         intro: [
           "Seja bem-vindo à comunidade NIZA INVEST!",
@@ -47,22 +47,22 @@ export const CATEGORIES: Category[] = [
           ...SECURITY,
         ],
       },
-      { slug: "anuncios", name: "anuncios-do-canal", icon: "bell", post: "admin", description: "Avisos oficiais do Emerson e da equipe.", intro: SECURITY },
-      { slug: "chat-geral", name: "chat-geral", icon: "users", post: "pro", description: "Bate-papo geral entre os membros." },
+      { slug: "anuncios", name: "Anúncios do Canal", icon: "bell", post: "admin", description: "Avisos oficiais do Emerson e da equipe.", intro: SECURITY },
+      { slug: "chat-geral", name: "Chat Geral", icon: "users", post: "pro", description: "Bate-papo geral entre os membros." },
     ],
   },
   {
     id: "texto",
-    label: "Canais de texto",
+    label: "Estratégia Personalizada",
     channels: [
-      { slug: "geral", name: "geral", icon: "trend", post: "pro", description: "Mercado, ativos e dúvidas do dia a dia." },
-      { slug: "planejamento-de-reunioes", name: "agenda-de-reuniões", icon: "calendar", post: "pro", description: "Sugestões de temas e horários para as reuniões ao vivo." },
+      { slug: "geral", name: "Pergunte ao Niza", icon: "trend", post: "pro", description: "Tire suas dúvidas do dia a dia sobre mercado e investimentos." },
+      { slug: "planejamento-de-reunioes", name: "Reuniões e Eventos", icon: "calendar", post: "pro", description: "Calendário de lives e reuniões, com os links para entrar e sugestões de temas." },
     ],
   },
   {
     id: "mod",
     label: "Moderação",
-    channels: [{ slug: "moderador", name: "moderator-only", icon: "lock", post: "admin", admin: true, description: "Canal privado da equipe de moderação." }],
+    channels: [{ slug: "moderador", name: "Somente Moderadores", icon: "lock", post: "admin", admin: true, description: "Canal privado da equipe de moderação." }],
   },
 ];
 
