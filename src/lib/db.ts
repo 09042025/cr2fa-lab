@@ -258,6 +258,42 @@ function migrate(db: Database.Database) {
       day TEXT NOT NULL,
       PRIMARY KEY (event_id, user_id, day)
     );
+    CREATE TABLE IF NOT EXISTS biz_listings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      city TEXT NOT NULL DEFAULT '',
+      state TEXT NOT NULL DEFAULT '',
+      price_note TEXT NOT NULL DEFAULT '',
+      whatsapp TEXT NOT NULL DEFAULT '',
+      instagram TEXT NOT NULL DEFAULT '',
+      website TEXT NOT NULL DEFAULT '',
+      google_rating REAL,
+      google_url TEXT NOT NULL DEFAULT '',
+      cases TEXT NOT NULL DEFAULT '[]',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_biz_cat ON biz_listings(category, kind);
+    CREATE TABLE IF NOT EXISTS biz_recs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      listing_id INTEGER NOT NULL REFERENCES biz_listings(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      hired INTEGER NOT NULL DEFAULT 0,
+      comment TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE (listing_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS biz_reports (
+      listing_id INTEGER NOT NULL REFERENCES biz_listings(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reason TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (listing_id, user_id)
+    );
     CREATE TABLE IF NOT EXISTS stories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
