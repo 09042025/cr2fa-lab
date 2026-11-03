@@ -37,6 +37,17 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
   const valor = Math.min(Math.max(Number(sp.valor) || 1000, 1), 100_000_000);
   const exportQs = new URLSearchParams(Object.entries({ ...sp, tipo }).filter(([, v]) => v) as [string, string][]).toString();
   const isDex = tipo === "liquidez";
+  const curOrdem = sp.ordem || "tvl";
+  const curDir = sp.dir === "asc" ? "asc" : "desc";
+  // Cabeçalho clicável: 1º clique = maior para o menor; clicar de novo inverte (menor para o maior).
+  const sortHref = (ordem: string) => {
+    const q = new URLSearchParams(Object.entries({ ...sp, tipo, ordem, dir: curOrdem === ordem && curDir === "desc" ? "asc" : "desc" }).filter(([, v]) => v) as [string, string][]);
+    return `/painel/cripto/defi?${q.toString()}#pools`;
+  };
+  const Th = ({ ordem, children }: { ordem: string; children: React.ReactNode }) => {
+    const on = curOrdem === ordem;
+    return <th className="num" aria-sort={on ? (curDir === "asc" ? "ascending" : "descending") : "none"}><Link href={sortHref(ordem)} title="Ordenar (clique de novo para inverter)" className={`inline-flex items-center gap-1 hover:text-white ${on ? "text-gold-soft" : ""}`}>{children}<span aria-hidden className="text-[10px]">{on ? (curDir === "asc" ? "▲" : "▼") : "↕"}</span></Link></th>;
+  };
 
   return (
     <>
@@ -93,6 +104,13 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
                 {isDex && <option value="eficiencia">Giro (volume ÷ TVL)</option>}
               </select>
             </div>
+            <div>
+              <label className="label" htmlFor="dir">Ordem</label>
+              <select id="dir" name="dir" defaultValue={sp.dir === "asc" ? "asc" : "desc"} className="input">
+                <option value="desc">Do maior para o menor</option>
+                <option value="asc">Do menor para o maior</option>
+              </select>
+            </div>
             <div><label className="label" htmlFor="min">TVL mínimo (US$)</label><input id="min" name="min" type="number" min={0} defaultValue={sp.min} className="input" placeholder="1000000" /></div>
             {isDex && <div><label className="label" htmlFor="vol">Volume 24h mínimo (US$)</label><input id="vol" name="vol" type="number" min={0} defaultValue={sp.vol} className="input" placeholder="500000" /></div>}
             <div><label className="label" htmlFor="valor">Simular com (US$)</label><input id="valor" name="valor" type="number" min={1} defaultValue={sp.valor || "1000"} className="input" /></div>
@@ -110,9 +128,9 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
             <table className="data">
               <thead>
                 {isDex ? (
-                  <tr><th>Par</th><th>DEX</th><th>Rede</th><th className="num">TVL</th><th className="num">Volume 24h</th><th className="num">Giro</th><th className="num">APR taxas</th><th className="num">APR recompensas</th><th className="num">APR total</th><th className="num">Média 30d</th><th className="num">Perda imperm. 7d</th>{isPro && <th className="num">Estim. 30d</th>}</tr>
+                  <tr><th>Par</th><th>DEX</th><th>Rede</th><Th ordem="tvl">TVL</Th><Th ordem="vol">Volume 24h</Th><Th ordem="eficiencia">Giro</Th><Th ordem="taxas">APR taxas</Th><th className="num">APR recompensas</th><Th ordem="apy">APR total</Th><th className="num">Média 30d</th><th className="num">Perda imperm. 7d</th>{isPro && <th className="num">Estim. 30d</th>}</tr>
                 ) : (
-                  <tr><th>Ativo</th><th>Protocolo</th><th>Rede</th><th className="num">TVL</th><th className="num">APY total</th><th className="num">Base</th><th className="num">Recompensa</th><th className="num">Média 30d</th>{isPro && <th className="num">Estim. 30d</th>}</tr>
+                  <tr><th>Ativo</th><th>Protocolo</th><th>Rede</th><Th ordem="tvl">TVL</Th><Th ordem="apy">APY total</Th><th className="num">Base</th><th className="num">Recompensa</th><th className="num">Média 30d</th>{isPro && <th className="num">Estim. 30d</th>}</tr>
                 )}
               </thead>
               <tbody>
