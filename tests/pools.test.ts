@@ -155,3 +155,12 @@ test("ações tokenizadas viram RWA", () => {
   assert.equal(pk({ ...(base as object), symbol: "TSLA-USDC" } as never), "outros");
   assert.equal(pk({ ...(base as object), symbol: "WETH-USDC" } as never), "cripto");
 });
+
+test("ordenação: maior→menor (padrão) e menor→maior, com valores nulos sempre no fim", () => {
+  const mk = (id: string, tvl: number, vol: number | null) => ({ id, symbol: id, project: "p", chain: "c", tvlUsd: tvl, apy: 1, apyBase: 1, apyReward: 0, apyMean30d: 1, il7d: null, stablecoin: false, poolMeta: null, volumeUsd1d: vol, dex: true } as never);
+  const pools = [mk("a", 3e6, 10), mk("b", 1e6, null), mk("c", 2e6, 30)];
+  assert.deepEqual(filterPools(pools, { tipo: "liquidez", ordem: "tvl" }).map((p) => p.id), ["a", "c", "b"]);
+  assert.deepEqual(filterPools(pools, { tipo: "liquidez", ordem: "tvl", dir: "asc" }).map((p) => p.id), ["b", "c", "a"]);
+  assert.deepEqual(filterPools(pools, { tipo: "liquidez", ordem: "vol" }).map((p) => p.id), ["c", "a", "b"]);
+  assert.deepEqual(filterPools(pools, { tipo: "liquidez", ordem: "vol", dir: "asc" }).map((p) => p.id), ["a", "c", "b"]);
+});

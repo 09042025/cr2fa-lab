@@ -15,6 +15,8 @@ export interface PoolFilters {
   /** Tipo de pool: cripto, rwa, stable ou outros. */
   categoria?: string;
   ordem?: string;
+  /** Sentido da ordenação: desc (maior para o menor, padrão) ou asc (menor para o maior). */
+  dir?: string;
   /** Valor hipotético em US$ para estimar o retorno. */
   valor?: string;
 }
@@ -72,16 +74,16 @@ export function estimateMonthly(valueUsd: number, apy: number | null): number | 
   return (valueUsd * (apy / 100)) / 12;
 }
 
-function sortValue(p: DefiPool, ordem: string): number {
+function sortValue(p: DefiPool, ordem: string): number | null {
   switch (ordem) {
     case "apy":
-      return p.apy ?? -1;
+      return p.apy;
     case "vol":
-      return p.volumeUsd1d ?? -1;
+      return p.volumeUsd1d;
     case "taxas":
-      return p.apyBase ?? -1;
+      return p.apyBase;
     case "eficiencia":
-      return turnover(p) ?? -1;
+      return turnover(p);
     default:
       return p.tvlUsd;
   }
@@ -101,7 +103,15 @@ export function filterPools(pools: DefiPool[], sp: PoolFilters): DefiPool[] {
   if (POOL_KINDS.some((k) => k.id === sp.categoria)) out = out.filter((p) => poolKind(p) === sp.categoria);
   if (q) out = out.filter((p) => p.symbol.toLowerCase().includes(q) || p.project.toLowerCase().includes(q) || (p.poolMeta ?? "").toLowerCase().includes(q));
   const ordem = POOL_SORTS.includes(sp.ordem as (typeof POOL_SORTS)[number]) ? (sp.ordem as string) : "tvl";
-  return [...out].sort((a, b) => sortValue(b, ordem) - sortValue(a, ordem));
+  const asc = sp.dir === "asc";
+  // Pools sem o dado (valor nulo) ficam sempre no fim, em qualquer sentido.
+  return [...out].sort((a, b) => {
+    const x = sortValue(a, ordem), y = sortValue(b, ordem);
+    if (x === null && y === null) return 0;
+    if (x === null) return 1;
+    if (y === null) return -1;
+    return asc ? x - y : y - x;
+  });
 }
 
 /** Escapa um campo CSV e neutraliza injeção de fórmulas em planilhas. */
