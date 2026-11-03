@@ -46,7 +46,7 @@ export async function createCheckout(order: OrderRow, payerEmail: string): Promi
       items: [
         {
           id: black ? "diamond-black-vip" : diamond ? "plano-diamond" : mentoria ? "mentoria-diamond" : `pro-${order.period}`,
-          title: black ? `Diamond Black VIP (anuidade) - ${process.env.APP_NAME || "NIZA INVEST"}` : diamond ? `Plano Diamond vitalício (Premium + Mentoria) - ${process.env.APP_NAME || "NIZA INVEST"}` : mentoria ? `Mentoria com Niza (Diamond, 12 aulas) - ${process.env.APP_NAME || "NIZA INVEST"}` : `Plano Premium ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
+          title: black ? `Black Diamond VIP (anuidade) - ${process.env.APP_NAME || "NIZA INVEST"}` : diamond ? `Plano Diamond vitalício (Premium + Mentoria) - ${process.env.APP_NAME || "NIZA INVEST"}` : mentoria ? `Mentoria com Niza (Diamond, 12 aulas) - ${process.env.APP_NAME || "NIZA INVEST"}` : `Plano Premium ${periodLabel(order.period)} - ${process.env.APP_NAME || "NIZA INVEST"}`,
           quantity: 1,
           currency_id: "BRL",
           unit_price: order.amount_cents / 100,

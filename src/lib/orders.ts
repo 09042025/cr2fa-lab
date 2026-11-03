@@ -65,7 +65,7 @@ export function markPaid(orderId: string, extra: { providerRef?: string; txHash?
       return true;
     }
     if (order.product === "black") {
-      // Diamond Black VIP: anuidade. Premium por 12 meses (não encurta quem já é vitalício) + Mentoria, se ainda não tiver.
+      // Black Diamond VIP: anuidade. Premium por 12 meses (não encurta quem já é vitalício) + Mentoria, se ainda não tiver.
       const u = d.prepare("SELECT * FROM users WHERE id = ?").get(order.user_id) as UserRow;
       const lifetime = u.plan === "pro" && !u.plan_expires_at;
       const from = u.plan === "pro" && u.plan_expires_at && u.plan_expires_at > t ? u.plan_expires_at : t;
@@ -84,12 +84,12 @@ export function markPaid(orderId: string, extra: { providerRef?: string; txHash?
   return run();
 }
 
-/** Diamond Black VIP ativo (anuidade paga e ainda dentro dos 12 meses)? */
+/** Black Diamond VIP ativo (anuidade paga e ainda dentro dos 12 meses)? */
 export function hasBlack(userId: number): boolean {
   return !!db().prepare("SELECT 1 FROM orders WHERE user_id = ? AND product = 'black' AND status = 'paid' AND paid_at > ? LIMIT 1").get(userId, now() - BLACK_PERIOD_SEC);
 }
 
-/** A conta tem o Plano Diamond (pedido pago) ou o Diamond Black VIP, que inclui tudo do Diamond? */
+/** A conta tem o Plano Diamond (pedido pago) ou o Black Diamond VIP, que inclui tudo do Diamond? */
 export function hasDiamond(userId: number): boolean {
   return !!db().prepare("SELECT 1 FROM orders WHERE user_id = ? AND product = 'diamond' AND status = 'paid' LIMIT 1").get(userId) || hasBlack(userId);
 }

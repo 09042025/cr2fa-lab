@@ -58,8 +58,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
 
       {member ? (
         <section className="card mb-6 border-up/40 p-5">
-          <h2 className="font-display text-lg font-bold text-up">Você é Diamond Black VIP</h2>
-          <p className="mt-1 text-sm text-muted">Os encontros presenciais VIP aparecem na agenda como <strong className="text-white">Evento Diamond Black VIP</strong>. Confirme a sua presença por lá e apresente o QR code do convite na entrada.</p>
+          <h2 className="font-display text-lg font-bold text-up">Você é Black Diamond VIP</h2>
+          <p className="mt-1 text-sm text-muted">Os encontros presenciais VIP aparecem na agenda como <strong className="text-white">Evento Black Diamond VIP</strong>. Confirme a sua presença por lá e apresente o QR code do convite na entrada.</p>
           <Link href="/painel/comunidade?c=planejamento-de-reunioes" className="mt-3 inline-block text-gold-soft underline">Ver a agenda de Reuniões e Eventos</Link>
           <p className="mt-2 text-xs text-muted">Para renovar por mais 12 meses, contrate novamente abaixo.</p>
         </section>
@@ -71,7 +71,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
         <section className="card mb-6 border-gold/30 p-5"><h2 className="font-display text-lg font-bold text-gold-soft">Participe do grupo</h2><p className="mt-1 mb-3 text-sm text-muted">O acesso é por convite. Solicite o seu e a organização entra em contato.</p><RequestInvite /></section>
       )}
 
-      {(invite === "invited" || isAdmin) && <MentoriaCheckout {...props} product="black" title="Contratar o Diamond Black VIP" subtitle="Anuidade por 12 meses. Para continuar no grupo, contrate novamente antes do vencimento." />}
+      {(invite === "invited" || isAdmin) && <MentoriaCheckout {...props} product="black" title="Contratar o Black Diamond VIP" subtitle="Anuidade por 12 meses. Para continuar no grupo, contrate novamente antes do vencimento." />}
 
       <p className="mt-4 rounded-lg border border-line px-4 py-3 text-xs text-muted">Os encontros são eventos presenciais e não constituem recomendação de investimento. Cada participante decide por conta própria, e a organização pode recusar ou encerrar a participação de quem não respeitar as regras do grupo.</p>
 

@@ -13,7 +13,7 @@ const TABS = [
   { href: "/painel/financiamento", label: "Financiamentos" },
   { href: "/painel/negocios", label: "Negócios" },
   { href: "/painel/mentoria", label: "Mentoria com Niza", diamond: true },
-  { href: "/painel/black", label: "Diamond Black VIP", black: true },
+  { href: "/painel/black", label: "Black Diamond VIP", black: true },
   { href: "/painel/protocolo", label: "Protocolo CR2FA" },
 ];
 const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/financiamento", "/painel/negocios", "/painel/mentoria", "/painel/black", "/painel/protocolo"];

@@ -9,7 +9,7 @@ export function getInvite(userId: number): BlackStatus | null {
   return r?.status ?? null;
 }
 
-/** Pode contratar o Diamond Black VIP? Só convidados (ou admin). */
+/** Pode contratar o Black Diamond VIP? Só convidados (ou admin). */
 export function canBuyBlack(user: { id: number; role: string }): boolean {
   return user.role === "admin" || getInvite(user.id) === "invited";
 }
