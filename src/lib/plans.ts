@@ -69,7 +69,7 @@ export function diamondPriceCents(): number {
   return Number.isFinite(v) && v > 0 ? Math.round(v * 100) : 300000;
 }
 
-export const BLACK_NAME = "Diamond Black VIP";
+export const BLACK_NAME = "Black Diamond VIP";
 export const BLACK_FEATURES = [
   "Tudo do Premium e tudo do Plano Diamond (inclui a Mentoria com Niza, 12 aulas)",
   "Encontros presenciais VIP periódicos para falar de negócios e fazer network",
@@ -78,7 +78,7 @@ export const BLACK_FEATURES = [
   "Encontros começando em São Paulo, com expansão prevista para outras cidades do Brasil e do mundo",
 ] as const;
 
-/** Diamond Black VIP: anuidade. Preço em BLACK_PRICE_BRL (padrão R$ 10.000,00 por ano). */
+/** Black Diamond VIP: anuidade. Preço em BLACK_PRICE_BRL (padrão R$ 10.000,00 por ano). */
 export function blackPriceCents(): number {
   const v = Number((process.env.BLACK_PRICE_BRL || "10000").replace(",", "."));
   return Number.isFinite(v) && v > 0 ? Math.round(v * 100) : 1000000;

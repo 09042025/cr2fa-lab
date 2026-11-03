@@ -89,7 +89,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               {d.costNote && <p className="text-muted">{d.costNote}</p>}
             </div>
             <p className="flex flex-wrap gap-2 text-xs">
-              {d.audience === "black" && <span className="rounded bg-black px-2 py-0.5 font-bold text-gold-soft ring-1 ring-gold/50">DIAMOND BLACK VIP</span>}
+              {d.audience === "black" && <span className="rounded bg-black px-2 py-0.5 font-bold text-gold-soft ring-1 ring-gold/50">BLACK DIAMOND VIP</span>}
               {d.audience === "diamond" && <span className="rounded bg-sky-400/15 px-2 py-0.5 font-bold text-sky-200">EXCLUSIVO DIAMOND</span>}
               {d.approval && <span className="rounded bg-gold/20 px-2 py-0.5 font-bold text-gold-soft">VIP · MEDIANTE APROVAÇÃO</span>}
               {spotsLeft !== null && <span className={`rounded px-2 py-0.5 font-bold ${spotsLeft === 0 ? "bg-down/15 text-down" : "bg-up/15 text-up"}`}>{d.approval ? `${d.capacity} vagas` : spotsLeft === 0 ? "Lotado (lista de espera)" : `${spotsLeft} vaga(s) restante(s)`}</span>}
@@ -99,7 +99,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <section className="card space-y-3 border-gold/30 p-5">
             <h2 className="font-display text-lg font-bold text-gold-soft">Sua presença</h2>
             {past ? <p className="text-sm text-muted">Este evento já aconteceu.</p> : blockedAudience ? (
-              d.audience === "black" ? <p className="text-sm text-muted">Este evento é exclusivo para membros do <Link href="/painel/black" className="text-gold-soft underline">Diamond Black VIP</Link>.</p> : <p className="text-sm text-muted">Este evento é exclusivo para membros do <Link href="/planos#diamond" className="text-gold-soft underline">Plano Diamond</Link>.</p>
+              d.audience === "black" ? <p className="text-sm text-muted">Este evento é exclusivo para membros do <Link href="/painel/black" className="text-gold-soft underline">Black Diamond VIP</Link>.</p> : <p className="text-sm text-muted">Este evento é exclusivo para membros do <Link href="/planos#diamond" className="text-gold-soft underline">Plano Diamond</Link>.</p>
             ) : (
               <>
                 {mine?.status === "confirmed" && (

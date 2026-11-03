@@ -88,7 +88,7 @@ export function register(eventId: number, user: { id: number; role: string; plan
   if (ev.endsAt < now()) return { error: "Este evento já aconteceu." };
   const isAdmin = user.role === "admin";
   if (!isAdmin && !(user.plan === "pro")) return { error: "Exclusivo para membros Premium." };
-  if (d.audience === "black" && !isAdmin && !hasBlack(user.id)) return { error: "Este evento é exclusivo para membros Diamond Black VIP." };
+  if (d.audience === "black" && !isAdmin && !hasBlack(user.id)) return { error: "Este evento é exclusivo para membros Black Diamond VIP." };
   if (d.audience === "diamond" && !isAdmin && !hasDiamond(user.id)) return { error: "Este evento é exclusivo para membros Diamond." };
   const cur = getRsvp(eventId, user.id);
   if (cur && (cur.status === "confirmed" || cur.status === "pending" || cur.status === "waitlist")) return { status: cur.status };

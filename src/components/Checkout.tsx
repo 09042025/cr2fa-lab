@@ -123,7 +123,7 @@ export function CryptoOrderCard({ order, onPaid }: { order: CryptoOrderView; onP
     const res = await fetch("/api/checkout/crypto/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: order.orderId, txHash: hash }) });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
-    if (data.ok) { setMsg({ ok: true, text: order.product === "mentoria" ? "Pagamento confirmado! Sua Mentoria com Niza está ativa." : order.product === "black" ? "Pagamento confirmado! Bem-vindo ao Diamond Black VIP." : order.product === "diamond" ? "Pagamento confirmado! O Plano Diamond está ativo: Premium vitalício e Mentoria com Niza." : "Pagamento confirmado! O plano Premium foi liberado." }); setTimeout(onPaid, 1200); }
+    if (data.ok) { setMsg({ ok: true, text: order.product === "mentoria" ? "Pagamento confirmado! Sua Mentoria com Niza está ativa." : order.product === "black" ? "Pagamento confirmado! Bem-vindo ao Black Diamond VIP." : order.product === "diamond" ? "Pagamento confirmado! O Plano Diamond está ativo: Premium vitalício e Mentoria com Niza." : "Pagamento confirmado! O plano Premium foi liberado." }); setTimeout(onPaid, 1200); }
     else setMsg({ ok: false, text: data.reason || data.error || "Não foi possível confirmar." });
   }
 

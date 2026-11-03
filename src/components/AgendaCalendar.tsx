@@ -146,7 +146,7 @@ export function AgendaCalendar({ events, isAdmin }: { events: Ev[]; isAdmin: boo
                   <select className={inp} value={pres.audience} onChange={(e) => setPres({ ...pres, audience: e.target.value })}>
                     <option value="premium">Todos os membros Premium</option>
                     <option value="diamond">Somente membros Diamond</option>
-                    <option value="black">Evento Diamond Black VIP</option>
+                    <option value="black">Evento Black Diamond VIP</option>
                   </select>
                 </label>
               </div>
@@ -218,7 +218,7 @@ function EventCard({ e, isAdmin, onDelete }: { e: Ev; isAdmin: boolean; onDelete
       <p className="font-semibold text-white">{e.title} <span className={`ml-1 rounded px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase ${e.kind === "evento" ? "bg-gold/20 text-gold-soft" : "bg-up/15 text-up"}`}>{e.kind === "evento" ? "Evento" : "Reunião"}</span></p>
       <p className="text-xs text-gold-soft">{hm(e.startsAt)} – {hm(e.endsAt)} (Brasília)</p>
       {e.kind === "evento" && e.detail && (
-        <p className="mt-1 text-xs text-muted">📍 {e.detail.location}{e.detail.costLabel ? ` · ${e.detail.costLabel}` : ""}{e.detail.approval ? " · mediante aprovação" : ""}{e.detail.audience === "diamond" ? " · só Diamond" : ""}{e.detail.audience === "black" ? " · Diamond Black VIP" : ""}</p>
+        <p className="mt-1 text-xs text-muted">📍 {e.detail.location}{e.detail.costLabel ? ` · ${e.detail.costLabel}` : ""}{e.detail.approval ? " · mediante aprovação" : ""}{e.detail.audience === "diamond" ? " · só Diamond" : ""}{e.detail.audience === "black" ? " · Black Diamond VIP" : ""}</p>
       )}
       {e.notes && <p className="mt-1 whitespace-pre-wrap break-words text-xs text-muted">{e.notes}</p>}
       <p className="mt-2 flex flex-wrap items-center gap-3 text-xs">

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return fail("Plano inválido.");
 
-  if (parsed.data.product === "black" && !canBuyBlack(user)) return fail("O Diamond Black VIP é por convite. Solicite o seu convite na página do plano.", 403);
+  if (parsed.data.product === "black" && !canBuyBlack(user)) return fail("O Black Diamond VIP é por convite. Solicite o seu convite na página do plano.", 403);
   if (parsed.data.product === "mentoria" && spots().full) return fail("As vagas desta turma da Mentoria estão esgotadas. O Plano Diamond continua disponível.", 409);
 
   const order = createOrder({ userId: user.id, period: parsed.data.period, product: parsed.data.product, method: "mercadopago" });

@@ -8,7 +8,7 @@ import { createPresencial, register } from "../src/lib/events";
 
 const mk = (email: string, role = "user") => Number(db().prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, ?, 'x', ?)").run(email, email.split("@")[0], role).lastInsertRowid);
 
-test("preço padrão do Diamond Black VIP é R$ 10.000,00", () => assert.equal(blackPriceCents(), 1_000_000));
+test("preço padrão do Black Diamond VIP é R$ 10.000,00", () => assert.equal(blackPriceCents(), 1_000_000));
 
 test("convite: pedir, aprovar por e-mail e só então poder comprar", () => {
   const u = mk("bk1@x.com");
@@ -48,7 +48,7 @@ test("Black não encurta o Diamond vitalício", () => {
   assert.equal((db().prepare("SELECT COUNT(*) c FROM mentorships WHERE user_id = ?").get(u) as { c: number }).c, 1);
 });
 
-test("Evento Diamond Black VIP: só Black (ou admin) se inscreve", () => {
+test("Evento Black Diamond VIP: só Black (ou admin) se inscreve", () => {
   const admin = mk("bka@x.com", "admin"), pro = mk("bk4@x.com"), blk = mk("bk5@x.com");
   db().prepare("UPDATE users SET plan = 'pro' WHERE id = ?").run(pro);
   markPaid(createOrder({ userId: blk, period: "yearly", product: "black", method: "mercadopago" }).id);
