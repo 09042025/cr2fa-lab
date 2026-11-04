@@ -16,7 +16,8 @@ export function createCashpill(userId: number, videoId: number, posterId: number
   if (!p) return { ok: false, error: "Capa inválida. Grave novamente." };
   const n = db().prepare("SELECT COUNT(*) n FROM cashpills WHERE user_id = ? AND created_at > unixepoch() - 86400").get(userId) as { n: number };
   if (n.n >= 10) return { ok: false, error: "Limite de 10 Cashpills por dia.", status: 429 };
-  const id = Number(db().prepare("INSERT INTO cashpills (user_id, video_id, poster_id, caption, duration) VALUES (?, ?, ?, ?, ?)").run(userId, videoId, posterId, caption, duration).lastInsertRowid);
+  const postId = Number(db().prepare("INSERT INTO community_posts (user_id, topic, body) VALUES (?, 'geral', ?)").run(userId, caption).lastInsertRowid);
+  const id = Number(db().prepare("INSERT INTO cashpills (user_id, video_id, poster_id, caption, duration, post_id) VALUES (?, ?, ?, ?, ?, ?)").run(userId, videoId, posterId, caption, duration, postId).lastInsertRowid);
   return { ok: true, id };
 }
 
@@ -31,10 +32,20 @@ export function countCashpills(authorId: number): number {
 export function deleteCashpill(id: number, user: { id: number; role: string }): boolean {
   const r = db().prepare(`${SEL} WHERE id = ?`).get(id) as Cashpill | undefined;
   if (!r || (r.userId !== user.id && user.role !== "admin")) return false;
-  db().prepare("DELETE FROM cashpills WHERE id = ?").run(id);
+  removeCashpillRows(r);
+  return true;
+}
+
+/** Apaga o Cashpill, o vídeo, a capa e a publicação ligada a ele. */
+export function removeCashpillRows(r: Cashpill): void {
+  const post = db().prepare("SELECT post_id p FROM cashpills WHERE id = ?").get(r.id) as { p: number | null } | undefined;
+  db().prepare("DELETE FROM cashpills WHERE id = ?").run(r.id);
+  if (post?.p) {
+    db().prepare("UPDATE users SET pinned_post_id = NULL WHERE pinned_post_id = ?").run(post.p);
+    db().prepare("DELETE FROM community_posts WHERE id = ?").run(post.p);
+  }
   db().prepare("DELETE FROM community_videos WHERE id = ?").run(r.videoId);
   db().prepare("DELETE FROM community_images WHERE id = ? AND id NOT IN (SELECT image_id FROM stories) AND id NOT IN (SELECT image_id FROM community_posts WHERE image_id IS NOT NULL)").run(r.posterId);
-  return true;
 }
 
 /** Fotos das publicações do membro (aba Fotos do perfil). */

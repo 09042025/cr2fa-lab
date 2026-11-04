@@ -43,3 +43,18 @@ test("aba Fotos lista só publicações com imagem", () => {
   db().prepare("INSERT INTO community_posts (user_id, body) VALUES (?, 'sem foto')").run(a);
   assert.deepEqual(listPhotos(a).map((f) => f.imageId), [img]);
 });
+
+test("Cashpill vira publicação com curtida/comentário e apagar remove tudo", async () => {
+  const { listPosts, toggleLike, deletePost } = await import("../src/lib/feed");
+  const a = user("cp9@x.com"), b = user("cp10@x.com");
+  const r = createCashpill(a, video(a), image(a), 10, "Oi");
+  assert.ok(r.ok);
+  const post = listPosts({ viewerId: b, authorId: a }).posts[0];
+  assert.ok(post.pillVideoId && post.pillPosterId);
+  assert.equal(post.body, "Oi");
+  assert.ok(toggleLike(post.id, b));
+  assert.equal(listPosts({ viewerId: b, authorId: a }).posts[0].likes, 1);
+  assert.ok(deletePost(post.id, { id: a, role: "user" }));
+  assert.equal(countCashpills(a), 0);
+  assert.equal(listPosts({ viewerId: b, authorId: a }).posts.length, 0);
+});
