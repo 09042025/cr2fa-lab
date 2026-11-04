@@ -51,7 +51,7 @@ export function PostCard({ p, viewer, showPin = false }: { p: Post; viewer: { id
           <img src={`/api/community/image?id=${p.imageId}`} alt={`Imagem publicada por ${p.author}`} loading="lazy" className="mx-auto block h-auto w-full rounded-lg border border-line object-contain md:max-h-[40rem] md:w-auto md:max-w-full" />
         </a>
       )}
-      <PostActions id={p.id} comments={p.comments.length} reposts={p.reposts} reposted={p.reposted} likes={p.likes} liked={p.liked} views={p.views} bookmarked={p.bookmarked} own={p.userId === viewer.id} author={p.author} body={p.body} />
+      <PostActions id={p.id} comments={p.comments.length} reposts={p.reposts} reposted={p.reposted} likes={p.likes} liked={p.liked} views={p.views} bookmarked={p.bookmarked} own={p.userId === viewer.id} author={p.author} body={p.body} imageId={p.imageId} videoId={p.pillVideoId} />
       <footer className="mt-1 flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {p.userId === viewer.id && <PinButton postId={p.id} pinned={p.pinned} />}

@@ -58,3 +58,19 @@ test("Cashpill vira publicação com curtida/comentário e apagar remove tudo", 
   assert.equal(countCashpills(a), 0);
   assert.equal(listPosts({ viewerId: b, authorId: a }).posts.length, 0);
 });
+
+test("Compartilhar: sugestões (quem segue) e Cashpill no story", async () => {
+  const { shareSuggestions } = await import("../src/lib/dm");
+  const { sharePostToStory, listStoryGroups } = await import("../src/lib/stories");
+  const { listPosts } = await import("../src/lib/feed");
+  const a = user("sh1@x.com"), b = user("sh2@x.com"), c = user("sh3@x.com");
+  db().prepare("INSERT INTO community_follows (follower_id, followed_id) VALUES (?, ?)").run(b, a);
+  assert.deepEqual(shareSuggestions(b, 10).map((x) => x.id), [a]);
+  assert.ok(!shareSuggestions(b, 10).some((x) => x.id === c));
+  assert.ok(createCashpill(a, video(a), image(a), 8, "x").ok);
+  const post = listPosts({ viewerId: b, authorId: a }).posts[0];
+  const r = sharePostToStory(b, post.id);
+  assert.ok(r.ok);
+  assert.ok(listStoryGroups(b).some((g) => g.mine && g.stories.length === 1));
+  assert.equal(sharePostToStory(b, 999999).ok, false);
+});

@@ -40,7 +40,7 @@ function queueView(id: number) {
 
 export function PostActions(props: {
   id: number; comments: number; reposts: number; reposted: boolean; likes: number; liked: boolean;
-  views: number; bookmarked: boolean; own: boolean; author: string; body: string;
+  views: number; bookmarked: boolean; own: boolean; author: string; body: string; imageId?: number | null; videoId?: number | null;
 }) {
   const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
@@ -92,22 +92,43 @@ export function PostActions(props: {
         </button>
       </span>
       {likers && <LikersSheet id={props.id} onClose={() => setLikers(false)} />}
-      {share && <ShareSheet id={props.id} author={props.author} body={props.body} onClose={() => setShare(false)} />}
+      {share && <ShareSheet id={props.id} author={props.author} body={props.body} imageId={props.imageId ?? null} videoId={props.videoId ?? null} onClose={() => setShare(false)} />}
     </div>
   );
 }
 
-function ShareSheet({ id, author, body, onClose }: { id: number; author: string; body: string; onClose: () => void }) {
+interface Person { id: number; name: string; avatarId: number | null }
+
+function ShareSheet({ id, author, body, imageId, videoId, onClose }: { id: number; author: string; body: string; imageId: number | null; videoId: number | null; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [q, setQ] = useState("");
+  const [people, setPeople] = useState<Person[] | null>(null);
+  const [sel, setSel] = useState<Person[]>([]);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
   const url = postUrl(location.origin, id);
   const text = shareText(body, author);
   const canNative = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const media = videoId ? { href: `/api/community/video?id=${videoId}`, name: "cashpill.mp4" } : imageId ? { href: `/api/community/image?id=${imageId}`, name: "foto.jpg" } : null;
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, [onClose]);
+
+  useEffect(() => {
+    let dead = false;
+    const term = q.trim();
+    const t = setTimeout(() => {
+      fetch(term.length >= 2 ? `/api/community/dm?q=${encodeURIComponent(term)}` : "/api/community/dm?share=1", { cache: "no-store" })
+        .then((r) => r.json()).then((d: { members?: Person[] }) => { if (!dead) setPeople(d.members ?? []); }).catch(() => { if (!dead) setPeople([]); });
+    }, term.length >= 2 ? 250 : 0);
+    return () => { dead = true; clearTimeout(t); };
+  }, [q]);
+
+  const toggle = (m: Person) => setSel((s) => (s.some((x) => x.id === m.id) ? s.filter((x) => x.id !== m.id) : [...s, m]));
 
   async function copy() {
     try { await navigator.clipboard.writeText(url); } catch {
@@ -117,28 +138,76 @@ function ShareSheet({ id, author, body, onClose }: { id: number; author: string;
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function send() {
+    setBusy(true); setMsg("");
+    const body = `${note.trim() ? `${note.trim()}\n` : ""}${url}`;
+    let fail = 0;
+    for (const m of sel) {
+      const r = await fetch("/api/community/dm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ to: m.id, body }) }).catch(() => null);
+      if (!r?.ok) fail++;
+    }
+    setBusy(false);
+    if (fail) setMsg(`Não foi possível enviar para ${fail} ${fail === 1 ? "pessoa" : "pessoas"}.`);
+    else { setMsg("Enviado!"); setSel([]); setNote(""); setTimeout(onClose, 900); }
+  }
+
+  async function toStory() {
+    setBusy(true); setMsg("");
+    const r = await fetch("/api/community/stories", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fromPost: id }) }).catch(() => null);
+    const d = r ? ((await r.json().catch(() => null)) as { error?: string } | null) : null;
+    setBusy(false);
+    if (r?.ok) { setMsg("Adicionado ao seu story!"); setTimeout(() => { onClose(); location.reload(); }, 900); } else setMsg(d?.error ?? "Não foi possível adicionar ao story.");
+  }
+
+  const act = "flex w-20 shrink-0 flex-col items-center gap-1.5 text-center text-[11px] text-muted hover:text-gold-soft";
+  const circle = "flex h-14 w-14 items-center justify-center rounded-full border border-line bg-panel-2 text-xl text-white";
+  const wa = shareTargets(url, text).find((t) => t.id === "whatsapp")!;
+  const others = shareTargets(url, text).filter((t) => t.id !== "whatsapp");
+
   return createPortal(
     <div className="notranslate fixed inset-0 z-[70] flex items-end justify-center bg-black/70 sm:items-center sm:p-4" translate="no" role="dialog" aria-modal="true" aria-label="Compartilhar publicação" onClick={onClose}>
-      <div className="card w-full max-w-sm rounded-b-none p-4 sm:rounded-b-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
+      <div className="card flex max-h-[88vh] w-full max-w-md flex-col rounded-b-none p-0 sm:rounded-b-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 pt-3">
           <h2 className="font-semibold">Compartilhar</h2>
           <button type="button" onClick={onClose} aria-label="Fechar" className="px-2 text-2xl leading-none text-muted hover:text-white">×</button>
         </div>
-        <div className="mb-3 flex items-center gap-2 rounded-lg border border-line bg-ink px-3 py-2">
-          <span className="min-w-0 flex-1 truncate text-xs text-muted">{url}</span>
-          <button type="button" onClick={copy} className="btn btn-gold !px-3 !py-1 text-xs">{copied ? "Copiado!" : "Copiar link"}</button>
+        <div className="px-4 pt-3">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pesquisar membros" aria-label="Pesquisar membros" maxLength={40} className="h-11 w-full rounded-full border border-line bg-ink px-4 text-sm outline-none focus:border-gold/50" />
         </div>
-        {canNative && (
-          <button type="button" onClick={() => { void navigator.share({ title: "NIZA INVEST", text, url }).then(onClose).catch(() => {}); }} className="btn btn-ghost mb-3 w-full text-sm">Abrir os apps do meu aparelho…</button>
-        )}
-        <ul className="grid grid-cols-3 gap-2 text-center text-xs">
-          {shareTargets(url, text).map((t) => (
-            <li key={t.id}>
-              <a href={t.href} target={t.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" onClick={onClose} className="block rounded-lg border border-line px-2 py-3 hover:border-gold/50 hover:text-gold-soft">{t.label}</a>
-            </li>
-          ))}
+        <ul className="grid min-h-[7rem] flex-1 grid-cols-3 gap-x-2 gap-y-3 overflow-y-auto px-4 py-3">
+          {people === null && <li className="col-span-3 text-sm text-muted">Carregando…</li>}
+          {people?.length === 0 && <li className="col-span-3 text-sm text-muted">{q.trim().length >= 2 ? "Ninguém encontrado." : "Siga alguém ou converse com um membro para vê-lo aqui."}</li>}
+          {(people ?? []).map((m) => {
+            const on = sel.some((x) => x.id === m.id);
+            return (
+              <li key={m.id}>
+                <button type="button" onClick={() => toggle(m)} aria-pressed={on} className="flex w-full flex-col items-center gap-1 text-center">
+                  <span className={`relative rounded-full p-0.5 ${on ? "ring-2 ring-gold" : ""}`}>
+                    <Avatar name={m.name} id={m.avatarId} size={64} />
+                    {on && <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-xs font-bold text-ink">✓</span>}
+                  </span>
+                  <span className="line-clamp-2 text-xs">{m.name}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
-        <p className="mt-3 text-xs text-muted">Só quem tem conta no NIZA INVEST consegue abrir a publicação.</p>
+        {sel.length > 0 ? (
+          <div className="flex gap-2 border-t border-line p-3">
+            <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="Escreva uma mensagem…" aria-label="Mensagem" className="h-11 min-w-0 flex-1 rounded-full border border-line bg-ink px-4 text-sm outline-none" />
+            <button type="button" disabled={busy} onClick={send} className="btn btn-gold !px-5">{busy ? "…" : `Enviar${sel.length > 1 ? ` (${sel.length})` : ""}`}</button>
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto border-t border-line px-4 py-3">
+            {(imageId || videoId) && <button type="button" disabled={busy} onClick={toStory} className={act}><span className={circle}>＋</span>Adicionar ao story</button>}
+            <button type="button" onClick={copy} className={act}><span className={circle}>🔗</span>{copied ? "Copiado!" : "Copiar link"}</button>
+            {canNative && <button type="button" onClick={() => { void navigator.share({ title: "NIZA INVEST", text, url }).then(onClose).catch(() => {}); }} className={act}><span className={circle}>⇪</span>Compartilhar no…</button>}
+            <a href={wa.href} target="_blank" rel="noopener noreferrer" onClick={onClose} className={act}><span className={`${circle} !border-transparent !bg-[#25D366]`}>✆</span>WhatsApp</a>
+            {media && <a href={media.href} download={media.name} className={act}><span className={circle}>⭳</span>Baixar</a>}
+            {others.map((t) => <a key={t.id} href={t.href} target={t.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" onClick={onClose} className={act}><span className={`${circle} text-xs`}>{t.label.slice(0, 2)}</span>{t.label}</a>)}
+          </div>
+        )}
+        {msg && <p role="status" className="px-4 pb-3 text-center text-xs text-gold-soft">{msg}</p>}
       </div>
     </div>,
     document.body,
