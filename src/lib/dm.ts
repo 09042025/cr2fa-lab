@@ -102,3 +102,14 @@ export function privateMediaAllowed(kind: "image" | "audio", id: number, userId:
   if (row.user_id === userId) return true;
   return !!db().prepare(`SELECT 1 FROM dm_messages WHERE ${col} = ? AND (sender_id = ? OR recipient_id = ?)`).get(id, userId, userId);
 }
+
+/** Sugestões para "Enviar para": quem você segue e quem conversou com você, sem bloqueados. */
+export function shareSuggestions(me: number, limit = 30): { id: number; name: string; avatarId: number | null }[] {
+  return db().prepare(`SELECT u.id, u.name, u.avatar_id avatarId FROM users u
+    WHERE u.id != ? AND u.id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?)
+      AND (u.id IN (SELECT followed_id FROM community_follows WHERE follower_id = ?)
+        OR u.id IN (SELECT recipient_id FROM dm_messages WHERE sender_id = ?)
+        OR u.id IN (SELECT sender_id FROM dm_messages WHERE recipient_id = ?))
+    ORDER BY COALESCE((SELECT MAX(m.id) FROM dm_messages m WHERE (m.sender_id = u.id AND m.recipient_id = ?) OR (m.sender_id = ? AND m.recipient_id = u.id)), 0) DESC, u.name
+    LIMIT ?`).all(me, me, me, me, me, me, me, limit) as { id: number; name: string; avatarId: number | null }[];
+}

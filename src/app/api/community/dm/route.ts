@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getUser, rateLimit } from "@/lib/auth";
-import { deleteDm, listConversation, listConversations, searchMembers, sendDm, unreadCount } from "@/lib/dm";
+import { deleteDm, listConversation, listConversations, searchMembers, sendDm, shareSuggestions, unreadCount } from "@/lib/dm";
 import { fail, json, sameOrigin } from "@/lib/http";
 import { isBanned } from "@/lib/community";
 import { db } from "@/lib/db";
@@ -23,6 +23,7 @@ export async function GET(req: Request) {
   if (!user) return fail("Faça login.", 401);
   const sp = new URL(req.url).searchParams;
   if (sp.get("unread")) return json({ unread: unreadCount(user.id) });
+  if (sp.get("share")) return json({ members: shareSuggestions(user.id) });
   const q = sp.get("q");
   if (q !== null) return json({ members: searchMembers(user.id, q) });
   const withId = Number(sp.get("with"));

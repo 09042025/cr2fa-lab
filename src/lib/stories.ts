@@ -105,3 +105,25 @@ export function shareStoryToFeed(storyId: number, userId: number, topic = "geral
   if (dup) return false;
   return addPost(userId, topic, s.caption, s.imageId) !== null;
 }
+
+/** Coloca uma publicação (foto ou Cashpill) no seu story: copia a mídia para você e cria o story. */
+export function sharePostToStory(userId: number, postId: number): StoryResult {
+  const post = db().prepare("SELECT p.id, p.user_id userId, p.image_id imageId, k.video_id videoId, k.poster_id posterId FROM community_posts p LEFT JOIN cashpills k ON k.post_id = p.id WHERE p.id = ? AND (p.user_id = ? OR p.user_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?))").get(postId, userId, userId) as { id: number; userId: number; imageId: number | null; videoId: number | null; posterId: number | null } | undefined;
+  const srcImg = post?.videoId ? post.posterId : post?.imageId;
+  if (!post || !srcImg) return { ok: false, error: "Esta publicação não tem foto ou vídeo para o story." };
+  const img = db().prepare("SELECT mime, data FROM community_images WHERE id = ? AND private = 0").get(srcImg) as { mime: string; data: Buffer } | undefined;
+  if (!img) return { ok: false, error: "Mídia indisponível." };
+  const newImg = Number(db().prepare("INSERT INTO community_images (user_id, mime, data, private) VALUES (?, ?, ?, 0)").run(userId, img.mime, img.data).lastInsertRowid);
+  let newVid: number | null = null;
+  if (post.videoId) {
+    const v = db().prepare("SELECT mime, data FROM community_videos WHERE id = ?").get(post.videoId) as { mime: string; data: Buffer } | undefined;
+    if (!v) { db().prepare("DELETE FROM community_images WHERE id = ?").run(newImg); return { ok: false, error: "Mídia indisponível." }; }
+    newVid = Number(db().prepare("INSERT INTO community_videos (user_id, mime, data) VALUES (?, ?, ?)").run(userId, v.mime, v.data).lastInsertRowid);
+  }
+  const r = createStory(userId, newImg, "", newVid);
+  if (!r.ok) {
+    db().prepare("DELETE FROM community_images WHERE id = ?").run(newImg);
+    if (newVid) db().prepare("DELETE FROM community_videos WHERE id = ?").run(newVid);
+  }
+  return r;
+}
