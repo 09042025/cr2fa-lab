@@ -41,3 +41,13 @@ export function deleteCashpill(id: number, user: { id: number; role: string }): 
 export function listPhotos(authorId: number, limit = 60): { postId: number; imageId: number }[] {
   return db().prepare("SELECT id postId, image_id imageId FROM community_posts WHERE user_id = ? AND image_id IS NOT NULL ORDER BY id DESC LIMIT ?").all(authorId, limit) as { postId: number; imageId: number }[];
 }
+
+export interface FeedPill extends Cashpill { author: string; avatarId: number | null }
+
+/** Cashpills mais recentes da comunidade para o Feed (sem os de membros bloqueados por você). */
+export function listFeedCashpills(viewerId: number, limit = 24): FeedPill[] {
+  return db().prepare(`SELECT c.id, c.user_id userId, c.video_id videoId, c.poster_id posterId, c.caption, c.duration, c.created_at createdAt, u.name author, u.avatar_id avatarId
+    FROM cashpills c JOIN users u ON u.id = c.user_id
+    WHERE c.user_id = ? OR c.user_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?)
+    ORDER BY c.id DESC LIMIT ?`).all(viewerId, viewerId, limit) as FeedPill[];
+}
