@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const id = Number(new URL(req.url).searchParams.get("id"));
   const row = db().prepare("SELECT mime, data, user_id userId FROM community_videos WHERE id = ?").get(id) as { mime: string; data: Buffer; userId: number } | undefined;
   if (!row) return new Response("Não encontrado", { status: 404 });
-  const active = db().prepare("SELECT 1 FROM stories WHERE video_id = ? AND created_at > unixepoch() - 86400").get(id);
+  const active = db().prepare("SELECT 1 FROM stories WHERE video_id = ? AND created_at > unixepoch() - 86400 UNION SELECT 1 FROM cashpills WHERE video_id = ?").get(id, id);
   if (!active && row.userId !== user.id) return new Response("Não autorizado", { status: 403 });
   const total = row.data.length;
   const headers: Record<string, string> = { "content-type": row.mime, "accept-ranges": "bytes", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; sandbox", "cache-control": "private, max-age=3600" };

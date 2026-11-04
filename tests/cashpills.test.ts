@@ -1,0 +1,45 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { db } from "../src/lib/db";
+import { countCashpills, createCashpill, deleteCashpill, listCashpills, listPhotos } from "../src/lib/cashpills";
+import { mediaIsFree } from "../src/lib/community";
+
+const user = (email: string, role = "user") => Number(db().prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, ?, 'x', ?)").run(email, email, role).lastInsertRowid);
+const video = (u: number) => Number(db().prepare("INSERT INTO community_videos (user_id, mime, data) VALUES (?, 'video/mp4', x'00')").run(u).lastInsertRowid);
+const image = (u: number) => Number(db().prepare("INSERT INTO community_images (user_id, mime, data, private) VALUES (?, 'image/jpeg', x'00', 0)").run(u).lastInsertRowid);
+
+test("Cashpill: cria, lista, conta e só o dono (ou admin) apaga", () => {
+  const a = user("cp1@x.com"), b = user("cp2@x.com"), adm = user("cp3@x.com", "admin");
+  const v = video(a), p = image(a);
+  const r = createCashpill(a, v, p, 29.6, "  Primeiro   Cashpill ");
+  assert.ok(r.ok);
+  const l = listCashpills(a);
+  assert.equal(l.length, 1);
+  assert.equal(l[0].duration, 30);
+  assert.equal(l[0].caption, "Primeiro Cashpill");
+  assert.equal(countCashpills(a), 1);
+  assert.equal(mediaIsFree("image", p), true);
+  assert.equal(createCashpill(a, v, p, 15, "").ok, false); // vídeo/capa já usados
+  assert.equal(createCashpill(b, video(a), image(b), 15, "").ok, false); // vídeo de outra pessoa
+  assert.equal(deleteCashpill(l[0].id, { id: b, role: "user" }), false);
+  assert.equal(deleteCashpill(l[0].id, { id: adm, role: "admin" }), true);
+  assert.equal(countCashpills(a), 0);
+});
+
+test("duração é limitada a 60 s e há limite diário", () => {
+  const a = user("cp4@x.com");
+  const r = createCashpill(a, video(a), image(a), 500, "");
+  assert.ok(r.ok);
+  assert.equal(listCashpills(a)[0].duration, 60);
+  for (let i = 0; i < 9; i++) assert.ok(createCashpill(a, video(a), image(a), 15, "").ok);
+  const x = createCashpill(a, video(a), image(a), 15, "");
+  assert.equal(x.ok, false);
+});
+
+test("aba Fotos lista só publicações com imagem", () => {
+  const a = user("cp5@x.com");
+  const img = image(a);
+  db().prepare("INSERT INTO community_posts (user_id, body, image_id) VALUES (?, 'com foto', ?)").run(a, img);
+  db().prepare("INSERT INTO community_posts (user_id, body) VALUES (?, 'sem foto')").run(a);
+  assert.deepEqual(listPhotos(a).map((f) => f.imageId), [img]);
+});
