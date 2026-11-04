@@ -44,9 +44,9 @@ export function PostCard({ p, viewer, showPin = false }: { p: Post; viewer: { id
       {p.body && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6"><Text body={p.body} first={first} /></p>}
       {p.body && <LinkPreview text={p.body} />}
       {p.imageId && (
-        <a href={`/api/community/image?id=${p.imageId}`} target="_blank" rel="noopener noreferrer">
+        <a href={`/api/community/image?id=${p.imageId}`} target="_blank" rel="noopener noreferrer" className="mt-3 block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/community/image?id=${p.imageId}`} alt={`Imagem publicada por ${p.author}`} loading="lazy" className="mt-3 max-h-[28rem] max-w-full rounded-lg border border-line" />
+          <img src={`/api/community/image?id=${p.imageId}`} alt={`Imagem publicada por ${p.author}`} loading="lazy" className="mx-auto block h-auto w-full rounded-lg border border-line object-contain md:max-h-[40rem] md:w-auto md:max-w-full" />
         </a>
       )}
       <PostActions id={p.id} comments={p.comments.length} reposts={p.reposts} reposted={p.reposted} likes={p.likes} liked={p.liked} views={p.views} bookmarked={p.bookmarked} own={p.userId === viewer.id} author={p.author} body={p.body} />
