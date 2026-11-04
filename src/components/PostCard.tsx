@@ -7,6 +7,7 @@ import { MAX_COMMENT, topicLabel, type Post } from "@/lib/feed";
 import { REPORT_REASONS } from "@/lib/community";
 import { RichText } from "./RichText";
 import { LinkPreview } from "./LinkPreview";
+import { PillPlayer } from "./Cashpills";
 
 const when = (t: number) => new Date(t * 1000).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 
@@ -43,6 +44,7 @@ export function PostCard({ p, viewer, showPin = false }: { p: Post; viewer: { id
       </header>
       {p.body && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6"><Text body={p.body} first={first} /></p>}
       {p.body && <LinkPreview text={p.body} />}
+      {p.pillVideoId && p.pillPosterId && <PillPlayer videoId={p.pillVideoId} posterId={p.pillPosterId} duration={p.pillDuration ?? 0} author={p.author} />}
       {p.imageId && (
         <a href={`/api/community/image?id=${p.imageId}`} target="_blank" rel="noopener noreferrer" className="mt-3 block">
           {/* eslint-disable-next-line @next/next/no-img-element */}

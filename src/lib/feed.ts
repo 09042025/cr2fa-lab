@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { removeCashpillRows, type Cashpill } from "./cashpills";
 
 /** Assuntos do feed: ajudam a filtrar as publicações. */
 export const TOPICS = [
@@ -32,6 +33,10 @@ export interface Post {
   reposted: boolean;
   bookmarked: boolean;
   views: number;
+  /** Se a publicação é um Cashpill: ids do vídeo e da capa e a duração. */
+  pillVideoId: number | null;
+  pillPosterId: number | null;
+  pillDuration: number | null;
   /** No filtro "Seguindo": nome de quem você segue que repostou esta publicação. */
   repostedBy: string | null;
   comments: Comment[];
@@ -66,6 +71,7 @@ export function listPosts(o: ListOpts): { posts: Post[]; more: boolean } {
               EXISTS (SELECT 1 FROM post_reposts r WHERE r.post_id = p.id AND r.user_id = ?) reposted,
               EXISTS (SELECT 1 FROM post_bookmarks b WHERE b.post_id = p.id AND b.user_id = ?) bookmarked,
               (SELECT COUNT(*) FROM post_views v WHERE v.post_id = p.id) views,
+              (SELECT video_id FROM cashpills k WHERE k.post_id = p.id) pillVideoId, (SELECT poster_id FROM cashpills k WHERE k.post_id = p.id) pillPosterId, (SELECT duration FROM cashpills k WHERE k.post_id = p.id) pillDuration,
               ${o.following ? "(SELECT u2.name FROM post_reposts r2 JOIN users u2 ON u2.id = r2.user_id WHERE r2.post_id = p.id AND r2.user_id IN (SELECT followed_id FROM community_follows WHERE follower_id = ?) AND p.user_id NOT IN (SELECT followed_id FROM community_follows WHERE follower_id = ?) ORDER BY r2.created_at DESC LIMIT 1)" : "NULL"} repostedBy
        FROM community_posts p JOIN users u ON u.id = p.user_id
        WHERE ${where.join(" AND ")} ORDER BY p.id DESC LIMIT ?`,
@@ -117,6 +123,8 @@ export function deletePost(id: number, user: { id: number; role: string }): bool
   // só o autor apaga o próprio post; o administrador apaga qualquer um
   const own = user.role === "admin" || !!db().prepare("SELECT 1 FROM community_posts WHERE id = ? AND user_id = ?").get(id, user.id);
   if (!own) return false;
+  const k = db().prepare("SELECT id, user_id userId, video_id videoId, poster_id posterId, caption, duration, created_at createdAt FROM cashpills WHERE post_id = ?").get(id) as Cashpill | undefined;
+  if (k) { removeCashpillRows(k); return true; }
   db().prepare("UPDATE users SET pinned_post_id = NULL WHERE pinned_post_id = ?").run(id);
   return db().prepare("DELETE FROM community_posts WHERE id = ?").run(id).changes > 0;
 }
