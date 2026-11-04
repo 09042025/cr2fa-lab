@@ -395,6 +395,13 @@ function migrate(db: Database.Database) {
   // Stories em vídeo: a imagem do story vira a capa e o vídeo fica em community_videos.
   const storyCols = db.prepare("PRAGMA table_info(stories)").all() as { name: string }[];
   if (!storyCols.some((c) => c.name === "video_id")) db.exec("ALTER TABLE stories ADD COLUMN video_id INTEGER");
+  // Cashpills são publicações de verdade (curtir, comentar, repostar...): cada um aponta para o seu post.
+  const pillCols = db.prepare("PRAGMA table_info(cashpills)").all() as { name: string }[];
+  if (!pillCols.some((c) => c.name === "post_id")) db.exec("ALTER TABLE cashpills ADD COLUMN post_id INTEGER");
+  for (const c of db.prepare("SELECT id, user_id, caption, created_at FROM cashpills WHERE post_id IS NULL").all() as { id: number; user_id: number; caption: string; created_at: number }[]) {
+    const pid = Number(db.prepare("INSERT INTO community_posts (user_id, topic, body, created_at) VALUES (?, 'geral', ?, ?)").run(c.user_id, c.caption, c.created_at).lastInsertRowid);
+    db.prepare("UPDATE cashpills SET post_id = ? WHERE id = ?").run(pid, c.id);
+  }
 }
 
 export function db(): Database.Database {

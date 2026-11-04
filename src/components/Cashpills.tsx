@@ -193,41 +193,21 @@ export function CashpillStrip({ pills, viewerId, isAdmin }: { pills: FeedPillVie
   );
 }
 
-const whenBR = (t: number) => new Date(t * 1000).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
-
-/** Cashpill exibido como publicação na linha do tempo do Feed. */
-export function CashpillPostCard({ p, canDelete }: { p: FeedPillView & { createdAt: number }; canDelete: boolean }) {
-  const router = useRouter();
+/** Vídeo do Cashpill dentro de uma publicação: capa com play; toca ali mesmo ao tocar. */
+export function PillPlayer({ videoId, posterId, duration, author }: { videoId: number; posterId: number; duration: number; author: string }) {
   const [play, setPlay] = useState(false);
-  async function remove() {
-    if (!confirm("Apagar este Cashpill?")) return;
-    const r = await fetch(`/api/community/cashpills?id=${p.id}`, { method: "DELETE" });
-    if (r.ok) router.refresh();
-  }
   return (
-    <article className="card p-4">
-      <header className="flex items-center gap-3">
-        <Link href={`/painel/feed/membro/${p.userId}`}><Avatar name={p.author} id={p.avatarId} size={40} /></Link>
-        <div className="min-w-0 flex-1">
-          <Link href={`/painel/feed/membro/${p.userId}`} className="font-semibold hover:underline">{p.author}</Link>
-          <p className="text-xs text-muted">{whenBR(p.createdAt)}</p>
-        </div>
-        <Link href={`/painel/feed/membro/${p.userId}?aba=cashpills`} className="flex items-center gap-1 rounded-full border border-gold/40 px-2.5 py-0.5 text-xs text-gold-soft"><Reel />Cashpill</Link>
-      </header>
-      {p.caption && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">{p.caption}</p>}
-      <div className="relative mx-auto mt-3 aspect-[9/16] max-h-[70vh] overflow-hidden rounded-lg border border-line bg-black">
-        {play ? (
-          <video src={`/api/community/video?id=${p.videoId}`} poster={`/api/community/image?id=${p.posterId}`} controls autoPlay playsInline className="h-full w-full object-contain" />
-        ) : (
-          <button type="button" onClick={() => setPlay(true)} aria-label={`Assistir Cashpill de ${p.author}`} className="block h-full w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/community/image?id=${p.posterId}`} alt="" loading="lazy" className="h-full w-full object-cover" />
-            <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 text-3xl text-white">▶</span></span>
-            <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 text-xs font-semibold text-white">{p.duration}s</span>
-          </button>
-        )}
-      </div>
-      {canDelete && <p className="mt-2 text-right"><button type="button" onClick={remove} className="text-xs text-muted underline hover:text-down">Apagar</button></p>}
-    </article>
+    <div className="relative mx-auto mt-3 aspect-[9/16] max-h-[70vh] overflow-hidden rounded-lg border border-line bg-black">
+      {play ? (
+        <video src={`/api/community/video?id=${videoId}`} poster={`/api/community/image?id=${posterId}`} controls autoPlay playsInline className="h-full w-full object-contain" />
+      ) : (
+        <button type="button" onClick={() => setPlay(true)} aria-label={`Assistir Cashpill de ${author}`} className="block h-full w-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/community/image?id=${posterId}`} alt="" loading="lazy" className="h-full w-full object-cover" />
+          <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 text-3xl text-white">▶</span></span>
+          <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 text-xs font-semibold text-white">{duration}s</span>
+        </button>
+      )}
+    </div>
   );
 }
