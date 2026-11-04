@@ -7,6 +7,8 @@ import { StoriesBar } from "@/components/StoriesBar";
 import { PeopleSearch } from "@/components/PeopleSearch";
 import { PostCard } from "@/components/PostCard";
 import { PageTitle } from "@/components/ui";
+import { CashpillStrip } from "@/components/Cashpills";
+import { listFeedCashpills } from "@/lib/cashpills";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Feed da comunidade" };
@@ -27,6 +29,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
       <PageTitle title="Feed" subtitle="Publicações dos membros sobre investimentos: análises, dúvidas e ideias." />
       <PeopleSearch />
       <StoriesBar me={{ id: user.id, name: user.name, avatarId: avatarId }} canPost={!banned} />
+      <CashpillStrip pills={listFeedCashpills(user.id)} viewerId={user.id} isAdmin={user.role === "admin"} />
       {banned ? (
         <p className="card mb-5 p-4 text-sm text-muted">Você foi suspenso da comunidade pela moderação e não pode publicar. Fale com o suporte se achar que foi um engano.</p>
       ) : (
