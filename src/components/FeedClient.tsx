@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useImageUpload } from "./imageUpload";
+import { CashpillButton } from "./Cashpills";
 
 const link = "text-xs text-muted underline hover:text-white";
 const post = (body: unknown) => fetch("/api/community/feed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -65,6 +66,7 @@ export function PostForm({ topics, max, current }: { topics: readonly { id: stri
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void img.upload(e.target.files?.[0]); e.target.value = ""; }} />
         <button type="button" title="Anexar imagem" aria-label="Anexar imagem" disabled={img.busy} onClick={() => file.current?.click()} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-line hover:bg-panel-2 disabled:opacity-50"><PlusIcon /></button>
+        <CashpillButton />
         <select value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Assunto" className="h-10 rounded-lg border border-line bg-ink px-3 text-sm">
           {topics.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>

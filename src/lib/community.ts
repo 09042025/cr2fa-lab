@@ -109,7 +109,7 @@ export function mediaIsFree(kind: "image" | "audio", id: number): boolean {
   const inChat = db().prepare(`SELECT 1 FROM community_messages WHERE ${col} = ? AND channel IN (${slugs.map(() => "?").join(",")})`).get(id, ...slugs);
   if (inChat) return true;
   if (kind !== "image") return false;
-  return !!db().prepare("SELECT 1 FROM community_posts WHERE image_id = ? UNION SELECT 1 FROM users WHERE avatar_id = ? OR banner_id = ? UNION SELECT 1 FROM stories WHERE image_id = ?").get(id, id, id, id);
+  return !!db().prepare("SELECT 1 FROM community_posts WHERE image_id = ? UNION SELECT 1 FROM users WHERE avatar_id = ? OR banner_id = ? UNION SELECT 1 FROM stories WHERE image_id = ? UNION SELECT 1 FROM cashpills WHERE poster_id = ?").get(id, id, id, id, id);
 }
 
 export const REACTIONS = ["👍", "🔥", "🚀", "💰", "👏", "😂"] as const;

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export const MAX_STORY_SECONDS = 60; // mesmo limite de um story do Instagram
 
-export type Captured = { kind: "photo"; blob: Blob } | { kind: "video"; blob: Blob; poster: Blob };
+export type Captured = { kind: "photo"; blob: Blob } | { kind: "video"; blob: Blob; poster: Blob; seconds: number };
 
 interface Filter { id: string; label: string; gray: number; sepia: number; sat: number; con: number; bri: number }
 export const FILTERS: Filter[] = [
@@ -46,7 +46,7 @@ function pickMime(): string {
 }
 
 /** Câmera em tela cheia: foto ou vídeo (até 60 s) com filtros ao vivo, gravados junto com a imagem. */
-export function StoryCamera({ onCapture, onClose }: { onCapture: (c: Captured) => void; onClose: () => void }) {
+export function StoryCamera({ onCapture, onClose, cashpill = false }: { onCapture: (c: Captured) => void; onClose: () => void; cashpill?: boolean }) {
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const stream = useRef<MediaStream | null>(null);
@@ -55,9 +55,11 @@ export function StoryCamera({ onCapture, onClose }: { onCapture: (c: Captured) =
   const rec = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const t0 = useRef(0);
+  const maxSecRef = useRef(MAX_STORY_SECONDS);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [fid, setFid] = useState("normal");
-  const [mode, setMode] = useState<"foto" | "video">("foto");
+  const [mode, setMode] = useState<"foto" | "video">(cashpill ? "video" : "foto");
+  const [maxSec, setMaxSec] = useState(cashpill ? 30 : MAX_STORY_SECONDS);
   const [recording, setRecording] = useState(false);
   const [secs, setSecs] = useState(0);
   const [err, setErr] = useState("");
@@ -116,6 +118,7 @@ export function StoryCamera({ onCapture, onClose }: { onCapture: (c: Captured) =
     return () => { dead = true; stop(); };
   }, [facing, draw, stop]);
 
+  useEffect(() => { maxSecRef.current = maxSec; }, [maxSec]);
   useEffect(() => { filter.current = FILTERS.find((f) => f.id === fid) ?? FILTERS[0]; }, [fid]);
 
   const toBlob = (q = 0.88) => new Promise<Blob | null>((res) => canvas.current!.toBlob(res, "image/jpeg", q));
@@ -138,7 +141,7 @@ export function StoryCamera({ onCapture, onClose }: { onCapture: (c: Captured) =
     mr.onstop = async () => {
       const poster = await toBlob(0.8);
       const blob = new Blob(chunks.current, { type: mr.mimeType || mime || "video/webm" });
-      if (poster && blob.size) { stop(); onCapture({ kind: "video", blob, poster }); }
+      if (poster && blob.size) { stop(); onCapture({ kind: "video", blob, poster, seconds: Math.min(maxSecRef.current, (Date.now() - t0.current) / 1000) }); }
       setRecording(false);
     };
     mr.start(500);
@@ -153,10 +156,10 @@ export function StoryCamera({ onCapture, onClose }: { onCapture: (c: Captured) =
     const iv = setInterval(() => {
       const s = (Date.now() - t0.current) / 1000;
       setSecs(s);
-      if (s >= MAX_STORY_SECONDS) { clearInterval(iv); rec.current?.stop(); }
+      if (s >= maxSec) { clearInterval(iv); rec.current?.stop(); }
     }, 200);
     return () => clearInterval(iv);
-  }, [recording]);
+  }, [recording, maxSec]);
 
   function close() { if (rec.current?.state === "recording") { rec.current.onstop = null; rec.current.stop(); } stop(); onClose(); }
 
@@ -167,10 +170,10 @@ export function StoryCamera({ onCapture, onClose }: { onCapture: (c: Captured) =
         <canvas ref={canvas} width={W} height={H} className="absolute inset-0 h-full w-full object-cover" />
         <div className="relative z-10 flex items-center justify-between p-3 text-white">
           <button type="button" onClick={close} aria-label="Fechar câmera" className="px-2 text-2xl leading-none">×</button>
-          {recording ? <span className="rounded-full bg-red-600 px-3 py-0.5 text-xs font-semibold">● {Math.floor(secs)}s / {MAX_STORY_SECONDS}s</span> : <span className="text-xs text-white/70">{mode === "video" ? `Vídeo até ${MAX_STORY_SECONDS} s` : "Foto"}</span>}
+          {recording ? <span className="rounded-full bg-red-600 px-3 py-0.5 text-xs font-semibold">● {Math.floor(secs)}s / {maxSec}s</span> : <span className="text-xs text-white/70">{cashpill ? `Cashpill de até ${maxSec} s` : mode === "video" ? `Vídeo até ${MAX_STORY_SECONDS} s` : "Foto"}</span>}
           <button type="button" disabled={recording} onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} aria-label="Virar câmera" className="px-2 text-xl disabled:opacity-40">⟲</button>
         </div>
-        {recording && <div className="relative z-10 mx-3 h-1 overflow-hidden rounded bg-white/30"><div className="h-full bg-red-500" style={{ width: `${(secs / MAX_STORY_SECONDS) * 100}%` }} /></div>}
+        {recording && <div className="relative z-10 mx-3 h-1 overflow-hidden rounded bg-white/30"><div className="h-full bg-red-500" style={{ width: `${(secs / maxSec) * 100}%` }} /></div>}
         {err && <p className="relative z-10 m-4 rounded-lg bg-black/70 p-3 text-center text-sm text-gold-soft">{err}</p>}
         <div className="relative z-10 mt-auto space-y-3 bg-gradient-to-t from-black/80 to-transparent p-4">
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -178,12 +181,19 @@ export function StoryCamera({ onCapture, onClose }: { onCapture: (c: Captured) =
               <button key={f.id} type="button" onClick={() => setFid(f.id)} className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs ${fid === f.id ? "border-gold bg-gold/20 text-gold-soft" : "border-white/30 text-white"}`}>{f.label}</button>
             ))}
           </div>
+          {cashpill && !recording && (
+            <div className="flex justify-center gap-2" role="group" aria-label="Duração do Cashpill">
+              {[15, 30, 45, 60].map((d) => (
+                <button key={d} type="button" onClick={() => setMaxSec(d)} aria-pressed={maxSec === d} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${maxSec === d ? "bg-gold text-black" : "border border-white/40 text-white"}`}>{d}s</button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center justify-center gap-8">
-            <div className="flex gap-2 text-xs text-white">
+            {!cashpill && <div className="flex gap-2 text-xs text-white">
               {(["foto", "video"] as const).map((m) => (
                 <button key={m} type="button" disabled={recording} onClick={() => setMode(m)} className={`rounded-full px-3 py-1 ${mode === m ? "bg-white text-black" : "border border-white/40"}`}>{m === "foto" ? "Foto" : "Vídeo"}</button>
               ))}
-            </div>
+            </div>}
             <button
               type="button"
               disabled={!ready}
