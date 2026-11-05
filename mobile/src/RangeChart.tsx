@@ -57,12 +57,12 @@ export function RangeChart({ price, min, max, bins, onChange, fmtPct }: Props) {
         <View style={{ position: "absolute", left: 0, right: 0, bottom: 14, top: 0, flexDirection: "row", alignItems: "flex-end" }}>
           {cols.map((c, i) => { const f = (i + 0.5) / COLS; const inside = f >= fMin && f <= fMax; return <View key={i} style={{ flex: 1, height: `${Math.max(c > 0 ? 3 : 0, c * 90)}%`, backgroundColor: inside ? "#38bdf8" : "rgba(56,189,248,0.35)" }} />; })}
         </View>
-        <View {...pr.body.panHandlers} style={{ position: "absolute", top: 0, bottom: 0, left: `${fMin * 100}%`, width: `${Math.max(0, fMax - fMin) * 100}%`, backgroundColor: "rgba(52,211,153,0.10)" }} />
-        <View pointerEvents="none" style={{ position: "absolute", top: 0, bottom: 0, left: `${toF(price) * 100}%`, width: 1, backgroundColor: "#fde047" }} />
+        <View {...pr.body.panHandlers} style={{ position: "absolute", top: 0, bottom: 0, left: `${fMin * 100}%`, width: `${Math.max(0, fMax - fMin) * 100}%`, backgroundColor: "rgba(217,165,32,0.12)" }} />
+        <View pointerEvents="none" style={{ position: "absolute", top: 0, bottom: 0, left: `${toF(price) * 100}%`, width: 1, backgroundColor: "#ffffff" }} />
         {([["min", fMin, min], ["max", fMax, max]] as const).map(([k, f, v]) => (
           <View key={k} {...pr[k].panHandlers} style={{ position: "absolute", top: 0, bottom: 0, left: `${f * 100}%`, width: 36, marginLeft: -18, alignItems: "center", justifyContent: "center" }}>
-            <View style={{ position: "absolute", top: 0, bottom: 0, width: 3, backgroundColor: "#34d399" }} />
-            <View style={{ width: 12, height: 32, borderRadius: 4, backgroundColor: "#34d399" }} />
+            <View style={{ position: "absolute", top: 0, bottom: 0, width: 3, backgroundColor: "#d9a520" }} />
+            <View style={{ width: 12, height: 32, borderRadius: 4, backgroundColor: "#d9a520" }} />
             <Text style={{ position: "absolute", top: 2, [k === "min" ? "right" : "left"]: 20, color: C.white, fontSize: 11, backgroundColor: "#1e293b", paddingHorizontal: 4, borderRadius: 4 }}>{k === "max" && !Number.isFinite(v) ? "∞" : fmtPct(v)}</Text>
           </View>
         ))}
@@ -70,7 +70,7 @@ export function RangeChart({ price, min, max, bins, onChange, fmtPct }: Props) {
           {[0.1, 0.3, 0.5, 0.7, 0.9].map((f) => <Text key={f} style={{ color: C.muted, fontSize: 9 }}>{sig(Math.exp(llo + f * (lhi - llo)))}</Text>)}
         </View>
       </View>
-      <Text style={{ color: C.muted, fontSize: 11 }}>Arraste as alças verdes (ou a área entre elas) para mudar a faixa. Linha amarela = preço atual.</Text>
+      <Text style={{ color: C.muted, fontSize: 11 }}>Arraste as alças verdes (ou a área entre elas) para mudar a faixa. Linha branca = preço atual.</Text>
     </View>
   );
 }

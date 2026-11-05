@@ -59,17 +59,17 @@ export function RangeChart({ price, min, max, bins, onChange, fmtPct }: Props) {
         <div className="absolute inset-x-0 bottom-0 top-0 flex items-end">
           {cols.map((c, i) => { const f = (i + 0.5) / COLS; const inside = f >= fMin && f <= fMax; return <div key={i} style={{ width: `${100 / COLS}%`, height: `${Math.max(c > 0 ? 3 : 0, c * 90)}%`, background: inside ? "#38bdf8" : "#38bdf855" }} />; })}
         </div>
-        <div className="absolute inset-y-0 cursor-grab bg-emerald-400/10" style={{ left: `${fMin * 100}%`, width: `${Math.max(0, fMax - fMin) * 100}%` }} onPointerDown={start("body")} />
-        <div className="pointer-events-none absolute inset-y-0 w-px bg-yellow-300" style={{ left: `${toF(price) * 100}%` }} title="Preço atual" />
+        <div className="absolute inset-y-0 cursor-grab bg-gold/10" style={{ left: `${fMin * 100}%`, width: `${Math.max(0, fMax - fMin) * 100}%` }} onPointerDown={start("body")} />
+        <div className="pointer-events-none absolute inset-y-0 w-px bg-white" style={{ left: `${toF(price) * 100}%` }} title="Preço atual" />
         {([["min", fMin, min], ["max", fMax, max]] as const).map(([k, f, v]) => (
           <div key={k} className="absolute inset-y-0 z-10 -ml-2 flex w-4 cursor-ew-resize items-center justify-center" style={{ left: `${f * 100}%` }} onPointerDown={start(k)} role="slider" aria-label={k === "min" ? "Preço mínimo" : "Preço máximo"} aria-valuenow={Number.isFinite(v) ? v : 0}>
-            <div className="h-full w-1 bg-emerald-400" /><div className="absolute top-1/2 h-8 w-3 -translate-y-1/2 rounded bg-emerald-400" />
+            <div className="h-full w-1 bg-gold" /><div className="absolute top-1/2 h-8 w-3 -translate-y-1/2 rounded bg-gold" />
             <span className={`pointer-events-none absolute top-1 whitespace-nowrap rounded bg-slate-800 px-1.5 py-0.5 text-xs ${k === "min" ? "right-3" : "left-3"}`}>{k === "max" && !Number.isFinite(v) ? "∞" : fmtPct(v)}</span>
           </div>
         ))}
         {ticks.map(({ f, v }) => <span key={f} className="pointer-events-none absolute bottom-0 -translate-x-1/2 text-[10px] text-muted" style={{ left: `${f * 100}%` }}>{sig(v)}</span>)}
       </div>
-      <p className="mt-1 text-xs text-muted">Arraste as alças verdes (ou a área entre elas) para mudar a faixa. Linha amarela = preço atual. Escala de preço logarítmica.</p>
+      <p className="mt-1 text-xs text-muted">Arraste as alças verdes (ou a área entre elas) para mudar a faixa. Linha branca = preço atual. Escala de preço logarítmica.</p>
     </div>
   );
 }
