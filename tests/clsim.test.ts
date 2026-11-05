@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { concentration, earnings, fullRangeApr, impermanentLoss, presetRange, split } from "../src/lib/clsim";
+import { concentration, earnings, impermanentLoss, presetRange, split } from "../src/lib/clsim";
 
 test("faixa total rende 1x; faixa estreita rende mais; fora da faixa rende 0", () => {
   assert.ok(Math.abs(concentration(100, 0, Infinity) - 1) < 1e-9);
@@ -10,14 +10,23 @@ test("faixa total rende 1x; faixa estreita rende mais; fora da faixa rende 0", (
   assert.equal(concentration(100, 80, 90), 0);
 });
 
-test("APR das taxas e ganhos estimados", () => {
-  const apr = fullRangeApr(1_000_000, 0.003, 10_000_000)!; // 1M * 0,3% * 365 / 10M = 10,95%
-  assert.ok(Math.abs(apr - 10.95) < 1e-9);
-  assert.equal(fullRangeApr(null, 0.003, 1), null);
-  const e = earnings(1000, 100, 0, Infinity, apr);
-  assert.ok(Math.abs(e.year! - 109.5) < 1e-6);
-  assert.ok(Math.abs(e.month! - 109.5 / 12) < 1e-6);
-  assert.equal(earnings(1000, 100, 110, 120, apr).year, 0);
+test("ganhos estimados: confere com a Krystal (pool NVDA/USDG, faixa -23%/+43%, US$ 1.000)", () => {
+  // Krystal: taxas 24h US$ 2.002, preço 182,82, faixa -23,05%..+42,85% => US$ 3,17/dia, 115,68% APR.
+  // A liquidez ativa do pool (≈ US$ 4,4 mi em faixa total) vem da blockchain.
+  const p = 182.82, pa = p * (1 - 0.2305), pb = p * 1.4285;
+  const e = earnings(1000, p, pa, pb, 2002, 4_400_000);
+  assert.ok(Math.abs(e.day! - 3.17) < 0.3, `dia ${e.day}`);
+  assert.ok(Math.abs(e.apr! - 115.68) < 12, `apr ${e.apr}`);
+});
+
+test("ganhos: faixa total, fora da faixa, diluição e sem dados", () => {
+  const full = earnings(1000, 100, 0, Infinity, 1000, 10_000_000); // 1000/10M da liquidez, fatia ~0,01%
+  assert.ok(Math.abs(full.day! - 0.1) < 0.001);
+  assert.equal(earnings(1000, 100, 110, 120, 1000, 10_000_000).day, 0);
+  // um depósito igual à liquidez do pool leva metade das taxas
+  assert.ok(Math.abs(earnings(1e7, 100, 0, Infinity, 1000, 1e7).day! - 500) < 1e-6);
+  assert.equal(earnings(1000, 100, 0, Infinity, null, 1e7).year, null);
+  assert.ok(Math.abs(full.month! - full.year! / 12) < 1e-9);
 });
 
 test("divisão entre tokens soma 100% e respeita os extremos", () => {

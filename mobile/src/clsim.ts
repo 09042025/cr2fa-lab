@@ -33,13 +33,17 @@ export function split(p: number, pa: number, pb: number): Split | null {
 }
 
 export interface Earning { inRange: boolean; factor: number; apr: number | null; day: number | null; month: number | null; year: number | null }
-/** Ganho estimado em US$ para `value` dólares colocados no intervalo. */
-export function earnings(value: number, p: number, pa: number, pb: number, baseApr: number | null): Earning {
+/**
+ * Ganho estimado em US$ para `value` dólares colocados no intervalo.
+ * Sua parte das taxas = sua liquidez ÷ (liquidez ativa do pool + a sua). `poolValueUsd` é o valor, em faixa total, da liquidez ATIVA hoje
+ * no preço atual (lida da blockchain). Sem esse dado, usa o TVL, que costuma superestimar o ganho em pools concentrados.
+ */
+export function earnings(value: number, p: number, pa: number, pb: number, fees24h: number | null, poolValueUsd: number): Earning {
   const factor = concentration(p, pa, pb);
-  if (baseApr === null || !(value > 0)) return { inRange: factor > 0, factor, apr: null, day: null, month: null, year: null };
-  const apr = baseApr * factor;
-  const year = (value * apr) / 100;
-  return { inRange: factor > 0, factor, apr, day: year / 365, month: year / 12, year };
+  if (fees24h === null || !(value > 0) || !(poolValueUsd > 0)) return { inRange: factor > 0, factor, apr: null, day: null, month: null, year: null };
+  const r = (value * factor) / poolValueUsd; // liquidez do usuário ÷ liquidez ativa do pool
+  const day = factor > 0 ? fees24h * (r / (1 + r)) : 0;
+  return { inRange: factor > 0, factor, apr: (day * 365 / value) * 100, day, month: (day * 365) / 12, year: day * 365 };
 }
 
 /** Valor (em token B) de uma posição com liquidez L quando o preço vai para p2. */

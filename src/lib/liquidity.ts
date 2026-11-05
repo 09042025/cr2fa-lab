@@ -66,6 +66,10 @@ export interface Distribution {
   center: number; lo: number; hi: number;
   /** Liquidez relativa (0 a 1) em BINS faixas igualmente espaçadas em log entre lo e hi. */
   bins: number[];
+  /** Valor, em unidades do token1 do pool, de uma posição de faixa total com a mesma liquidez ATIVA de hoje. */
+  activeValueToken1?: number;
+  /** true quando o token1 do pool é o primeiro token (A) do par exibido. */
+  token1IsA?: boolean;
 }
 
 /** Agrupa os trechos de liquidez em BINS faixas de preço (escala logarítmica). `invert` mostra o preço do token1 em token0. */
@@ -137,5 +141,10 @@ export async function loadDistribution(chain: string, pool: string, tokenA: stri
   const ticks: TickNet[] = [];
   initialized.forEach((t, i) => { const r = infos[i]; if (r) ticks.push({ tick: t, net: Number(decSigned(r, 1, 128)) }); });
   if (!ticks.length) return null;
-  return binProfile(buildProfile(currentTick, liquidity, ticks), currentTick, dec0, dec1, invert);
+  const dist = binProfile(buildProfile(currentTick, liquidity, ticks), currentTick, dec0, dec1, invert);
+  // liquidez ativa em "valor de faixa total": L × 2√P (em token1 bruto) convertido para unidades do token1
+  const sqrtP = Number(decUnsigned(s0, 0)) / 2 ** 96;
+  dist.activeValueToken1 = (liquidity * 2 * sqrtP) / Math.pow(10, dec1);
+  dist.token1IsA = invert;
+  return dist;
 }

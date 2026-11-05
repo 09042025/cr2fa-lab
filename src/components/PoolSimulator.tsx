@@ -5,14 +5,14 @@ import { earnings, impermanentLoss, presetRange, split } from "@/lib/clsim";
 
 interface Props {
   symA: string; symB: string; price: number | null; usdA: number | null; usdB: number | null;
-  baseApr: number | null; stable: boolean; dist?: { center: number; lo: number; hi: number; bins: number[] } | null; priceNote: string | null; dexName: string; dexUrl: string;
+  fees24h: number | null; poolValueUsd: number; poolValueFromChain: boolean; stable: boolean; dist?: { center: number; lo: number; hi: number; bins: number[] } | null; priceNote: string | null; dexName: string; dexUrl: string;
 }
 const num = (s: string) => { const v = Number(s.replace(",", ".")); return Number.isFinite(v) ? v : NaN; };
 const fmt = (v: number, d = 2) => v.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: d });
 const usd = (v: number) => `US$ ${fmt(v)}`;
 const sig = (v: number) => v.toLocaleString("pt-BR", { maximumSignificantDigits: 6 });
 
-export function PoolSimulator({ dist, symA, symB, price, usdA, usdB, baseApr, stable, priceNote, dexName, dexUrl }: Props) {
+export function PoolSimulator({ dist, symA, symB, price, usdA, usdB, fees24h, poolValueUsd, poolValueFromChain, stable, priceNote, dexName, dexUrl }: Props) {
   const [manual, setManual] = useState("");
   const p = price ?? num(manual);
   const [rangeKind, setRangeKind] = useState<"narrow" | "wide" | "full" | "custom">("wide");
@@ -28,7 +28,7 @@ export function PoolSimulator({ dist, symA, symB, price, usdA, usdB, baseApr, st
   }, [p, rangeKind, minS, maxS, stable]);
   const value = num(valueS);
   const valid = p > 0 && pb > pa && value > 0;
-  const e = valid ? earnings(value, p, pa, pb, baseApr) : null;
+  const e = valid ? earnings(value, p, pa, pb, fees24h, poolValueUsd) : null;
   const sp = valid ? split(p, pa, pb) : null;
   const pickRange = (k: "narrow" | "wide" | "full") => setRangeKind(k);
   const show = (v: number) => (mode === "pct" ? (v === 0 ? "-100" : Number.isFinite(v) ? fmt((v / p - 1) * 100, 2) : "∞") : Number.isFinite(v) ? sig(v) : "∞");
@@ -130,7 +130,7 @@ export function PoolSimulator({ dist, symA, symB, price, usdA, usdB, baseApr, st
       {!valid && p > 0 && <p className="text-sm text-muted">Informe uma faixa válida (máximo maior que o mínimo) e um valor maior que zero.</p>}
 
       <a href={dexUrl} target="_blank" rel="noopener noreferrer nofollow" className="btn btn-gold mt-4 inline-flex">Abrir na {dexName} ↗</a>
-      <p className="mt-2 text-xs text-muted">Estimativa baseada no volume e no TVL de hoje; o ganho real muda todo dia e a perda impermanente pode superar as taxas. Confira o endereço do site e os tokens antes de conectar a carteira.</p>
+      <p className="mt-2 text-xs text-muted">{poolValueFromChain ? "Estimativa baseada nas taxas de 24h e na liquidez ativa do pool hoje (lida da blockchain);" : "Estimativa aproximada: sem a liquidez ativa do pool, usamos o TVL, o que costuma superestimar o ganho em pools concentrados;"} o ganho real muda todo dia e a perda impermanente pode superar as taxas. Confira o endereço do site e os tokens antes de conectar a carteira.</p>
     </section>
   );
 }
