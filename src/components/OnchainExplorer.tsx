@@ -48,6 +48,18 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
   const [cursor, setCursor] = useState(0);
   const [hovering, setHovering] = useState(false);
   const [notice, setNotice] = useState("");
+  const [live, setLive] = useState<{ usd: number; source: string } | null>(null);
+  useEffect(() => {
+    let dead = false;
+    const tick = () => {
+      if (document.hidden) return;
+      fetch("/api/onchain/spot", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d: { usd: number; source: string } | null) => { if (!dead && d?.usd) setLive(d); }).catch(() => {});
+    };
+    tick();
+    const t = setInterval(tick, 5000);
+    document.addEventListener("visibilitychange", tick);
+    return () => { dead = true; clearInterval(t); document.removeEventListener("visibilitychange", tick); };
+  }, []);
   const have = data ? Object.keys(data.series).join(",") : "";
 
   useEffect(() => {
@@ -180,7 +192,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
           {data ? (
             <div className={status === "loading" ? "opacity-60 transition-opacity" : "transition-opacity"}>
               <OnchainChart
-                start={data.start} price={data.price} lines={lines} halvings={data.halvings}
+                spot={live} start={data.start} price={data.price} lines={lines} halvings={data.halvings}
                 showHalvings={showHalvings} logPrice={logPrice} i0={i0} i1={i1}
                 onZoom={(a, b) => setZoom([a, b])} onReset={() => setZoom(null)} onCursor={(i, h) => { setCursor(i); setHovering(h); }}
               />

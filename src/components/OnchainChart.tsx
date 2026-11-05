@@ -20,6 +20,7 @@ export interface ChartLine {
 }
 
 interface Props {
+  spot?: { usd: number; source: string } | null;
   start: number;
   price: Series;
   lines: ChartLine[];
@@ -57,7 +58,9 @@ const valueAt = (lo: number, hi: number, log: boolean, f: number) =>
 
 const fmtDate = (day: number) => dayToDate(day).toLocaleDateString("pt-BR", { timeZone: "UTC" });
 
-export function OnchainChart({ start, price, lines, halvings, showHalvings, logPrice, i0, i1, onZoom, onReset, onCursor }: Props) {
+export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, showHalvings, logPrice, i0, i1, onZoom, onReset, onCursor }: Props) {
+  // O último ponto do preço vira o preço ao vivo (o dado diário só fecha à meia-noite UTC).
+  const price = useMemo(() => (spot && priceRaw.length ? [...priceRaw.slice(0, -1), spot.usd] : priceRaw), [spot, priceRaw]);
   const uid = useId().replace(/:/g, "");
   const wrap = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -245,12 +248,13 @@ export function OnchainChart({ start, price, lines, halvings, showHalvings, logP
     <div>
       <div className="mb-2 space-y-1.5 text-xs" aria-live="polite">
         <p className="font-semibold text-white">
-          {hover === null ? <>Valores atuais <span className="font-normal text-muted">(último dado: {fmtDate(start + latest)}). Passe o cursor sobre o gráfico para ver outra data.</span></> : fmtDate(day)}
+          {hover === null ? <>Valores atuais <span className="font-normal text-muted">(preço ao vivo, demais dados até {fmtDate(start + latest)}). Passe o cursor sobre o gráfico para ver outra data.</span></> : fmtDate(day)}
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-4 rounded" style={{ background: PRICE_COLOR }} />
             <span className="text-muted">Preço BTC</span>
+            {hover === null && spot && <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-up"><span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-up" />ao vivo · {spot.source}</span>}
             <span className="font-semibold" style={{ color: PRICE_COLOR }}>{priceNow === null || priceNow === undefined ? "—" : formatValue("usd", priceNow)}</span>
           </span>
           {lines.map((l) => {
