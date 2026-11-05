@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { router } from "expo-router";
 import { Linking, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { rate, usdCompact } from "../src/format";
 import { C } from "../src/theme";
@@ -97,10 +98,10 @@ function Hub() {
       <Status loading={loading && !data} error={error} onRetry={reload} />
       {data && <Muted>{data.total.toLocaleString("pt-BR")} pools com esses filtros{data.total > data.pools.length ? ` (mostrando os ${data.pools.length} primeiros)` : ""}.</Muted>}
       {data?.pools.map((p) => (
-        <Card key={p.id} style={{ gap: 8 }} onPress={p.link ? () => Linking.openURL(p.link!.url) : undefined}>
+        <Card key={p.id} style={{ gap: 8 }} onPress={isDex ? () => router.push({ pathname: "/pool", params: { id: p.id } }) : p.link ? () => Linking.openURL(p.link!.url) : undefined}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: C.goldSoft, fontSize: 16, fontWeight: "700" }}>{p.symbol}{p.poolMeta ? `  ${p.poolMeta}` : ""} ↗</Text>
+              <Text style={{ color: C.goldSoft, fontSize: 16, fontWeight: "700" }}>{p.symbol}{p.poolMeta ? `  ${p.poolMeta}` : ""} {isDex ? "›" : "↗"}</Text>
               <Text style={{ color: C.muted, fontSize: 12 }}>{p.project} · {p.chain}{p.stablecoin ? " · stable" : ""}{p.rwa ? " · RWA" : ""}</Text>
             </View>
             <View style={{ alignItems: "flex-end" }}><Text style={{ color: C.goldSoft, fontSize: 18, fontWeight: "700" }}>{rate(p.apy)}</Text><Text style={{ color: C.muted, fontSize: 11 }}>{isDex ? "APR total" : "APY total"}</Text></View>
@@ -116,7 +117,7 @@ function Hub() {
           </View>
         </Card>
       ))}
-      <Muted>Toque no pool para abrir {isDex ? "a DEX oficial" : "o protocolo"} em outra aba (ou o DefiLlama, quando não há link direto). Confira sempre o endereço e os tokens antes de conectar a carteira.</Muted>
+      <Muted>{isDex ? "Toque no pool para ver os detalhes, simular a faixa e as taxas e abrir a DEX." : "Toque no pool para abrir o protocolo (ou o DefiLlama, quando não há link direto)."} Confira sempre o endereço e os tokens antes de conectar a carteira.</Muted>
       <Muted>APR de taxas vem do volume negociado no pool; recompensas em token oscilam e podem acabar. APY alto costuma vir de recompensas. Conteúdo educativo, não é recomendação de investimento.</Muted>
     </>
   );
