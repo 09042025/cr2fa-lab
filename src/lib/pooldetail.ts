@@ -4,14 +4,14 @@ import { loadDistribution, TICK_SPACING, type Distribution } from "./liquidity";
 import { poolKind, turnover } from "./pools";
 
 /** Nome da rede no DefiLlama (coins.llama.fi). Rede fora da lista = sem preço, e o usuário digita o preço atual. */
-const COIN_CHAIN: Record<string, string> = {
+export const COIN_CHAIN: Record<string, string> = {
   Ethereum: "ethereum", Arbitrum: "arbitrum", Optimism: "optimism", "OP Mainnet": "optimism", Polygon: "polygon", Base: "base",
   BSC: "bsc", Avalanche: "avax", Gnosis: "xdai", Fantom: "fantom", Celo: "celo", Linea: "linea", Scroll: "scroll", Blast: "blast",
   Mantle: "mantle", Sonic: "sonic", Unichain: "unichain", Berachain: "berachain", Solana: "solana", "zkSync Era": "era",
 };
 
 /** Rede no DexScreener (gráfico de preço incorporado). */
-const DEXS_CHAIN: Record<string, string> = {
+export const DEXS_CHAIN: Record<string, string> = {
   Ethereum: "ethereum", Base: "base", Arbitrum: "arbitrum", Polygon: "polygon", BSC: "bsc", Optimism: "optimism", "OP Mainnet": "optimism",
   Avalanche: "avalanche", Solana: "solana", Fantom: "fantom", Linea: "linea", Scroll: "scroll", Blast: "blast", Mantle: "mantle",
   Sonic: "sonic", Unichain: "unichain", Berachain: "berachain", Celo: "celo", Gnosis: "gnosischain", "zkSync Era": "zksync",

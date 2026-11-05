@@ -44,7 +44,7 @@ export function LpHealth({ data }: { data: LpResult }) {
               <div><dt className="text-xs text-muted">Ganho estimado/dia</dt><dd className="font-semibold">{p.estDayUsd === null ? "—" : usd(p.estDayUsd)}</dd><dd className="text-xs text-muted">APR estimado {p.estApr === null ? "—" : pct(p.estApr)}</dd></div>
               <div><dt className="text-xs text-muted">Pool</dt><dd className="font-semibold">{p.poolTvlUsd === null ? "—" : usdCompact(p.poolTvlUsd)}</dd><dd className="text-xs text-muted">APR do pool {p.poolApr === null ? "—" : pct(p.poolApr)}</dd></div>
             </dl>
-            <p className="mt-3 text-xs"><a className="text-gold-soft hover:underline" href={p.link} target="_blank" rel="noopener noreferrer nofollow">Ver esta posição na Uniswap (só visualização) ↗</a></p>
+            <p className="mt-3 flex flex-wrap gap-4 text-xs"><a className="font-semibold text-gold-soft hover:underline" href={`/painel/cripto/defi/saude/posicao?carteira=${data.address}&rede=${p.chain}&id=${p.tokenId}`}>Análise completa: PnL, ROI, gráficos →</a><a className="text-gold-soft hover:underline" href={p.link} target="_blank" rel="noopener noreferrer nofollow">Ver esta posição na Uniswap (só visualização) ↗</a></p>
           </article>
         );
       })}
