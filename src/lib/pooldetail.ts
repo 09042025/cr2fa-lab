@@ -1,6 +1,7 @@
 import { cached, fetchJson, getAllPools, type DefiPool } from "./market";
 import { feeFromMeta, llamaUrl, poolLink, type PoolLink } from "./poollinks";
 import { fullRangeApr } from "./clsim";
+import { loadDistribution, TICK_SPACING, type Distribution } from "./liquidity";
 import { poolKind, turnover } from "./pools";
 
 /** Nome da rede no DefiLlama (coins.llama.fi). Rede fora da lista = sem preço, e o usuário digita o preço atual. */
@@ -47,6 +48,8 @@ export interface PoolDetail {
   /** Gráfico de preço do DexScreener: endereço do par (ou do token, que o DexScreener resolve para o par principal). */
   chart: { chain: string; address: string; embed: string; page: string } | null;
   history: HistPoint[];
+  /** Distribuição de liquidez (Uniswap v3), lida da blockchain; null quando não disponível. */
+  dist: Distribution | null;
   fetchedAt: number | null;
 }
 
@@ -91,6 +94,10 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
   const price = usdA && usdB ? usdA / usdB : null;
   const sym = split2(p.symbol);
   const link = poolLink(p);
+  const poolAddr = link.kind === "direct" ? link.url.split("/").pop() ?? "" : "";
+  const dist = p.project === "uniswap-v3" && ADDR.test(poolAddr) && hasTok && feeUnits && TICK_SPACING[feeUnits]
+    ? (await cached<Distribution | null>(`liqdist:${poolAddr.toLowerCase()}`, 10 * 60, async () => loadDistribution(p.chain, poolAddr, p.tokens[0], feeUnits).catch(() => null))).data
+    : null;
   const ds = DEXS_CHAIN[p.chain];
   const tail = link.url.split("/").pop() ?? "";
   const address = ADDR.test(tail) && link.kind === "direct" ? tail : hasTok ? p.tokens[0] : null;
@@ -102,6 +109,6 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
     feeRate, feeFromDex, fees24h: p.volumeUsd1d !== null && feeRate !== null ? p.volumeUsd1d * feeRate : null, baseApr,
     price, usdA, usdB,
     priceNote: price ? null : sym ? `Não encontramos o preço de ${sym[0]} automaticamente. Digite o preço atual para simular.` : "Preço indisponível. Digite o preço atual para simular.",
-    link, llama: llamaUrl(p), chart, history, fetchedAt: all.fetchedAt,
+    link, llama: llamaUrl(p), chart, history, dist, fetchedAt: all.fetchedAt,
   };
 }
