@@ -19,3 +19,15 @@ export function ago(t: number): string {
   const d = Math.floor(h / 24);
   return d === 1 ? "ontem" : `há ${d} dias`;
 }
+
+/** Percentual simples (taxas): 10,50%. */
+export const rate = (v: number | null | undefined): string => (v === null || v === undefined ? "—" : `${num(v, 2)}%`);
+
+/** US$ 1,2 bi / 350,0 mi (TVL de pools). */
+export function usdCompact(v: number): string {
+  const a = Math.abs(v);
+  if (a >= 1e9) return `US$ ${num(v / 1e9, 1)} bi`;
+  if (a >= 1e6) return `US$ ${num(v / 1e6, 1)} mi`;
+  if (a >= 1e3) return `US$ ${num(v / 1e3, 1)} mil`;
+  return `US$ ${num(v, 0)}`;
+}
