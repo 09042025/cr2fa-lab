@@ -14,7 +14,7 @@ export default function Mercado() {
     <Screen title="Mercado" subtitle="Criptomoedas por valor de mercado, em dólar.">
       <Status loading={loading} error={error ?? (data?.failed ? "Não foi possível carregar as cotações agora." : null)} onRetry={reload} />
       {data?.coins?.map((c) => (
-        <Card key={c.id}>
+        <Card key={c.id} onPress={() => router.push({ pathname: "/ativo/[id]", params: { id: c.id } })}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             {c.image ? <Image source={{ uri: c.image }} style={{ width: 32, height: 32, borderRadius: 16 }} /> : <View style={{ width: 32 }} />}
             <View style={{ flex: 1 }}><H2>{c.name}</H2><Muted>{c.symbol}</Muted></View>

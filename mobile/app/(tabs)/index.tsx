@@ -48,14 +48,14 @@ export default function Inicio() {
               <Pressable onPress={() => router.push("/mercado")}><Text style={{ color: C.goldSoft, textDecorationLine: "underline", fontSize: 12 }}>ver mais</Text></Pressable>
             </View>
             {data.coins.map((c, i) => (
-              <Row key={c.id} last={i === data.coins.length - 1}>
+              <Pressable key={c.id} onPress={() => router.push({ pathname: "/ativo/[id]", params: { id: c.id } })}><Row last={i === data.coins.length - 1}>
                 {c.image ? <Image source={{ uri: c.image }} style={{ width: 28, height: 28, borderRadius: 14 }} /> : <View style={{ width: 28 }} />}
                 <View style={{ flex: 1 }}><Text style={{ color: C.white, fontWeight: "600" }}>{c.name}</Text><Text style={{ color: C.muted, fontSize: 12 }}>{c.symbol}</Text></View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ color: C.white, fontWeight: "700" }}>{usd(c.priceUsd)}</Text>
                   <Text style={{ color: (c.change24h ?? 0) >= 0 ? C.up : C.down, fontWeight: "600", fontSize: 12 }}>{pct(c.change24h)}</Text>
                 </View>
-              </Row>
+              </Row></Pressable>
             ))}
           </Card>
 
