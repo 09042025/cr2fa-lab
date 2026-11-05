@@ -207,3 +207,11 @@ test("preço realizado STH/LTH: MVRV STH = preço ÷ preço realizado e indispon
   assert.ok(off.includes("lth_mvrv") && off.includes("lth_realized_price") && !off.includes("sth_mvrv"));
   assert.ok(unavailableIds(buildBase(raw)).includes("sth_realized_price"));
 });
+
+test("preço ao vivo: leitores das corretoras", async () => {
+  const { parseBinance, parseCoinbase, parseKraken } = await import("../src/lib/spot");
+  assert.equal(parseBinance({ symbol: "BTCUSDT", price: "76395.66" }), 76395.66);
+  assert.equal(parseCoinbase({ data: { amount: "76400.1" } }), 76400.1);
+  assert.equal(parseKraken({ result: { XXBTZUSD: { c: ["76410.5", "0.1"] } } }), 76410.5);
+  assert.ok(Number.isNaN(parseBinance(null)));
+});
