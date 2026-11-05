@@ -6,7 +6,7 @@ import { useApi } from "../src/useApi";
 import { Card, H2, Muted, ProGate, Screen, Status } from "../src/ui";
 
 interface Pool { id: string; symbol: string; project: string; chain: string; poolMeta: string | null; stablecoin: boolean; rwa: boolean; tvlUsd: number; volumeUsd1d: number | null; turnover: number | null; apyBase: number | null; apyReward: number | null; apy: number | null; apyMean30d: number | null; il7d: number | null }
-interface Data { dexes: string[]; tipo: "liquidez" | "rendimento"; total: number; chains: string[]; pools: Pool[]; fetchedAt: number | null; stale: boolean }
+interface Data { dexes?: string[]; tipo: "liquidez" | "rendimento"; total: number; chains: string[]; pools: Pool[]; fetchedAt: number | null; stale: boolean }
 
 const chip = (on: boolean) => ({ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 });
 const Chip = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => <Pressable onPress={onPress} style={chip(on)}><Text style={{ color: on ? C.ink : C.white, fontWeight: "700" }}>{label}</Text></Pressable>;
@@ -65,10 +65,10 @@ function Hub() {
           <Chip label="Todos os tipos" on={cat === ""} onPress={() => setCat("")} />
           {[["cripto", "Cripto"], ["rwa", "RWA"], ["stable", "Stablecoins"], ["outros", "Outros"]].map(([id, l]) => <Chip key={id} label={l} on={cat === id} onPress={() => setCat(cat === id ? "" : id)} />)}
         </ScrollView>
-        {data && data.dexes.length > 0 && (
+        {data && (data.dexes?.length ?? 0) > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
             <Chip label={isDex ? "Todas as DEX" : "Todos os protocolos"} on={dex === ""} onPress={() => setDex("")} />
-            {data.dexes.map((c) => <Chip key={c} label={c} on={dex === c} onPress={() => setDex(dex === c ? "" : c)} />)}
+            {(data.dexes ?? []).map((c) => <Chip key={c} label={c} on={dex === c} onPress={() => setDex(dex === c ? "" : c)} />)}
           </ScrollView>
         )}
         <Text style={{ color: C.muted, fontSize: 12 }}>Ordenar por (toque de novo para inverter: maior ↔ menor)</Text>
