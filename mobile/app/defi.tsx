@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Linking, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { rate, usdCompact } from "../src/format";
 import { C } from "../src/theme";
 import { useApi } from "../src/useApi";
-import { Card, H2, Muted, ProGate, Screen, Status } from "../src/ui";
+import { Card, Muted, ProGate, Screen, Status } from "../src/ui";
 
-interface Pool { id: string; symbol: string; project: string; chain: string; poolMeta: string | null; stablecoin: boolean; rwa: boolean; tvlUsd: number; volumeUsd1d: number | null; turnover: number | null; apyBase: number | null; apyReward: number | null; apy: number | null; apyMean30d: number | null; il7d: number | null }
+interface Pool { id: string; symbol: string; project: string; chain: string; poolMeta: string | null; stablecoin: boolean; rwa: boolean; tvlUsd: number; volumeUsd1d: number | null; turnover: number | null; apyBase: number | null; apyReward: number | null; apy: number | null; apyMean30d: number | null; il7d: number | null; link?: { kind: "direct" | "home" | "llama"; name: string; url: string }; llama?: string }
 interface Data { dexes?: string[]; tipo: "liquidez" | "rendimento"; total: number; chains: string[]; pools: Pool[]; fetchedAt: number | null; stale: boolean }
 
 const chip = (on: boolean) => ({ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 });
@@ -97,10 +97,10 @@ function Hub() {
       <Status loading={loading && !data} error={error} onRetry={reload} />
       {data && <Muted>{data.total.toLocaleString("pt-BR")} pools com esses filtros{data.total > data.pools.length ? ` (mostrando os ${data.pools.length} primeiros)` : ""}.</Muted>}
       {data?.pools.map((p) => (
-        <Card key={p.id} style={{ gap: 8 }}>
+        <Card key={p.id} style={{ gap: 8 }} onPress={p.link ? () => Linking.openURL(p.link!.url) : undefined}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
             <View style={{ flex: 1 }}>
-              <H2>{p.symbol}{p.poolMeta ? `  ${p.poolMeta}` : ""}</H2>
+              <Text style={{ color: C.goldSoft, fontSize: 16, fontWeight: "700" }}>{p.symbol}{p.poolMeta ? `  ${p.poolMeta}` : ""} ↗</Text>
               <Text style={{ color: C.muted, fontSize: 12 }}>{p.project} · {p.chain}{p.stablecoin ? " · stable" : ""}{p.rwa ? " · RWA" : ""}</Text>
             </View>
             <View style={{ alignItems: "flex-end" }}><Text style={{ color: C.goldSoft, fontSize: 18, fontWeight: "700" }}>{rate(p.apy)}</Text><Text style={{ color: C.muted, fontSize: 11 }}>{isDex ? "APR total" : "APY total"}</Text></View>
@@ -116,6 +116,7 @@ function Hub() {
           </View>
         </Card>
       ))}
+      <Muted>Toque no pool para abrir {isDex ? "a DEX oficial" : "o protocolo"} em outra aba (ou o DefiLlama, quando não há link direto). Confira sempre o endereço e os tokens antes de conectar a carteira.</Muted>
       <Muted>APR de taxas vem do volume negociado no pool; recompensas em token oscilam e podem acabar. APY alto costuma vir de recompensas. Conteúdo educativo, não é recomendação de investimento.</Muted>
     </>
   );
