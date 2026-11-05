@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { ChatTab } from "../../src/ChatTab";
 import { FeedTab } from "../../src/FeedTab";
@@ -51,7 +52,10 @@ function ListPick({ items, value, onChange, badge, prefix = "" }: { items: reado
 }
 
 export default function Comunidade() {
+  const { aba } = useLocalSearchParams<{ aba?: string }>();
   const [tab, setTab] = useState<string>("Chat");
+  // O Menu abre direto na aba pedida (Feed, Notícias...).
+  useEffect(() => { if (aba && (TABS as readonly string[]).includes(aba)) setTab(aba); }, [aba]);
   const [canal, setCanal] = useState("chat-geral");
   const pro = CANAIS.find((c) => c.nome === canal)?.pro ?? false;
   return (

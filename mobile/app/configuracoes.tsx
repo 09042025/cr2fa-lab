@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Text, TextInput } from "react-native";
-import { send } from "../../src/api";
-import { useAuth } from "../../src/auth";
-import { C } from "../../src/theme";
-import { Card, GoldButton, H2, Muted, Screen } from "../../src/ui";
+import { send } from "../src/api";
+import { useAuth } from "../src/auth";
+import { C } from "../src/theme";
+import { Card, GoldButton, H2, Muted, Screen } from "../src/ui";
 
 const dia = (t: number) => new Date(t * 1000).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
-export default function Perfil() {
+export default function Configuracoes() {
   const { user, isPro, setPlan, signOut } = useAuth();
   const [asking, setAsking] = useState(false);
   const [pw, setPw] = useState("");
@@ -18,7 +18,7 @@ export default function Perfil() {
     await signOut();
   }
   return (
-    <Screen title="Perfil">
+    <Screen>
       <Card>
         <H2>{user?.name}</H2>
         <Text style={{ color: isPro ? C.goldSoft : C.muted, fontWeight: "700" }}>
