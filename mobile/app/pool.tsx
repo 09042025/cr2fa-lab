@@ -165,10 +165,11 @@ function Detail() {
             <Stat l="Taxas geradas (24h)" v={d.fees24h === null ? "—" : usdCompact(d.fees24h)} tone={C.up} />
             <Stat l="APR total" v={rate(d.apy)} tone={C.goldSoft} />
             <Stat l="APR de taxas" v={rate(d.apyBase)} />
-            <Stat l="Recompensas" v={rate(d.apyReward)} />
+            <Stat l="Recompensas" v={d.apyReward === null && d.apyBase !== null ? "0,00%" : rate(d.apyReward)} />
             <Stat l="Média 30 dias" v={rate(d.apyMean30d)} />
             <Stat l="Taxa do pool" v={d.feeRate === null ? "—" : `${(d.feeRate * 100).toLocaleString("pt-BR", { maximumFractionDigits: 3 })}%${d.feeFromDex ? "" : " (est.)"}`} />
           </View>
+          <Muted>APR, TVL e volume vêm do DefiLlama (média do período) e podem diferir um pouco dos números que a própria DEX mostra, que usa só as taxas das últimas 24h. Recompensas em 0,00% = o pool não paga incentivos extras em token, só as taxas de negociação.</Muted>
           <Charts d={d} />
           <Sim d={d} />
         </>
