@@ -1,6 +1,5 @@
 import { cached, fetchJson, getAllPools, type DefiPool } from "./market";
 import { feeFromMeta, llamaUrl, poolLink, type PoolLink } from "./poollinks";
-import { fullRangeApr } from "./clsim";
 import { loadDistribution, TICK_SPACING, type Distribution } from "./liquidity";
 import { poolKind, turnover } from "./pools";
 
@@ -42,6 +41,8 @@ export interface PoolDetail {
   fees24h: number | null;
   /** APR de taxas da faixa total (%), base do simulador. */
   baseApr: number | null;
+  /** Valor (US$) da liquidez ativa do pool em faixa total, base do cálculo de ganhos. fromChain = lido da blockchain (preciso); senão usa o TVL (aproximado). */
+  poolValueUsd: number; poolValueFromChain: boolean;
   /** Preço do primeiro token em unidades do segundo (ex.: NVDA em USDG); null quando não há preço confiável. */
   price: number | null; usdA: number | null; usdB: number | null; priceNote: string | null;
   link: PoolLink; llama: string;
@@ -90,7 +91,6 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
     feeRate = ((p.apyBase / 100) * p.tvlUsd) / (p.volumeUsd1d * 365);
     feeFromDex = false;
   }
-  const baseApr = fullRangeApr(p.volumeUsd1d, feeRate, p.tvlUsd);
   const price = usdA && usdB ? usdA / usdB : null;
   const sym = split2(p.symbol);
   const link = poolLink(p);
@@ -101,12 +101,18 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
   const ds = DEXS_CHAIN[p.chain];
   const tail = link.url.split("/").pop() ?? "";
   const address = ADDR.test(tail) && link.kind === "direct" ? tail : hasTok ? p.tokens[0] : null;
+  const tok1Usd = dist?.token1IsA ? usdA : usdB;
+  const chainValue = dist?.activeValueToken1 && tok1Usd ? dist.activeValueToken1 * tok1Usd : null;
+  const poolValueUsd = chainValue && chainValue > 0 ? chainValue : p.tvlUsd;
+  const poolValueFromChain = !!(chainValue && chainValue > 0);
+  const fees24hV = p.volumeUsd1d !== null && feeRate !== null ? p.volumeUsd1d * feeRate : null;
+  const baseApr = fees24hV !== null ? ((fees24hV * 365) / poolValueUsd) * 100 : null;
   const chart = ds && address ? { chain: ds, address, embed: `https://dexscreener.com/${ds}/${address}?embed=1&theme=dark&trades=0&info=0&loadChartSettings=0`, page: `https://dexscreener.com/${ds}/${address}` } : null;
   return {
     id: p.id, symbol: p.symbol, tokens: hasTok ? [p.tokens[0], p.tokens[1]] : null, project: p.project, chain: p.chain, poolMeta: p.poolMeta,
     stablecoin: p.stablecoin, rwa: poolKind(p) === "rwa", tvlUsd: p.tvlUsd, volumeUsd1d: p.volumeUsd1d, turnover: turnover(p),
     apy: p.apy, apyBase: p.apyBase, apyReward: p.apyReward, apyMean30d: p.apyMean30d, il7d: p.il7d,
-    feeRate, feeFromDex, fees24h: p.volumeUsd1d !== null && feeRate !== null ? p.volumeUsd1d * feeRate : null, baseApr,
+    feeRate, feeFromDex, poolValueUsd, poolValueFromChain, fees24h: p.volumeUsd1d !== null && feeRate !== null ? p.volumeUsd1d * feeRate : null, baseApr,
     price, usdA, usdB,
     priceNote: price ? null : sym ? `Não encontramos o preço de ${sym[0]} automaticamente. Digite o preço atual para simular.` : "Preço indisponível. Digite o preço atual para simular.",
     link, llama: llamaUrl(p), chart, history, dist, fetchedAt: all.fetchedAt,

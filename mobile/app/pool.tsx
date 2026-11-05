@@ -11,7 +11,7 @@ import { Card, GoldButton, H2, Muted, ProGate, Screen, Status } from "../src/ui"
 interface D {
   id: string; symbol: string; project: string; chain: string; poolMeta: string | null; stablecoin: boolean; rwa: boolean;
   tvlUsd: number; volumeUsd1d: number | null; apy: number | null; apyBase: number | null; apyReward: number | null; apyMean30d: number | null;
-  feeRate: number | null; feeFromDex: boolean; fees24h: number | null; baseApr: number | null;
+  feeRate: number | null; feeFromDex: boolean; fees24h: number | null; baseApr: number | null; poolValueUsd: number; poolValueFromChain: boolean;
   price: number | null; usdA: number | null; usdB: number | null; priceNote: string | null; link: { url: string; kind: string; name: string };
   dist?: { center: number; lo: number; hi: number; bins: number[] } | null;
   chart: { embed: string; page: string } | null; history: { t: number; apy: number | null; tvl: number | null }[];
@@ -82,7 +82,7 @@ function Sim({ d }: { d: D }) {
   }, [p, kind, minS, maxS, d.stablecoin]);
   const value = num(valueS);
   const ok = p > 0 && pb > pa && value > 0;
-  const e = ok ? earnings(value, p, pa, pb, d.baseApr) : null;
+  const e = ok ? earnings(value, p, pa, pb, d.fees24h, d.poolValueUsd) : null;
   const sp = ok ? split(p, pa, pb) : null;
   const pick = (k: "narrow" | "wide" | "full") => { setKind(k); if (p > 0) { const [a, b] = presetRange(p, k, d.stablecoin); setMinS(k === "full" ? "0" : sig(a)); setMaxS(k === "full" ? "" : sig(b)); } };
   const shownMin = kind === "custom" ? plain(num(minS) || 0) : pa > 0 ? plain(pa) : "0";
@@ -145,7 +145,7 @@ function Sim({ d }: { d: D }) {
       )}
       {!ok && p > 0 && <Muted>Informe uma faixa válida (máximo maior que o mínimo) e um valor maior que zero.</Muted>}
       <GoldButton label={`Abrir na ${d.link.kind === "llama" ? "DefiLlama" : d.link.name} ↗`} onPress={() => Linking.openURL(d.link.url)} />
-      <Muted>Estimativa baseada no volume e no TVL de hoje; o ganho real muda todo dia e a perda impermanente pode superar as taxas. Confira o endereço do site e os tokens antes de conectar a carteira.</Muted>
+      <Muted>{d.poolValueFromChain ? "Estimativa baseada nas taxas de 24h e na liquidez ativa do pool hoje (lida da blockchain);" : "Estimativa aproximada: sem a liquidez ativa do pool, usamos o TVL, o que costuma superestimar o ganho em pools concentrados;"} o ganho real muda todo dia e a perda impermanente pode superar as taxas. Confira o endereço do site e os tokens antes de conectar a carteira.</Muted>
     </Card>
   );
 }
