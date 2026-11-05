@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Pressable, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { rate, usdCompact } from "../src/format";
 import { C } from "../src/theme";
 import { useApi } from "../src/useApi";
 import { Card, H2, Muted, ProGate, Screen, Status } from "../src/ui";
 
 interface Pool { id: string; symbol: string; project: string; chain: string; poolMeta: string | null; stablecoin: boolean; rwa: boolean; tvlUsd: number; volumeUsd1d: number | null; turnover: number | null; apyBase: number | null; apyReward: number | null; apy: number | null; apyMean30d: number | null; il7d: number | null }
-interface Data { tipo: "liquidez" | "rendimento"; total: number; chains: string[]; pools: Pool[]; fetchedAt: number | null; stale: boolean }
+interface Data { dexes: string[]; tipo: "liquidez" | "rendimento"; total: number; chains: string[]; pools: Pool[]; fetchedAt: number | null; stale: boolean }
 
 const chip = (on: boolean) => ({ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 });
 const Chip = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => <Pressable onPress={onPress} style={chip(on)}><Text style={{ color: on ? C.ink : C.white, fontWeight: "700" }}>{label}</Text></Pressable>;
@@ -18,8 +18,10 @@ function Hub() {
   const [dir, setDir] = useState<"desc" | "asc">("desc");
   const [q, setQ] = useState("");
   const [qs, setQs] = useState("");
-  const [min, setMin] = useState("");
-  const [vol, setVol] = useState("");
+  const [min, setMin] = useState("1000000");
+  const [vol, setVol] = useState("500000");
+  const [cat, setCat] = useState("");
+  const [dex, setDex] = useState("");
   const [rede, setRede] = useState("");
   const [stable, setStable] = useState(false);
   useEffect(() => { const t = setTimeout(() => setQs(q.trim()), 500); return () => clearTimeout(t); }, [q]);
@@ -30,6 +32,8 @@ function Hub() {
   if (isDex && vol) params.set("vol", vol);
   if (rede) params.set("rede", rede);
   if (stable) params.set("stable", "1");
+  if (cat) params.set("categoria", cat);
+  if (dex) params.set("dex", dex);
   const { data, error, loading, reload } = useApi<Data>(`/api/mobile/defi?${params}`);
   // Clicar de novo no mesmo critério inverte (do maior para o menor e vice-versa), como no site.
   const sort = (o: string) => { if (o === ordem) setDir(dir === "desc" ? "asc" : "desc"); else { setOrdem(o); setDir("desc"); } };
@@ -38,8 +42,8 @@ function Hub() {
   return (
     <>
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <Chip label="Liquidez em DEX" on={isDex} onPress={() => { setTipo("liquidez"); setOrdem("tvl"); setRede(""); }} />
-        <Chip label="Empréstimo e staking" on={!isDex} onPress={() => { setTipo("rendimento"); setOrdem("tvl"); setRede(""); }} />
+        <Chip label="Liquidez em DEX" on={isDex} onPress={() => { setTipo("liquidez"); setOrdem("tvl"); setRede(""); setDex(""); }} />
+        <Chip label="Empréstimo e staking" on={!isDex} onPress={() => { setTipo("rendimento"); setOrdem("tvl"); setRede(""); setDex(""); }} />
       </View>
       <Muted>{isDex ? "Pares de ativos em corretoras descentralizadas (Uniswap, PancakeSwap, Aerodrome, Camelot, Curve, Raydium e outras). Quem fornece liquidez recebe parte das taxas de negociação." : "Empréstimo, staking e outros protocolos em que você deposita um ativo e recebe rendimento."}</Muted>
       <Card style={{ gap: 8 }}>
@@ -52,10 +56,20 @@ function Hub() {
           <Text style={{ color: C.white }}>Só stablecoins</Text><Switch value={stable} onValueChange={setStable} trackColor={{ true: C.gold, false: C.line }} />
         </View>
         {data && data.chains.length > 0 && (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
             <Chip label="Todas as redes" on={rede === ""} onPress={() => setRede("")} />
-            {data.chains.slice(0, 14).map((c) => <Chip key={c} label={c} on={rede === c} onPress={() => setRede(rede === c ? "" : c)} />)}
-          </View>
+            {data.chains.map((c) => <Chip key={c} label={c} on={rede === c} onPress={() => setRede(rede === c ? "" : c)} />)}
+          </ScrollView>
+        )}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+          <Chip label="Todos os tipos" on={cat === ""} onPress={() => setCat("")} />
+          {[["cripto", "Cripto"], ["rwa", "RWA"], ["stable", "Stablecoins"], ["outros", "Outros"]].map(([id, l]) => <Chip key={id} label={l} on={cat === id} onPress={() => setCat(cat === id ? "" : id)} />)}
+        </ScrollView>
+        {data && data.dexes.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+            <Chip label={isDex ? "Todas as DEX" : "Todos os protocolos"} on={dex === ""} onPress={() => setDex("")} />
+            {data.dexes.map((c) => <Chip key={c} label={c} on={dex === c} onPress={() => setDex(dex === c ? "" : c)} />)}
+          </ScrollView>
         )}
         <Text style={{ color: C.muted, fontSize: 12 }}>Ordenar por (toque de novo para inverter: maior ↔ menor)</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>

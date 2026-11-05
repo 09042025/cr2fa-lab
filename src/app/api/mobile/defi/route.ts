@@ -18,6 +18,7 @@ export async function GET(req: Request) {
     tipo,
     total: filterPools(all.data, { ...sp, tipo }).length,
     chains: [...new Set(base.map((p) => p.chain))].sort(),
+    dexes: [...new Set(base.map((p) => p.project))].sort().slice(0, 40),
     pools: rows.map((p) => ({
       id: p.id, symbol: p.symbol, project: p.project, chain: p.chain, poolMeta: p.poolMeta, stablecoin: p.stablecoin, rwa: poolKind(p) === "rwa",
       tvlUsd: p.tvlUsd, volumeUsd1d: p.volumeUsd1d, turnover: turnover(p), apyBase: p.apyBase, apyReward: p.apyReward, apy: p.apy, apyMean30d: p.apyMean30d, il7d: p.il7d,
