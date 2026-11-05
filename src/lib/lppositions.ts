@@ -10,12 +10,12 @@ import { uniswapV3Pool } from "./uniswap";
  */
 
 export const LP_CHAINS = ["Ethereum", "Base", "Arbitrum", "Polygon", "Optimism"] as const;
-const NPM: Record<string, string> = {
+export const NPM: Record<string, string> = {
   Ethereum: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88", Arbitrum: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
   Optimism: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88", Polygon: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
   Base: "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",
 };
-const SLUG: Record<string, string> = { Ethereum: "ethereum", Base: "base", Arbitrum: "arbitrum", Polygon: "polygon", Optimism: "optimism" };
+export const SLUG: Record<string, string> = { Ethereum: "ethereum", Base: "base", Arbitrum: "arbitrum", Polygon: "polygon", Optimism: "optimism" };
 export const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const MAX_PER_CHAIN = 40;
 const Q = 1n << 256n;
@@ -84,6 +84,7 @@ export interface LpPosition {
   fees0: number; fees1: number; feesUsd: number | null;
   poolTvlUsd: number | null; poolApr: number | null; estDayUsd: number | null; estApr: number | null;
   link: string;
+  pool: string; token0: string; token1: string; dec0: number; dec1: number; usd0: number | null; usd1: number | null; llamaId: string | null; sqrtP: number; liquidity: string;
 }
 export interface LpResult { address: string; chains: { chain: string; positions: LpPosition[]; error?: string }[]; fetchedAt: number }
 
@@ -156,6 +157,7 @@ async function loadChain(chain: string, owner: string): Promise<LpPosition[]> {
       amount0: a0, amount1: a1, valueUsd: value, fees0: f0, fees1: f1, feesUsd,
       poolTvlUsd: lp?.tvlUsd ?? null, poolApr: lp?.apy ?? null, estDayUsd: estDay, estApr,
       link: `https://app.uniswap.org/positions/v3/${SLUG[chain]}/${r.id.toString()}`,
+      pool: r.pool, token0: r.t0, token1: r.t1, dec0: m0.dec, dec1: m1.dec, usd0: u0, usd1: u1, llamaId: lp?.id ?? null, sqrtP: st.sqrtP, liquidity: r.L.toString(),
     });
   }
   return out.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));

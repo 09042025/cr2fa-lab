@@ -45,3 +45,25 @@ test("saúde da posição", () => {
   assert.equal(healthOf(100, -100, 100).health, "out");
   assert.equal(healthOf(-101, -100, 100).health, "out");
 });
+
+import { summarize, valueSeries, type LpEvent } from "../src/lib/lpperf";
+
+test("desempenho: confere com o exemplo do Revert (AAVE/WETH)", () => {
+  const events: LpEvent[] = [
+    { ts: 1760296500, kind: "inc", liq: 1e18, a0: 0.55684522, a1: 21.073979 },
+    { ts: 1765000000, kind: "col", liq: 0, a0: 0.06117014, a1: 1.07588325 },
+  ];
+  const p = summarize(events, { t: 1760296500 + 389.2 * 86400, amount0: 0.32900005, amount1: 24.9089018, fees0: 0.1109845, fees1: 1.90429501, u0: 2230.82, u1: 127.05 })!;
+  assert.ok(Math.abs(p.divergenceUsd - -20.84) < 1.5);
+  assert.ok(Math.abs(p.pnlUsd - 740.7) < 3);
+  assert.ok(Math.abs(p.roi - 0.1892) < 0.002);
+  assert.ok(Math.abs(p.avgDailyFeesUsd - 1.96) < 0.05);
+  assert.equal(summarize([], { t: 1, amount0: 0, amount1: 0, fees0: 0, fees1: 0, u0: 1, u1: 1 }), null);
+});
+
+test("série de valor: sem divergência quando o preço não muda", () => {
+  const ev: LpEvent[] = [{ ts: 0, kind: "inc", liq: 1e6, a0: 0, a1: 0 }];
+  const s = valueSeries(ev, -1000, 1000, 18, 18, [[86400, 100], [172800, 100]], [[86400, 100], [172800, 100]]);
+  assert.equal(s.length, 2);
+  assert.ok(s[0].value > 0 && Math.abs(s[0].value - s[1].value) < 1e-9);
+});

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Linking, Pressable, Text, TextInput, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Text, TextInput, View } from "react-native";
 import { rate, usd, usdCompact } from "../src/format";
 import { C } from "../src/theme";
 import { useApi } from "../src/useApi";
@@ -17,6 +18,7 @@ const HEALTH = { ok: ["Saudável", C.up], attention: ["Atenção: perto da borda
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 
 function Result({ address }: { address: string }) {
+  const router = useRouter();
   const { data, error, loading, reload } = useApi<R>(`/api/mobile/lp?address=${address}`);
   if (!data) return <Status loading={loading} error={error} onRetry={reload} />;
   const all = data.chains.flatMap((c) => c.positions);
@@ -35,7 +37,7 @@ function Result({ address }: { address: string }) {
       {all.map((p) => {
         const [label, color] = HEALTH[p.health];
         return (
-          <Card key={`${p.chain}-${p.tokenId}`} style={{ gap: 8 }}>
+          <Card key={`${p.chain}-${p.tokenId}`} style={{ gap: 8 }} onPress={() => router.push({ pathname: "/saude-posicao", params: { address, rede: p.chain, id: p.tokenId } })}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <Text style={{ color: C.white, fontWeight: "800", fontSize: 16 }}>{p.pair} · {p.fee / 10000}%</Text>
               <Text style={{ color, fontWeight: "700", fontSize: 12 }}>{label}</Text>
@@ -52,7 +54,7 @@ function Result({ address }: { address: string }) {
             <Text style={{ color: C.white }}>Taxas a coletar: <Text style={{ color: C.up, fontWeight: "700" }}>{p.feesUsd === null ? "—" : usd(p.feesUsd)}</Text></Text>
             <Text style={{ color: C.white }}>Ganho estimado/dia: <Text style={{ fontWeight: "700" }}>{p.estDayUsd === null ? "—" : usd(p.estDayUsd)}</Text>{p.estApr !== null ? ` · APR ${rate(p.estApr)}` : ""}</Text>
             <Muted>Pool: {p.poolTvlUsd === null ? "—" : usdCompact(p.poolTvlUsd)} de liquidez{p.poolApr !== null ? ` · APR ${rate(p.poolApr)}` : ""}</Muted>
-            <Pressable onPress={() => Linking.openURL(p.link)}><Text style={{ color: C.gold, fontWeight: "700" }}>Ver na Uniswap (só visualização) ↗</Text></Pressable>
+            <Text style={{ color: C.gold, fontWeight: "700" }}>Análise completa: PnL, ROI, gráficos →</Text>
           </Card>
         );
       })}
