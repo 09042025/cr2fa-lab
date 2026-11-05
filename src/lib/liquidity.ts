@@ -6,7 +6,7 @@ import { bytesToHex } from "@noble/hashes/utils.js";
  * Só leitura: nada aqui assina ou envia transação. Se qualquer chamada falhar, devolvemos null e a tela segue sem o gráfico.
  */
 
-const RPC: Record<string, string> = {
+export const RPC: Record<string, string> = {
   Ethereum: "https://ethereum-rpc.publicnode.com",
   Base: "https://base-rpc.publicnode.com",
   Arbitrum: "https://arbitrum-one-rpc.publicnode.com",
@@ -18,7 +18,7 @@ const RPC: Record<string, string> = {
 export const TICK_SPACING: Record<number, number> = { 100: 1, 500: 10, 3000: 60, 10000: 200 };
 const BINS = 80;
 
-const sel = (sig: string) => bytesToHex(keccak_256(new TextEncoder().encode(sig))).slice(0, 8);
+export const sel = (sig: string) => bytesToHex(keccak_256(new TextEncoder().encode(sig))).slice(0, 8);
 const S = { slot0: sel("slot0()"), liquidity: sel("liquidity()"), token0: sel("token0()"), decimals: sel("decimals()"), bitmap: sel("tickBitmap(int16)"), ticks: sel("ticks(int24)") };
 
 const pad = (hex: string) => hex.replace(/^0x/, "").padStart(64, "0");
@@ -91,7 +91,7 @@ export function binProfile(profile: { from: number; to: number; l: number }[], c
   return { center, lo, hi, bins: raw.map((v) => (max > 0 ? v / max : 0)) };
 }
 
-async function rpc(url: string, calls: { to: string; data: string }[]): Promise<(string | null)[]> {
+export async function rpc(url: string, calls: { to: string; data: string }[]): Promise<(string | null)[]> {
   const out: (string | null)[] = [];
   for (let i = 0; i < calls.length; i += 80) {
     const chunk = calls.slice(i, i + 80);

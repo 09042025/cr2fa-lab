@@ -61,6 +61,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
         <div className="mb-3 flex flex-wrap gap-2 text-sm">
           <Link href="/painel/cripto/defi?tipo=liquidez#pools" className={`btn ${isDex ? "btn-gold" : "btn-ghost"}`}>Liquidez em DEX</Link>
           <Link href="/painel/cripto/defi?tipo=rendimento#pools" className={`btn ${!isDex ? "btn-gold" : "btn-ghost"}`}>Empréstimo e staking</Link>
+          <Link href="/painel/cripto/defi/saude" className="btn btn-ghost">Saúde das pools</Link>
         </div>
         <p className="mb-2 text-xs text-muted">
           {isDex

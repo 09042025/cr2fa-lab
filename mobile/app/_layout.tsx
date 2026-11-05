@@ -15,6 +15,7 @@ function Routes() {
         <Stack.Screen name="cursos" options={{ title: "Cursos" }} />
         <Stack.Screen name="defi" options={{ title: "HUB DEFI" }} />
         <Stack.Screen name="pool" options={{ title: "Pool" }} />
+        <Stack.Screen name="saude" options={{ title: "Saúde das pools" }} />
         <Stack.Screen name="ativo/[id]" options={{ title: "Ativo" }} />
         <Stack.Screen name="cripto" options={{ title: "Cripto" }} />
         <Stack.Screen name="rwa" options={{ title: "RWA" }} />

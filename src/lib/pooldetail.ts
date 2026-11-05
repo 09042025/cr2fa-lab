@@ -59,7 +59,7 @@ const split2 = (symbol: string): [string, string] | null => {
   return parts.length === 2 ? [parts[0], parts[1]] : null;
 };
 
-async function usdPrices(chain: string, tokens: string[]): Promise<Record<string, number>> {
+export async function usdPrices(chain: string, tokens: string[]): Promise<Record<string, number>> {
   const c = COIN_CHAIN[chain];
   if (!c) return {};
   const keys = tokens.map((t) => `${c}:${t}`);

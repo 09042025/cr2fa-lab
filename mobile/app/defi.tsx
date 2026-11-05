@@ -67,9 +67,10 @@ function Hub() {
   const input = { backgroundColor: C.ink, borderColor: C.line, borderWidth: 1, borderRadius: 10, color: C.white, paddingHorizontal: 12, paddingVertical: 9 } as const;
   return (
     <>
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Chip label="Liquidez em DEX" on={isDex} onPress={() => { setTipo("liquidez"); setOrdem("tvl"); setRede(""); setDex(""); }} />
         <Chip label="Empréstimo e staking" on={!isDex} onPress={() => { setTipo("rendimento"); setOrdem("tvl"); setRede(""); setDex(""); }} />
+        <Chip label="Saúde das pools" on={false} onPress={() => router.push("/saude")} />
       </View>
       <Muted>{isDex ? "Pares de ativos em corretoras descentralizadas (Uniswap, PancakeSwap, Aerodrome, Camelot, Curve, Raydium e outras). Quem fornece liquidez recebe parte das taxas de negociação." : "Empréstimo, staking e outros protocolos em que você deposita um ativo e recebe rendimento."}</Muted>
       <Card style={{ gap: 12 }}>
