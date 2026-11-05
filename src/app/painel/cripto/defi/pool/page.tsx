@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getPoolDetail } from "@/lib/pooldetail";
+import { PoolCharts } from "@/components/PoolCharts";
 import { PoolSimulator } from "@/components/PoolSimulator";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { pct, usdCompact } from "@/lib/format";
@@ -36,6 +37,7 @@ export default async function PoolPage({ searchParams }: { searchParams: Promise
         <Stat l="Média 30 dias" v={pct(d.apyMean30d)} />
         <Stat l="Taxa do pool" v={d.feeRate === null ? "—" : `${(d.feeRate * 100).toLocaleString("pt-BR", { maximumFractionDigits: 3 })}%${d.feeFromDex ? "" : " (est.)"}`} />
       </div>
+      <PoolCharts chart={d.chart} history={d.history} />
       <PoolSimulator symA={symA} symB={symB} price={d.price} usdA={d.usdA} usdB={d.usdB} baseApr={d.baseApr} stable={d.stablecoin} priceNote={d.priceNote} dexName={d.link.kind === "llama" ? "DefiLlama" : d.link.name} dexUrl={d.link.url} />
       <p className="mt-3 text-xs text-muted"><a className="text-gold-soft hover:underline" href={d.llama} target="_blank" rel="noopener noreferrer">Dados do pool na fonte ↗</a></p>
       <Disclaimer />

@@ -10,6 +10,27 @@ const COIN_CHAIN: Record<string, string> = {
   Mantle: "mantle", Sonic: "sonic", Unichain: "unichain", Berachain: "berachain", Solana: "solana", "zkSync Era": "era",
 };
 
+/** Rede no DexScreener (gráfico de preço incorporado). */
+const DEXS_CHAIN: Record<string, string> = {
+  Ethereum: "ethereum", Base: "base", Arbitrum: "arbitrum", Polygon: "polygon", BSC: "bsc", Optimism: "optimism", "OP Mainnet": "optimism",
+  Avalanche: "avalanche", Solana: "solana", Fantom: "fantom", Linea: "linea", Scroll: "scroll", Blast: "blast", Mantle: "mantle",
+  Sonic: "sonic", Unichain: "unichain", Berachain: "berachain", Celo: "celo", Gnosis: "gnosischain", "zkSync Era": "zksync",
+};
+const ADDR = /^0x[0-9a-fA-F]{40}$/;
+
+export interface HistPoint { t: number; apy: number | null; apyBase: number | null; tvl: number | null }
+
+/** Histórico diário de APR e TVL do pool (DefiLlama), no máximo ~120 pontos. */
+export async function getPoolHistory(id: string): Promise<HistPoint[]> {
+  if (!/^[0-9a-fA-F-]{20,40}$/.test(id)) return [];
+  const res = await cached<HistPoint[]>(`llamachart:${id}`, 30 * 60, async () => {
+    const r = await fetchJson<{ data?: { timestamp?: string; tvlUsd?: number; apy?: number | null; apyBase?: number | null }[] }>(`https://yields.llama.fi/chart/${id}`, {}, 15000);
+    const pts = (r.data ?? []).map((d) => ({ t: d.timestamp ? Date.parse(d.timestamp) : NaN, apy: d.apy ?? null, apyBase: d.apyBase ?? null, tvl: d.tvlUsd ?? null })).filter((d) => Number.isFinite(d.t));
+    return pts.slice(-120);
+  });
+  return res.data ?? [];
+}
+
 export interface PoolDetail {
   id: string; symbol: string; tokens: [string, string] | null; project: string; chain: string; poolMeta: string | null;
   stablecoin: boolean; rwa: boolean; tvlUsd: number; volumeUsd1d: number | null; turnover: number | null;
@@ -23,6 +44,9 @@ export interface PoolDetail {
   /** Preço do primeiro token em unidades do segundo (ex.: NVDA em USDG); null quando não há preço confiável. */
   price: number | null; usdA: number | null; usdB: number | null; priceNote: string | null;
   link: PoolLink; llama: string;
+  /** Gráfico de preço do DexScreener: endereço do par (ou do token, que o DexScreener resolve para o par principal). */
+  chart: { chain: string; address: string; embed: string; page: string } | null;
+  history: HistPoint[];
   fetchedAt: number | null;
 }
 
@@ -50,6 +74,7 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
   const all = await getAllPools();
   const p: DefiPool | undefined = all.data?.find((x) => x.id === id && x.dex);
   if (!p) return null;
+  const history = await getPoolHistory(p.id).catch(() => []);
   const hasTok = p.tokens.length === 2;
   const prices = hasTok ? await usdPrices(p.chain, p.tokens) : {};
   const usdA = hasTok ? prices[p.tokens[0]] ?? null : null;
@@ -65,6 +90,11 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
   const baseApr = fullRangeApr(p.volumeUsd1d, feeRate, p.tvlUsd);
   const price = usdA && usdB ? usdA / usdB : null;
   const sym = split2(p.symbol);
+  const link = poolLink(p);
+  const ds = DEXS_CHAIN[p.chain];
+  const tail = link.url.split("/").pop() ?? "";
+  const address = ADDR.test(tail) && link.kind === "direct" ? tail : hasTok ? p.tokens[0] : null;
+  const chart = ds && address ? { chain: ds, address, embed: `https://dexscreener.com/${ds}/${address}?embed=1&theme=dark&trades=0&info=0&loadChartSettings=0`, page: `https://dexscreener.com/${ds}/${address}` } : null;
   return {
     id: p.id, symbol: p.symbol, tokens: hasTok ? [p.tokens[0], p.tokens[1]] : null, project: p.project, chain: p.chain, poolMeta: p.poolMeta,
     stablecoin: p.stablecoin, rwa: poolKind(p) === "rwa", tvlUsd: p.tvlUsd, volumeUsd1d: p.volumeUsd1d, turnover: turnover(p),
@@ -72,6 +102,6 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
     feeRate, feeFromDex, fees24h: p.volumeUsd1d !== null && feeRate !== null ? p.volumeUsd1d * feeRate : null, baseApr,
     price, usdA, usdB,
     priceNote: price ? null : sym ? `Não encontramos o preço de ${sym[0]} automaticamente. Digite o preço atual para simular.` : "Preço indisponível. Digite o preço atual para simular.",
-    link: poolLink(p), llama: llamaUrl(p), fetchedAt: all.fetchedAt,
+    link, llama: llamaUrl(p), chart, history, fetchedAt: all.fetchedAt,
   };
 }

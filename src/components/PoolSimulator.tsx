@@ -18,6 +18,7 @@ export function PoolSimulator({ symA, symB, price, usdA, usdB, baseApr, stable, 
   const [minS, setMinS] = useState(""); const [maxS, setMaxS] = useState("");
   const [valueS, setValueS] = useState("1000");
   const [showIl, setShowIl] = useState(false);
+  const [mode, setMode] = useState<"pct" | "price">("pct");
 
   const [pa, pb] = useMemo<[number, number]>(() => {
     if (!(p > 0)) return [0, Infinity];
@@ -28,9 +29,21 @@ export function PoolSimulator({ symA, symB, price, usdA, usdB, baseApr, stable, 
   const valid = p > 0 && pb > pa && value > 0;
   const e = valid ? earnings(value, p, pa, pb, baseApr) : null;
   const sp = valid ? split(p, pa, pb) : null;
-  const pickRange = (k: "narrow" | "wide" | "full") => { setRangeKind(k); if (p > 0) { const [a, b] = presetRange(p, k, stable); setMinS(k === "full" ? "0" : sig(a)); setMaxS(k === "full" ? "" : sig(b)); } };
-  const shownMin = rangeKind === "custom" ? minS : Number.isFinite(pa) && pa > 0 ? sig(pa) : "0";
-  const shownMax = rangeKind === "custom" ? maxS : Number.isFinite(pb) ? sig(pb) : "∞";
+  const pickRange = (k: "narrow" | "wide" | "full") => setRangeKind(k);
+  const show = (v: number) => (mode === "pct" ? (v === 0 ? "-100" : Number.isFinite(v) ? fmt((v / p - 1) * 100, 2) : "∞") : Number.isFinite(v) ? sig(v) : "∞");
+  const setBounds = (lo: number, hi: number) => { setRangeKind("custom"); setMinS(String(lo)); setMaxS(Number.isFinite(hi) ? String(hi) : ""); };
+  const commit = (k: "min" | "max", raw: string) => {
+    const t = raw.trim();
+    if (t === "∞" || t === "") { if (k === "max") setBounds(pa, Infinity); return; }
+    const n = num(t);
+    if (!Number.isFinite(n)) return;
+    const v = mode === "pct" ? p * (1 + n / 100) : n;
+    if (k === "min") setBounds(Math.max(0, v), pb); else setBounds(pa, v);
+  };
+  const step = (k: "min" | "max", dir: 1 | -1) => {
+    const d = p * (stable ? 0.001 : 0.01) * dir;
+    if (k === "min") setBounds(Math.max(0, pa + d), pb); else setBounds(pa, Number.isFinite(pb) ? pb + d : p * 2);
+  };
   const btn = (on: boolean) => `btn ${on ? "btn-gold" : "btn-ghost"}`;
   const pctFromP = (v: number) => (p > 0 && Number.isFinite(v) ? `${(v / p - 1) * 100 >= 0 ? "+" : ""}${fmt((v / p - 1) * 100, 1)}%` : "—");
 
@@ -48,21 +61,29 @@ export function PoolSimulator({ symA, symB, price, usdA, usdB, baseApr, stable, 
       )}
       {p > 0 && <p className="mb-3 text-sm">Preço atual: <b>{sig(p)}</b> <span className="text-muted">{symB} por {symA}</span></p>}
 
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <button type="button" className={btn(rangeKind === "narrow")} onClick={() => pickRange("narrow")} disabled={!(p > 0)}>Faixa estreita</button>
         <button type="button" className={btn(rangeKind === "wide")} onClick={() => pickRange("wide")} disabled={!(p > 0)}>Faixa larga</button>
         <button type="button" className={btn(rangeKind === "full")} onClick={() => pickRange("full")} disabled={!(p > 0)}>Faixa total</button>
+        <button type="button" className="btn btn-ghost ml-auto" onClick={() => pickRange("wide")} disabled={!(p > 0)}>Redefinir</button>
+        <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm">
+          <button type="button" className={`px-3 py-2 ${mode === "pct" ? "bg-gold text-ink" : ""}`} onClick={() => setMode("pct")} title="Mostrar a faixa em % do preço atual">%</button>
+          <button type="button" className={`px-3 py-2 ${mode === "price" ? "bg-gold text-ink" : ""}`} onClick={() => setMode("price")} title="Mostrar a faixa em preço">#</button>
+        </span>
       </div>
 
       <div className="mb-3 grid gap-3 sm:grid-cols-3">
-        <div>
-          <label className="label" htmlFor="pmin">Preço mínimo <span className="text-muted">{p > 0 ? pctFromP(pa) : ""}</span></label>
-          <input id="pmin" className="input" inputMode="decimal" value={shownMin} onChange={(ev) => { setRangeKind("custom"); setMinS(ev.target.value); if (rangeKind !== "custom") setMaxS(Number.isFinite(pb) ? sig(pb) : ""); }} />
-        </div>
-        <div>
-          <label className="label" htmlFor="pmax">Preço máximo <span className="text-muted">{p > 0 && Number.isFinite(pb) ? pctFromP(pb) : ""}</span></label>
-          <input id="pmax" className="input" inputMode="decimal" value={shownMax} onChange={(ev) => { setRangeKind("custom"); setMaxS(ev.target.value); if (rangeKind !== "custom") setMinS(pa > 0 ? sig(pa) : "0"); }} />
-        </div>
+        {([["min", "Preço mínimo", pa], ["max", "Preço máximo", pb]] as const).map(([k, label, v]) => (
+          <div key={k}>
+            <label className="label" htmlFor={`p${k}`}>{label}</label>
+            <div className="flex items-center gap-1">
+              <button type="button" className="btn btn-ghost px-3" aria-label={`Diminuir ${label}`} onClick={() => step(k, -1)} disabled={!(p > 0)}>−</button>
+              <input key={`${k}-${mode}-${v}`} id={`p${k}`} className="input min-w-0 flex-1 text-center" inputMode="decimal" defaultValue={show(v)} onBlur={(ev) => commit(k, ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") (ev.target as HTMLInputElement).blur(); }} />
+              <button type="button" className="btn btn-ghost px-3" aria-label={`Aumentar ${label}`} onClick={() => step(k, 1)} disabled={!(p > 0)}>+</button>
+            </div>
+            <p className="mt-1 text-xs text-muted">{mode === "pct" ? `% · ${symB} por ${symA}: ${Number.isFinite(v) ? sig(v) : "∞"}` : `${symB} por ${symA}${p > 0 && Number.isFinite(v) ? ` · ${pctFromP(v)}` : ""}`}</p>
+          </div>
+        ))}
         <div>
           <label className="label" htmlFor="pval">Valor a colocar (US$)</label>
           <input id="pval" className="input" inputMode="decimal" value={valueS} onChange={(ev) => setValueS(ev.target.value)} />
@@ -104,7 +125,7 @@ export function PoolSimulator({ symA, symB, price, usdA, usdB, baseApr, stable, 
               </div>
             )}
           </div>
-          <button type="button" className="mt-3 text-sm font-semibold text-gold-soft underline" onClick={() => setShowIl((v) => !v)}>{showIl ? "Ocultar" : "Ver"} simulação de perda impermanente</button>
+          <button type="button" className="mt-3 block text-sm font-semibold text-gold-soft underline" onClick={() => setShowIl((v) => !v)}>{showIl ? "Ocultar" : "Ver"} simulação de perda impermanente</button>
           {showIl && (
             <div className="mt-2 overflow-x-auto">
               <table className="data"><thead><tr><th>Se {symA} variar</th><th className="num">Perda vs. segurar</th></tr></thead>
