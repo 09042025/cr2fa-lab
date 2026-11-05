@@ -1,17 +1,18 @@
 "use client";
 import { useMemo, useState } from "react";
+import { RangeChart } from "./RangeChart";
 import { earnings, impermanentLoss, presetRange, split } from "@/lib/clsim";
 
 interface Props {
   symA: string; symB: string; price: number | null; usdA: number | null; usdB: number | null;
-  baseApr: number | null; stable: boolean; priceNote: string | null; dexName: string; dexUrl: string;
+  baseApr: number | null; stable: boolean; dist?: { center: number; lo: number; hi: number; bins: number[] } | null; priceNote: string | null; dexName: string; dexUrl: string;
 }
 const num = (s: string) => { const v = Number(s.replace(",", ".")); return Number.isFinite(v) ? v : NaN; };
 const fmt = (v: number, d = 2) => v.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: d });
 const usd = (v: number) => `US$ ${fmt(v)}`;
 const sig = (v: number) => v.toLocaleString("pt-BR", { maximumSignificantDigits: 6 });
 
-export function PoolSimulator({ symA, symB, price, usdA, usdB, baseApr, stable, priceNote, dexName, dexUrl }: Props) {
+export function PoolSimulator({ dist, symA, symB, price, usdA, usdB, baseApr, stable, priceNote, dexName, dexUrl }: Props) {
   const [manual, setManual] = useState("");
   const p = price ?? num(manual);
   const [rangeKind, setRangeKind] = useState<"narrow" | "wide" | "full" | "custom">("wide");
@@ -90,20 +91,12 @@ export function PoolSimulator({ symA, symB, price, usdA, usdB, baseApr, stable, 
         </div>
       </div>
 
+      {p > 0 && (
+        <RangeChart price={p} min={pa} max={pb} bins={dist ? { lo: dist.lo * (p / dist.center), hi: dist.hi * (p / dist.center), values: dist.bins } : null} onChange={setBounds} fmtPct={(v) => (v <= 0 ? "-100%" : pctFromP(v))} />
+      )}
       {valid && e && (
         <>
-          {p > 0 && pb > pa && Number.isFinite(pb) && (
-            <div className="mb-3">
-              <div className="relative h-2 rounded bg-line">
-                {(() => {
-                  const lo = Math.min(pa || p * 0.5, p) * 0.9, hi = Math.max(pb, p) * 1.1, w = hi - lo;
-                  const x = (v: number) => `${Math.min(100, Math.max(0, ((v - lo) / w) * 100))}%`;
-                  return <><div className="absolute top-0 h-2 rounded bg-gold" style={{ left: x(pa || lo), width: `calc(${x(pb)} - ${x(pa || lo)})` }} /><div className="absolute -top-1 h-4 w-0.5 bg-white" style={{ left: x(p) }} title="Preço atual" /></>;
-                })()}
-              </div>
-              <p className="mt-1 text-xs text-muted">Barra dourada = sua faixa; linha branca = preço atual.{!e.inRange && " O preço atual está fora da faixa: nesta faixa não há ganho de taxas."}</p>
-            </div>
-          )}
+          {!e.inRange && <p className="mb-2 text-xs text-gold-soft">O preço atual está fora da faixa: nesta faixa não há ganho de taxas.</p>}
           {sp && (
             <div className="mb-3 grid gap-2 text-sm sm:grid-cols-2">
               {([[symA, sp.fracA, usdA], [symB, sp.fracB, usdB]] as const).map(([s, f, u]) => (

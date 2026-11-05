@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Linking, Pressable, Text, TextInput, View } from "react-native";
+import { RangeChart } from "../src/RangeChart";
 import { earnings, impermanentLoss, presetRange, split } from "../src/clsim";
 import { rate, usdCompact } from "../src/format";
 import { C } from "../src/theme";
@@ -12,6 +13,7 @@ interface D {
   tvlUsd: number; volumeUsd1d: number | null; apy: number | null; apyBase: number | null; apyReward: number | null; apyMean30d: number | null;
   feeRate: number | null; feeFromDex: boolean; fees24h: number | null; baseApr: number | null;
   price: number | null; usdA: number | null; usdB: number | null; priceNote: string | null; link: { url: string; kind: string; name: string };
+  dist?: { center: number; lo: number; hi: number; bins: number[] } | null;
   chart: { embed: string; page: string } | null; history: { t: number; apy: number | null; tvl: number | null }[];
 }
 // O gráfico incorporado usa react-native-webview. Se ainda não estiver instalado, mostramos um botão que abre o DexScreener.
@@ -21,6 +23,7 @@ try { WebViewC = require("react-native-webview").WebView; } catch { WebViewC = n
 const num = (s: string) => { const v = Number(s.replace(",", ".")); return Number.isFinite(v) ? v : NaN; };
 const fmt = (v: number, d = 2) => v.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: d });
 const usd = (v: number) => `US$ ${fmt(v)}`;
+const plain = (v: number) => String(+v.toPrecision(7)).replace(".", ",");
 const sig = (v: number) => v.toLocaleString("pt-BR", { maximumSignificantDigits: 6 });
 const input = { backgroundColor: C.ink, borderColor: C.line, borderWidth: 1, borderRadius: 10, color: C.white, paddingHorizontal: 12, paddingVertical: 9 } as const;
 const Stat = ({ l, v, tone }: { l: string; v: string; tone?: string }) => <Card style={{ width: "48.5%", padding: 12 }}><Text style={{ color: C.muted, fontSize: 12 }}>{l}</Text><Text style={{ color: tone ?? C.white, fontSize: 17, fontWeight: "700" }}>{v}</Text></Card>;
@@ -82,8 +85,8 @@ function Sim({ d }: { d: D }) {
   const e = ok ? earnings(value, p, pa, pb, d.baseApr) : null;
   const sp = ok ? split(p, pa, pb) : null;
   const pick = (k: "narrow" | "wide" | "full") => { setKind(k); if (p > 0) { const [a, b] = presetRange(p, k, d.stablecoin); setMinS(k === "full" ? "0" : sig(a)); setMaxS(k === "full" ? "" : sig(b)); } };
-  const shownMin = kind === "custom" ? minS : pa > 0 ? sig(pa) : "0";
-  const shownMax = kind === "custom" ? maxS : Number.isFinite(pb) ? sig(pb) : "";
+  const shownMin = kind === "custom" ? plain(num(minS) || 0) : pa > 0 ? plain(pa) : "0";
+  const shownMax = kind === "custom" ? (maxS === "" ? "" : plain(num(maxS))) : Number.isFinite(pb) ? plain(pb) : "";
   return (
     <Card style={{ gap: 10 }}>
       <H2>Simulação de taxas</H2>
@@ -103,9 +106,13 @@ function Sim({ d }: { d: D }) {
         <Chip label="Redefinir" on={false} off={!(p > 0)} onPress={() => pick("wide")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Preço mínimo{p > 0 ? ` (${pa > 0 ? fmt((pa / p - 1) * 100, 1) : "-100"}%)` : ""}</Text><TextInput value={shownMin} onChangeText={(t) => { if (kind !== "custom") setMaxS(Number.isFinite(pb) ? sig(pb) : ""); setKind("custom"); setMinS(t); }} keyboardType="decimal-pad" style={input} /></View>
-        <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Preço máximo{p > 0 && Number.isFinite(pb) ? ` (+${fmt((pb / p - 1) * 100, 1)}%)` : ""}</Text><TextInput value={shownMax} onChangeText={(t) => { if (kind !== "custom") setMinS(pa > 0 ? sig(pa) : "0"); setKind("custom"); setMaxS(t); }} keyboardType="decimal-pad" placeholder="∞" placeholderTextColor={C.muted} style={input} /></View>
+        <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Preço mínimo{p > 0 ? ` (${pa > 0 ? fmt((pa / p - 1) * 100, 1) : "-100"}%)` : ""}</Text><TextInput value={shownMin} onChangeText={(t) => { if (kind !== "custom") setMaxS(Number.isFinite(pb) ? String(pb) : ""); setKind("custom"); setMinS(t); }} keyboardType="decimal-pad" style={input} /></View>
+        <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Preço máximo{p > 0 && Number.isFinite(pb) ? ` (+${fmt((pb / p - 1) * 100, 1)}%)` : ""}</Text><TextInput value={shownMax} onChangeText={(t) => { if (kind !== "custom") setMinS(pa > 0 ? String(pa) : "0"); setKind("custom"); setMaxS(t); }} keyboardType="decimal-pad" placeholder="∞" placeholderTextColor={C.muted} style={input} /></View>
       </View>
+      {p > 0 && (
+        <RangeChart price={p} min={pa} max={pb} bins={d.dist ? { lo: d.dist.lo * (p / d.dist.center), hi: d.dist.hi * (p / d.dist.center), values: d.dist.bins } : null}
+          onChange={(a, b) => { setKind("custom"); setMinS(String(a)); setMaxS(Number.isFinite(b) ? String(b) : ""); }} fmtPct={(v) => (v <= 0 ? "-100%" : `${v / p - 1 >= 0 ? "+" : ""}${fmt((v / p - 1) * 100, 1)}%`)} />
+      )}
       <View><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Valor a colocar (US$)</Text><TextInput value={valueS} onChangeText={setValueS} keyboardType="decimal-pad" style={input} /></View>
       {e && sp && (
         <>

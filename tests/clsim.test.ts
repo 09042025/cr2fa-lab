@@ -40,3 +40,31 @@ test("faixas prontas", () => {
   const [a, b] = presetRange(100, "narrow", false);
   assert.ok(Math.abs(a - 95) < 1e-9 && Math.abs(b - 105) < 1e-9);
 });
+
+import { binProfile, buildProfile, decSigned, encInt, tickPrice } from "../src/lib/liquidity";
+
+test("liquidez: codifica/decodifica inteiros com sinal", () => {
+  assert.equal(encInt(5).slice(-2), "05");
+  assert.equal(encInt(-1), "f".repeat(64));
+  assert.equal(decSigned("0x" + "f".repeat(64), 0, 24), -1n);
+  assert.equal(decSigned("0x" + "0".repeat(63) + "5", 0, 24), 5n);
+  assert.equal(decSigned("0x" + "0".repeat(64) + "0".repeat(58) + "fffffe", 1, 24), -2n);
+});
+
+test("liquidez: perfil soma e subtrai o líquido ao cruzar ticks", () => {
+  // posição entre ticks -120 e 120 com L=100; atual no tick 0
+  const prof = buildProfile(0, 100, [{ tick: -120, net: 100 }, { tick: 120, net: -100 }]);
+  const at = (t: number) => prof.find((s) => t >= s.from && t < s.to)!.l;
+  assert.equal(at(0), 100); assert.equal(at(60), 100); assert.equal(at(-60), 100);
+  assert.equal(at(200), 0); assert.equal(at(-200), 0);
+});
+
+test("liquidez: preço do tick e agrupamento em faixas", () => {
+  assert.ok(Math.abs(tickPrice(0, 18, 18) - 1) < 1e-12);
+  assert.ok(Math.abs(tickPrice(0, 18, 6) - 1e12) < 1);
+  const d = binProfile(buildProfile(0, 100, [{ tick: -2000, net: 100 }, { tick: 2000, net: -100 }]), 0, 18, 18, false);
+  assert.equal(d.bins.length, 80);
+  assert.ok(d.bins[40] === 1);          // no centro há liquidez
+  assert.ok(d.bins[0] === 0 && d.bins[79] === 0); // longe do centro não há
+  assert.ok(Math.abs(d.center - 1) < 1e-9);
+});
