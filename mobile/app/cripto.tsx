@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { pct, usd, usdCompact } from "../src/format";
 import { C } from "../src/theme";
 import { useApi } from "../src/useApi";
+import { CriptoNav } from "../src/criptoNav";
 import { Card, GoldButton, H2, Muted, ProBadge, Screen, Status } from "../src/ui";
 
 interface Mini { id: string; symbol: string; name: string; priceUsd: number; change24h: number | null; image: string | null }
@@ -17,17 +18,6 @@ interface Data {
   gainers: Mini[] | null; losers: Mini[] | null;
 }
 
-// Mesmas seções do site (Cripto). "to" = já nativo no app; sem "to" = próxima etapa.
-const SECOES: { label: string; pro?: boolean; to?: "/mercado" | "/defi" }[] = [
-  { label: "Visão de mercado" },
-  { label: "Mercado", to: "/mercado" },
-  { label: "HUB DEFI", pro: true, to: "/defi" },
-  { label: "RWA" },
-  { label: "Futuros" },
-  { label: "ETFs de Cripto" },
-  { label: "Análise on Chain", pro: true },
-  { label: "DEX e Plataformas DeFi" },
-];
 const PERIODS = [{ d: 7, l: "7d" }, { d: 30, l: "30d" }, { d: 90, l: "90d" }, { d: 365, l: "1a" }];
 const fngColor = (v: number) => (v < 25 ? "#ef4444" : v < 45 ? "#f59e0b" : v < 55 ? "#9ca3af" : v < 75 ? "#84cc16" : "#22c55e");
 const br1 = (v: number) => v.toFixed(1).replace(".", ",");
@@ -63,19 +53,7 @@ export default function Cripto() {
   const g = data?.global;
   return (
     <Screen title="Visão de mercado" subtitle="Termômetro geral do mercado cripto: valor total, volume, dominância do Bitcoin e humor dos investidores.">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, borderBottomWidth: 1, borderBottomColor: C.line }}>
-        {SECOES.map((s) => {
-          const on = s.label === "Visão de mercado";
-          const ok = on || !!s.to;
-          return (
-            <Pressable key={s.label} disabled={!ok || on} onPress={() => s.to && router.push(s.to)} style={{ paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: on ? C.gold : "transparent", marginBottom: -1, opacity: ok ? 1 : 0.5, flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ color: on ? C.goldSoft : C.muted, fontWeight: "600" }}>{s.label}</Text>
-              {s.pro && <ProBadge />}
-              {!ok && <Text style={{ color: C.muted, fontSize: 10 }}>em breve</Text>}
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <CriptoNav current="/cripto" />
       <Status loading={loading && !data} error={error} onRetry={reload} />
       {data && (
         <>
