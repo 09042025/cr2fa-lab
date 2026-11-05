@@ -140,7 +140,9 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
                   const title = link.kind === "direct" ? `Abrir o par em ${link.name}` : link.kind === "home" ? `Abrir ${link.name} (procure o par lá)` : "Ver o pool no DefiLlama";
                   const open = (
                     <>
-                      <a href={link.url} target="_blank" rel="noopener noreferrer" title={title} className="text-gold-soft underline-offset-2 hover:underline">{p.symbol} <span aria-hidden>↗</span></a>
+                      {isDex
+                        ? <Link href={`/painel/cripto/defi/pool?id=${encodeURIComponent(p.id)}`} title="Ver detalhes e simular taxas" className="text-gold-soft underline-offset-2 hover:underline">{p.symbol} <span aria-hidden>›</span></Link>
+                        : <a href={link.url} target="_blank" rel="noopener noreferrer" title={title} className="text-gold-soft underline-offset-2 hover:underline">{p.symbol} <span aria-hidden>↗</span></a>}
                       {link.kind !== "llama" && <a href={llamaUrl(p)} target="_blank" rel="noopener noreferrer" title="Detalhes do pool na fonte dos dados" className="ml-1 text-xs text-muted hover:text-gold-soft">ⓘ</a>}
                     </>
                   );
