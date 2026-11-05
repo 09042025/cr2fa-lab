@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { rate, usdCompact } from "../src/format";
 import { C } from "../src/theme";
 import { useApi } from "../src/useApi";
@@ -11,6 +11,34 @@ interface Data { dexes?: string[]; tipo: "liquidez" | "rendimento"; total: numbe
 const chip = (on: boolean) => ({ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 });
 const Chip = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => <Pressable onPress={onPress} style={chip(on)}><Text style={{ color: on ? C.ink : C.white, fontWeight: "700" }}>{label}</Text></Pressable>;
 const Stat = ({ l, v, gold }: { l: string; v: string; gold?: boolean }) => <View style={{ minWidth: "30%" }}><Text style={{ color: C.muted, fontSize: 11 }}>{l}</Text><Text style={{ color: gold ? C.goldSoft : C.white, fontWeight: "700" }}>{v}</Text></View>;
+
+/** Caixa de seleção (lista que abre por cima), como os filtros do site. */
+function Select({ label, value, options, onChange }: { label: string; value: string; options: { v: string; l: string }[]; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const cur = options.find((o) => o.v === value)?.l ?? options[0]?.l ?? "";
+  return (
+    <View style={{ flex: 1, minWidth: "45%" }}>
+      <Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>{label}</Text>
+      <Pressable onPress={() => setOpen(true)} style={{ backgroundColor: C.ink, borderColor: C.line, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
+        <Text style={{ color: C.white, flexShrink: 1 }} numberOfLines={1}>{cur}</Text><Text style={{ color: C.muted }}>▾</Text>
+      </Pressable>
+      <Modal transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
+        <Pressable onPress={() => setOpen(false)} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", padding: 24 }}>
+          <View style={{ backgroundColor: C.panel, borderColor: C.line, borderWidth: 1, borderRadius: 14, maxHeight: "70%" }}>
+            <Text style={{ color: C.goldSoft, fontWeight: "700", padding: 14, paddingBottom: 6 }}>{label}</Text>
+            <ScrollView>
+              {options.map((o) => (
+                <Pressable key={o.v} onPress={() => { onChange(o.v); setOpen(false); }} style={{ paddingHorizontal: 14, paddingVertical: 12, backgroundColor: o.v === value ? C.panel2 : "transparent" }}>
+                  <Text style={{ color: o.v === value ? C.goldSoft : C.white, fontWeight: o.v === value ? "700" : "400" }}>{o.l}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
 
 function Hub() {
   const [tipo, setTipo] = useState<"liquidez" | "rendimento">("liquidez");
@@ -35,9 +63,6 @@ function Hub() {
   if (cat) params.set("categoria", cat);
   if (dex) params.set("dex", dex);
   const { data, error, loading, reload } = useApi<Data>(`/api/mobile/defi?${params}`);
-  // Clicar de novo no mesmo critério inverte (do maior para o menor e vice-versa), como no site.
-  const sort = (o: string) => { if (o === ordem) setDir(dir === "desc" ? "asc" : "desc"); else { setOrdem(o); setDir("desc"); } };
-  const arrow = (o: string) => (o === ordem ? (dir === "desc" ? " ↓" : " ↑") : "");
   const input = { backgroundColor: C.ink, borderColor: C.line, borderWidth: 1, borderRadius: 10, color: C.white, paddingHorizontal: 12, paddingVertical: 9 } as const;
   return (
     <>
@@ -46,39 +71,28 @@ function Hub() {
         <Chip label="Empréstimo e staking" on={!isDex} onPress={() => { setTipo("rendimento"); setOrdem("tvl"); setRede(""); setDex(""); }} />
       </View>
       <Muted>{isDex ? "Pares de ativos em corretoras descentralizadas (Uniswap, PancakeSwap, Aerodrome, Camelot, Curve, Raydium e outras). Quem fornece liquidez recebe parte das taxas de negociação." : "Empréstimo, staking e outros protocolos em que você deposita um ativo e recebe rendimento."}</Muted>
-      <Card style={{ gap: 8 }}>
-        <TextInput value={q} onChangeText={setQ} placeholder="Buscar (ex.: ETH-USDC, 0.05%)" placeholderTextColor={C.muted} style={input} />
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <TextInput value={min} onChangeText={setMin} keyboardType="numeric" placeholder="TVL mínimo (US$)" placeholderTextColor={C.muted} style={[input, { flex: 1 }]} />
-          {isDex && <TextInput value={vol} onChangeText={setVol} keyboardType="numeric" placeholder="Volume 24h mín." placeholderTextColor={C.muted} style={[input, { flex: 1 }]} />}
+      <Card style={{ gap: 12 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+          <Select label="Rede" value={rede} onChange={setRede} options={[{ v: "", l: "Todas" }, ...(data?.chains ?? []).map((c) => ({ v: c, l: c }))]} />
+          <Select label={isDex ? "DEX" : "Protocolo"} value={dex} onChange={setDex} options={[{ v: "", l: "Todos" }, ...(data?.dexes ?? []).map((c) => ({ v: c, l: c }))]} />
+          <Select label="Tipo de pool" value={cat} onChange={setCat} options={[{ v: "", l: "Todos" }, { v: "cripto", l: "Cripto" }, { v: "rwa", l: "RWA (ativos do mundo real)" }, { v: "stable", l: "Stablecoins" }, { v: "outros", l: "Outros" }]} />
+          <Select label="Ordenar por" value={ordem} onChange={setOrdem} options={[{ v: "tvl", l: "TVL" }, ...(isDex ? [{ v: "vol", l: "Volume 24h" }] : []), { v: "apy", l: "APR total" }, ...(isDex ? [{ v: "taxas", l: "APR taxas" }, { v: "eficiencia", l: "Giro (volume ÷ TVL)" }] : [])]} />
+          <Select label="Sentido" value={dir} onChange={(v) => setDir(v as "desc" | "asc")} options={[{ v: "desc", l: "Maior para o menor" }, { v: "asc", l: "Menor para o maior" }]} />
+        </View>
+        <View>
+          <Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Buscar</Text>
+          <TextInput value={q} onChangeText={setQ} placeholder="ex.: ETH-USDC, 0.05%" placeholderTextColor={C.muted} style={input} />
+        </View>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>TVL mínimo (US$)</Text><TextInput value={min} onChangeText={setMin} keyboardType="numeric" placeholder="1000000" placeholderTextColor={C.muted} style={input} /></View>
+          {isDex && <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Volume 24h mínimo (US$)</Text><TextInput value={vol} onChangeText={setVol} keyboardType="numeric" placeholder="500000" placeholderTextColor={C.muted} style={input} /></View>}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ color: C.white }}>Só stablecoins</Text><Switch value={stable} onValueChange={setStable} trackColor={{ true: C.gold, false: C.line }} />
         </View>
-        {data && data.chains.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            <Chip label="Todas as redes" on={rede === ""} onPress={() => setRede("")} />
-            {data.chains.map((c) => <Chip key={c} label={c} on={rede === c} onPress={() => setRede(rede === c ? "" : c)} />)}
-          </ScrollView>
-        )}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-          <Chip label="Todos os tipos" on={cat === ""} onPress={() => setCat("")} />
-          {[["cripto", "Cripto"], ["rwa", "RWA"], ["stable", "Stablecoins"], ["outros", "Outros"]].map(([id, l]) => <Chip key={id} label={l} on={cat === id} onPress={() => setCat(cat === id ? "" : id)} />)}
-        </ScrollView>
-        {data && (data.dexes?.length ?? 0) > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            <Chip label={isDex ? "Todas as DEX" : "Todos os protocolos"} on={dex === ""} onPress={() => setDex("")} />
-            {(data.dexes ?? []).map((c) => <Chip key={c} label={c} on={dex === c} onPress={() => setDex(dex === c ? "" : c)} />)}
-          </ScrollView>
-        )}
-        <Text style={{ color: C.muted, fontSize: 12 }}>Ordenar por (toque de novo para inverter: maior ↔ menor)</Text>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          <Chip label={`TVL${arrow("tvl")}`} on={ordem === "tvl"} onPress={() => sort("tvl")} />
-          {isDex && <Chip label={`Volume 24h${arrow("vol")}`} on={ordem === "vol"} onPress={() => sort("vol")} />}
-          <Chip label={`APR${arrow("apy")}`} on={ordem === "apy"} onPress={() => sort("apy")} />
-          {isDex && <Chip label={`APR taxas${arrow("taxas")}`} on={ordem === "taxas"} onPress={() => sort("taxas")} />}
-          {isDex && <Chip label={`Giro${arrow("eficiencia")}`} on={ordem === "eficiencia"} onPress={() => sort("eficiencia")} />}
-        </View>
+        <Pressable onPress={() => { setQ(""); setQs(""); setMin("1000000"); setVol("500000"); setRede(""); setDex(""); setCat(""); setStable(false); setOrdem("tvl"); setDir("desc"); }} style={{ alignSelf: "flex-start", paddingVertical: 4 }}>
+          <Text style={{ color: C.goldSoft, fontWeight: "700" }}>Limpar filtros</Text>
+        </Pressable>
       </Card>
       <Status loading={loading && !data} error={error} onRetry={reload} />
       {data && <Muted>{data.total.toLocaleString("pt-BR")} pools com esses filtros{data.total > data.pools.length ? ` (mostrando os ${data.pools.length} primeiros)` : ""}.</Muted>}
