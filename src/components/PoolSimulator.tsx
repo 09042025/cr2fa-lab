@@ -69,7 +69,7 @@ export function PoolSimulator({ dist, symA, symB, price, usdA, usdB, baseApr, st
         <button type="button" className="btn btn-ghost ml-auto" onClick={() => pickRange("wide")} disabled={!(p > 0)}>Redefinir</button>
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm">
           <button type="button" className={`px-3 py-2 ${mode === "pct" ? "bg-gold text-ink" : ""}`} onClick={() => setMode("pct")} title="Mostrar a faixa em % do preço atual">%</button>
-          <button type="button" className={`px-3 py-2 ${mode === "price" ? "bg-gold text-ink" : ""}`} onClick={() => setMode("price")} title="Mostrar a faixa em preço">#</button>
+          <button type="button" className={`px-3 py-2 ${mode === "price" ? "bg-gold text-ink" : ""}`} onClick={() => setMode("price")} title="Mostrar a faixa em preço (US$)">US$</button>
         </span>
       </div>
 
