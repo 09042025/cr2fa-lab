@@ -16,6 +16,10 @@ function Routes() {
         <Stack.Screen name="defi" options={{ title: "HUB DEFI" }} />
         <Stack.Screen name="ativo/[id]" options={{ title: "Ativo" }} />
         <Stack.Screen name="cripto" options={{ title: "Cripto" }} />
+        <Stack.Screen name="rwa" options={{ title: "RWA" }} />
+        <Stack.Screen name="futuros" options={{ title: "Futuros" }} />
+        <Stack.Screen name="etf" options={{ title: "ETFs de Cripto" }} />
+        <Stack.Screen name="plataformas" options={{ title: "DEX e Plataformas" }} />
         <Stack.Screen name="configuracoes" options={{ title: "Configurações" }} />
         <Stack.Screen name="planos" options={{ title: "Planos", presentation: "modal" }} />
       </Stack.Protected>
