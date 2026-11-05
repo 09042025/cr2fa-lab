@@ -18,10 +18,10 @@ interface Data {
 }
 
 // Mesmas seções do site (Cripto). "to" = já nativo no app; sem "to" = próxima etapa.
-const SECOES: { label: string; pro?: boolean; to?: "/mercado" }[] = [
+const SECOES: { label: string; pro?: boolean; to?: "/mercado" | "/defi" }[] = [
   { label: "Visão de mercado" },
   { label: "Mercado", to: "/mercado" },
-  { label: "HUB DEFI", pro: true },
+  { label: "HUB DEFI", pro: true, to: "/defi" },
   { label: "RWA" },
   { label: "Futuros" },
   { label: "ETFs de Cripto" },
