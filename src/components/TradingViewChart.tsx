@@ -48,6 +48,25 @@ export function TradingViewChart({ symbol }: { symbol: string; height?: number }
     };
   }, [symbol, full]);
 
+  // O widget às vezes nasce com uma altura pequena; força o iframe (e os elementos em volta) a preencher a caixa toda.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const put = (n: HTMLElement, k: string, v: string) => { if (n.style.getPropertyValue(k) !== v || n.style.getPropertyPriority(k) !== "important") n.style.setProperty(k, v, "important"); };
+    const fit = () => {
+      el.querySelectorAll("iframe").forEach((f) => {
+        for (let n: HTMLElement | null = f.parentElement; n && n !== el; n = n.parentElement) { put(n, "height", "100%"); put(n, "width", "100%"); }
+        put(f, "height", "100%"); put(f, "width", "100%"); put(f, "min-height", `${el.clientHeight}px`);
+      });
+    };
+    fit();
+    const mo = new MutationObserver(fit);
+    mo.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "height"] });
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => { mo.disconnect(); ro.disconnect(); };
+  }, [symbol, full]);
+
   return (
     <div className={full ? "fixed inset-0 z-[60] bg-ink p-1" : "relative"}>
       <div ref={box} className={`tradingview-widget-container relative w-full overflow-hidden rounded-xl border border-line ${full ? "h-full" : "h-[calc(100dvh-7rem)] min-h-[480px]"}`} />
