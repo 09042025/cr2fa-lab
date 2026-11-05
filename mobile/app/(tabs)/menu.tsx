@@ -12,7 +12,7 @@ const FEED: Item = { label: "Feed", to: { pathname: "/comunidade", params: { aba
 const ITEMS: Item[] = [
   { label: "Ações" },
   { label: "White Flame Society", to: "/comunidade", pro: true },
-  { label: "Cripto", to: "/mercado" },
+  { label: "Cripto", to: "/cripto" },
   { label: "Fundos imobiliários" },
   { label: "Lives Abertas" },
   { label: "Mentoria com Niza", diamond: true },

@@ -13,6 +13,7 @@ function Routes() {
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="cursos" options={{ title: "Cursos" }} />
+        <Stack.Screen name="cripto" options={{ title: "Cripto" }} />
         <Stack.Screen name="configuracoes" options={{ title: "Configurações" }} />
         <Stack.Screen name="planos" options={{ title: "Planos", presentation: "modal" }} />
       </Stack.Protected>
