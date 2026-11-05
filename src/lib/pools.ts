@@ -93,7 +93,8 @@ export function filterPools(pools: DefiPool[], sp: PoolFilters): DefiPool[] {
   const min = Number(sp.min) || 0;
   const minVol = Number(sp.vol) || 0;
   const q = (sp.q || "").trim().toLowerCase();
-  let out = pools.filter((p) => p.tvlUsd >= min);
+  // Pool de DEX sem nenhuma negociação em 24h e sem rendimento é inativo (ou TVL inflado): não vale mostrar.
+  let out = pools.filter((p) => p.tvlUsd >= min && !(p.dex && p.volumeUsd1d === 0 && !p.apy));
   if (sp.tipo === "rendimento") out = out.filter((p) => !p.dex);
   else if (sp.tipo === "liquidez") out = out.filter((p) => p.dex);
   if (sp.rede) out = out.filter((p) => p.chain === sp.rede);
