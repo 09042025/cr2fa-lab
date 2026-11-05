@@ -1,6 +1,7 @@
 import { getUser } from "@/lib/auth";
 import { fail, json } from "@/lib/http";
 import { getAllPools } from "@/lib/market";
+import { llamaUrl, poolLink } from "@/lib/poollinks";
 import { filterPools, poolKind, turnover } from "@/lib/pools";
 
 /** HUB DEFI (exclusivo Premium): pools filtrados e ordenados, com os mesmos filtros do site. */
@@ -20,6 +21,7 @@ export async function GET(req: Request) {
     chains: [...new Set(base.map((p) => p.chain))].sort(),
     dexes: [...new Set(base.map((p) => p.project))].sort().slice(0, 40),
     pools: rows.map((p) => ({
+      link: poolLink(p), llama: llamaUrl(p),
       id: p.id, symbol: p.symbol, project: p.project, chain: p.chain, poolMeta: p.poolMeta, stablecoin: p.stablecoin, rwa: poolKind(p) === "rwa",
       tvlUsd: p.tvlUsd, volumeUsd1d: p.volumeUsd1d, turnover: turnover(p), apyBase: p.apyBase, apyReward: p.apyReward, apy: p.apy, apyMean30d: p.apyMean30d, il7d: p.il7d,
     })),
