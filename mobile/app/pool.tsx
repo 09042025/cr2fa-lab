@@ -12,7 +12,12 @@ interface D {
   tvlUsd: number; volumeUsd1d: number | null; apy: number | null; apyBase: number | null; apyReward: number | null; apyMean30d: number | null;
   feeRate: number | null; feeFromDex: boolean; fees24h: number | null; baseApr: number | null;
   price: number | null; usdA: number | null; usdB: number | null; priceNote: string | null; link: { url: string; kind: string; name: string };
+  chart: { embed: string; page: string } | null; history: { t: number; apy: number | null; tvl: number | null }[];
 }
+// O gráfico incorporado usa react-native-webview. Se ainda não estiver instalado, mostramos um botão que abre o DexScreener.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let WebViewC: any = null;
+try { WebViewC = require("react-native-webview").WebView; } catch { WebViewC = null; }
 const num = (s: string) => { const v = Number(s.replace(",", ".")); return Number.isFinite(v) ? v : NaN; };
 const fmt = (v: number, d = 2) => v.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: d });
 const usd = (v: number) => `US$ ${fmt(v)}`;
@@ -24,6 +29,40 @@ const Chip = ({ label, on, onPress, off }: { label: string; on: boolean; onPress
     <Text style={{ color: on ? C.ink : C.white, fontWeight: "700" }}>{label}</Text>
   </Pressable>
 );
+
+function Charts({ d }: { d: D }) {
+  const [tab, setTab] = useState<"price" | "apr" | "tvl">(d.chart ? "price" : "apr");
+  const apr = d.history.filter((h) => h.apy !== null).map((h) => h.apy!);
+  const tvl = d.history.filter((h) => h.tvl !== null).map((h) => h.tvl!);
+  const series = tab === "apr" ? apr : tvl;
+  const min = Math.min(...series), max = Math.max(...series);
+  return (
+    <Card style={{ gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Chip label="Preço" on={tab === "price"} off={!d.chart} onPress={() => setTab("price")} />
+        <Chip label="APR" on={tab === "apr"} onPress={() => setTab("apr")} />
+        <Chip label="TVL" on={tab === "tvl"} onPress={() => setTab("tvl")} />
+      </View>
+      {tab === "price" && d.chart && (
+        WebViewC ? (
+          <View style={{ height: 380, borderRadius: 10, overflow: "hidden" }}>
+            <WebViewC source={{ uri: d.chart.embed }} style={{ flex: 1, backgroundColor: C.ink }} javaScriptEnabled domStorageEnabled nestedScrollEnabled />
+          </View>
+        ) : <GoldButton label="Abrir gráfico no DexScreener ↗" onPress={() => Linking.openURL(d.chart!.page)} />
+      )}
+      {tab !== "price" && (series.length > 1 ? (
+        <>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}><Text style={{ color: C.muted, fontSize: 12 }}>Máx. {tab === "apr" ? `${fmt(max, 1)}%` : usdCompact(max)}</Text><Text style={{ color: C.muted, fontSize: 12 }}>Mín. {tab === "apr" ? `${fmt(min, 1)}%` : usdCompact(min)}</Text></View>
+          <View style={{ height: 130, flexDirection: "row", alignItems: "flex-end", gap: 1 }}>
+            {series.map((v, i) => <View key={i} style={{ flex: 1, height: `${Math.max(4, ((v - min) / (max - min || 1)) * 100)}%`, backgroundColor: C.gold, borderTopLeftRadius: 2, borderTopRightRadius: 2 }} />)}
+          </View>
+          <Muted>{tab === "apr" ? "APR total diário do pool." : "TVL diário do pool."} Fonte: DefiLlama.</Muted>
+        </>
+      ) : <Muted>Histórico indisponível para este pool.</Muted>)}
+      {tab === "price" && d.chart && <Muted>Gráfico do DexScreener.</Muted>}
+    </Card>
+  );
+}
 
 function Sim({ d }: { d: D }) {
   const [symA, symB] = d.symbol.split(/[-/ +]/).filter(Boolean).concat(["A", "B"]);
@@ -61,10 +100,11 @@ function Sim({ d }: { d: D }) {
         <Chip label="Estreita" on={kind === "narrow"} off={!(p > 0)} onPress={() => pick("narrow")} />
         <Chip label="Larga" on={kind === "wide"} off={!(p > 0)} onPress={() => pick("wide")} />
         <Chip label="Total" on={kind === "full"} off={!(p > 0)} onPress={() => pick("full")} />
+        <Chip label="Redefinir" on={false} off={!(p > 0)} onPress={() => pick("wide")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Preço mínimo</Text><TextInput value={shownMin} onChangeText={(t) => { if (kind !== "custom") setMaxS(Number.isFinite(pb) ? sig(pb) : ""); setKind("custom"); setMinS(t); }} keyboardType="decimal-pad" style={input} /></View>
-        <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Preço máximo</Text><TextInput value={shownMax} onChangeText={(t) => { if (kind !== "custom") setMinS(pa > 0 ? sig(pa) : "0"); setKind("custom"); setMaxS(t); }} keyboardType="decimal-pad" placeholder="∞" placeholderTextColor={C.muted} style={input} /></View>
+        <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Preço mínimo{p > 0 ? ` (${pa > 0 ? fmt((pa / p - 1) * 100, 1) : "-100"}%)` : ""}</Text><TextInput value={shownMin} onChangeText={(t) => { if (kind !== "custom") setMaxS(Number.isFinite(pb) ? sig(pb) : ""); setKind("custom"); setMinS(t); }} keyboardType="decimal-pad" style={input} /></View>
+        <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Preço máximo{p > 0 && Number.isFinite(pb) ? ` (+${fmt((pb / p - 1) * 100, 1)}%)` : ""}</Text><TextInput value={shownMax} onChangeText={(t) => { if (kind !== "custom") setMinS(pa > 0 ? sig(pa) : "0"); setKind("custom"); setMaxS(t); }} keyboardType="decimal-pad" placeholder="∞" placeholderTextColor={C.muted} style={input} /></View>
       </View>
       <View><Text style={{ color: C.muted, fontSize: 12, marginBottom: 4 }}>Valor a colocar (US$)</Text><TextInput value={valueS} onChangeText={setValueS} keyboardType="decimal-pad" style={input} /></View>
       {e && sp && (
@@ -122,6 +162,7 @@ function Detail() {
             <Stat l="Média 30 dias" v={rate(d.apyMean30d)} />
             <Stat l="Taxa do pool" v={d.feeRate === null ? "—" : `${(d.feeRate * 100).toLocaleString("pt-BR", { maximumFractionDigits: 3 })}%${d.feeFromDex ? "" : " (est.)"}`} />
           </View>
+          <Charts d={d} />
           <Sim d={d} />
         </>
       )}
