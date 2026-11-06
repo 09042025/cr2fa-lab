@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useRouter } from "expo-router";
 import { Text, TextInput, View } from "react-native";
-import { rate, usd, usdCompact } from "../src/format";
+import { LpDetailBody } from "../src/LpDetail";
+import { usd } from "../src/format";
 import { C } from "../src/theme";
 import { useApi } from "../src/useApi";
 import { Card, GoldButton, H2, Muted, ProGate, Screen, Status } from "../src/ui";
@@ -18,7 +18,6 @@ const HEALTH = { ok: ["Saudável", C.up], attention: ["Atenção: perto da borda
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 
 function Result({ address }: { address: string }) {
-  const router = useRouter();
   const { data, error, loading, reload } = useApi<R>(`/api/mobile/lp?address=${address}`);
   if (!data) return <Status loading={loading} error={error} onRetry={reload} />;
   const all = data.chains.flatMap((c) => c.positions);
@@ -34,28 +33,22 @@ function Result({ address }: { address: string }) {
       </Card>
       {failed.length > 0 && <Muted>Algumas redes não responderam agora: {failed.join(", ")}. Tente de novo.</Muted>}
       {all.length === 0 && <Muted>Nenhuma posição aberta na Uniswap v3 (Ethereum, Base, Arbitrum, Polygon, Optimism) para este endereço.</Muted>}
-      {all.map((p) => {
+      {all.map((p, i) => {
         const [label, color] = HEALTH[p.health];
         return (
-          <Card key={`${p.chain}-${p.tokenId}`} style={{ gap: 8 }} onPress={() => router.push({ pathname: "/saude-posicao", params: { address, rede: p.chain, id: p.tokenId } })}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ color: C.white, fontWeight: "800", fontSize: 16 }}>{p.pair} · {p.fee / 10000}%</Text>
+          <View key={`${p.chain}-${p.tokenId}`} style={{ gap: 10 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+              <Text style={{ color: C.white, fontWeight: "800", fontSize: 17 }}>{p.pair} · {p.fee / 10000}%</Text>
               <Text style={{ color, fontWeight: "700", fontSize: 12 }}>{label}</Text>
             </View>
             <Muted>Uniswap v3 · {p.chain} · #{p.tokenId}</Muted>
-            <View style={{ height: 8, borderRadius: 4, backgroundColor: C.line, marginTop: 4 }}>
-              <View style={{ position: "absolute", top: -3, width: 4, height: 14, borderRadius: 2, backgroundColor: C.white, left: `${Math.min(98, Math.max(0, p.pos * 100))}%` }} />
-            </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Muted>Mín. {sig(p.priceLower)}</Muted><Muted>Atual {sig(p.price)}</Muted><Muted>Máx. {sig(p.priceUpper)}</Muted>
-            </View>
-            <Text style={{ color: C.white }}>Valor: <Text style={{ fontWeight: "700" }}>{p.valueUsd === null ? "—" : usd(p.valueUsd)}</Text></Text>
-            <Muted>{sig(p.amount0)} {p.symbol0} + {sig(p.amount1)} {p.symbol1}</Muted>
-            <Text style={{ color: C.white }}>Taxas a coletar: <Text style={{ color: C.up, fontWeight: "700" }}>{p.feesUsd === null ? "—" : usd(p.feesUsd)}</Text></Text>
-            <Text style={{ color: C.white }}>Ganho estimado/dia: <Text style={{ fontWeight: "700" }}>{p.estDayUsd === null ? "—" : usd(p.estDayUsd)}</Text>{p.estApr !== null ? ` · APR ${rate(p.estApr)}` : ""}</Text>
-            <Muted>Pool: {p.poolTvlUsd === null ? "—" : usdCompact(p.poolTvlUsd)} de liquidez{p.poolApr !== null ? ` · APR ${rate(p.poolApr)}` : ""}</Muted>
-            <Text style={{ color: C.gold, fontWeight: "700" }}>Análise completa: PnL, ROI, gráficos →</Text>
-          </Card>
+            {i < 8 ? <LpDetailBody address={address} rede={p.chain} id={p.tokenId} /> : (
+              <Card style={{ gap: 6 }}>
+                <Text style={{ color: C.white }}>Valor: <Text style={{ fontWeight: "700" }}>{p.valueUsd === null ? "—" : usd(p.valueUsd)}</Text> · Taxas a coletar: <Text style={{ color: C.up, fontWeight: "700" }}>{p.feesUsd === null ? "—" : usd(p.feesUsd)}</Text></Text>
+                <Muted>Faixa {sig(p.priceLower)} a {sig(p.priceUpper)} · atual {sig(p.price)}</Muted>
+              </Card>
+            )}
+          </View>
         );
       })}
     </>

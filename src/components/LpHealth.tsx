@@ -1,11 +1,13 @@
 import type { LpResult } from "@/lib/lppositions";
+import type { LpDetail } from "@/lib/lpdetail";
+import { LpPositionDetail } from "./LpPositionDetail";
 import { pct, usd, usdCompact } from "@/lib/format";
 
 const sig = (v: number) => v.toLocaleString("pt-BR", { maximumSignificantDigits: 5 });
 const LABEL = { ok: ["Saudável", "text-up border-up/50"], attention: ["Atenção: perto da borda", "text-gold-soft border-gold/50"], out: ["Fora da faixa: sem taxas", "text-down border-down/50"] } as const;
 
 /** Lista de posições de uma carteira (somente leitura). Sem botões de transação. */
-export function LpHealth({ data }: { data: LpResult }) {
+export function LpHealth({ data, details = {} }: { data: LpResult; details?: Record<string, LpDetail> }) {
   const all = data.chains.flatMap((c) => c.positions);
   const total = all.reduce((a, p) => a + (p.valueUsd ?? 0), 0);
   const fees = all.reduce((a, p) => a + (p.feesUsd ?? 0), 0);
@@ -22,6 +24,16 @@ export function LpHealth({ data }: { data: LpResult }) {
       {all.length === 0 && <p className="text-sm text-muted">Nenhuma posição de liquidez aberta na Uniswap v3 (Ethereum, Base, Arbitrum, Polygon e Optimism) para este endereço.</p>}
       {all.map((p) => {
         const [label, cls] = LABEL[p.health];
+        const full = details[`${p.chain}-${p.tokenId}`];
+        if (full) return (
+          <article key={`${p.chain}-${p.tokenId}`} className="card p-4">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+              <div><h3 className="text-lg font-semibold">{p.pair} <span className="ml-1 rounded border border-line px-1 text-xs text-muted">{p.fee / 10000}%</span></h3><p className="text-xs text-muted">Uniswap v3 · {p.chain} · #{p.tokenId} · <a className="text-gold-soft hover:underline" href={p.link} target="_blank" rel="noopener noreferrer nofollow">ver na Uniswap ↗</a></p></div>
+              <span className={`rounded border px-2 py-0.5 text-xs font-semibold ${cls}`}>{label}</span>
+            </div>
+            <LpPositionDetail d={full} />
+          </article>
+        );
         return (
           <article key={`${p.chain}-${p.tokenId}`} className="card p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
