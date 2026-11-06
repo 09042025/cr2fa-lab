@@ -1,7 +1,6 @@
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { cached, fetchJson } from "./market";
-import { RPC } from "./liquidity";
 import { NPM, positionAmounts } from "./lppositions";
 import { COIN_CHAIN } from "./pooldetail";
 
@@ -88,44 +87,99 @@ const T = {
 };
 const word = (data: string, i: number) => BigInt("0x" + (data.replace(/^0x/, "").slice(i * 64, i * 64 + 64) || "0"));
 
-async function call<T>(url: string, method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`RPC ${res.status}`);
-  const j = (await res.json()) as { result?: T; error?: { message: string } };
-  if (j.error || j.result === undefined) throw new Error(j.error?.message ?? "RPC vazio");
-  return j.result;
+/** Nós que costumam aceitar consulta de eventos. Tentamos em ordem até um responder. */
+const LOG_RPC: Record<string, string[]> = {
+  Ethereum: ["https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com", "https://cloudflare-eth.com"],
+  Base: ["https://base-rpc.publicnode.com", "https://mainnet.base.org"],
+  Arbitrum: ["https://arbitrum-one-rpc.publicnode.com", "https://arb1.arbitrum.io/rpc", "https://arbitrum.llamarpc.com"],
+  Polygon: ["https://polygon-bor-rpc.publicnode.com", "https://polygon-rpc.com"],
+  Optimism: ["https://optimism-rpc.publicnode.com", "https://mainnet.optimism.io"],
+};
+
+async function batch<R>(url: string, calls: { method: string; params: unknown[] }[]): Promise<R[]> {
+  const body = calls.map((c, i) => ({ jsonrpc: "2.0", id: i, method: c.method, params: c.params }));
+  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(20000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const j = (await res.json()) as { id: number; result?: R; error?: { message: string } }[] | { error?: { message: string } };
+  if (!Array.isArray(j)) throw new Error(j.error?.message ?? "resposta inválida");
+  const out: R[] = new Array(calls.length);
+  for (const r of j) {
+    if (r.error || r.result === undefined) throw new Error(r.error?.message ?? "resposta vazia");
+    out[r.id] = r.result;
+  }
+  return out;
 }
 
 interface Log { blockNumber: string; data: string; topics: string[] }
+const ZERO = "0x" + "0".repeat(64);
+const TRANSFER = topic("Transfer(address,address,uint256)");
 
-/** Eventos da posição (NFT) na Uniswap: depósitos, retiradas e coletas, com data. Valores em unidades humanas. */
-export async function loadEvents(chain: string, tokenId: string, dec0: number, dec1: number): Promise<LpEvent[] | null> {
-  const url = RPC[chain], npm = NPM[chain];
-  if (!url || !npm || !/^\d+$/.test(tokenId)) return null;
-  const id = "0x" + BigInt(tokenId).toString(16).padStart(64, "0");
+/** Busca eventos da posição em blocos [from,to]. Inclui a criação (Transfer de 0x0) para sabermos quando parar. */
+async function logsRange(url: string, npm: string, id: string, from: number, to: number) {
+  const f = "0x" + from.toString(16), t = "0x" + to.toString(16);
+  const mk = (topics: (string | null)[]) => ({ method: "eth_getLogs", params: [{ address: npm, fromBlock: f, toBlock: t, topics }] });
+  const [inc, dec, col, mint] = await batch<Log[]>(url, [mk([T.inc, id]), mk([T.dec, id]), mk([T.col, id]), mk([TRANSFER, ZERO, null, id])]);
+  return { inc, dec, col, minted: mint.length > 0 };
+}
+
+/** Lê os eventos de um nó: tenta o intervalo todo; se o nó recusar, anda para trás em blocos menores até achar a criação. */
+async function logsFromNode(url: string, npm: string, id: string) {
+  const [latestHex] = await batch<string>(url, [{ method: "eth_blockNumber", params: [] }]);
+  const latest = Number(BigInt(latestHex));
   try {
-    const logs = (await Promise.all((["inc", "dec", "col"] as const).map(async (kind) => {
-      const l = await call<Log[]>(url, "eth_getLogs", [{ address: npm, fromBlock: "0x0", toBlock: "latest", topics: [T[kind], id] }]);
-      return l.map((x) => ({ kind, ...x }));
-    }))).flat();
-    const blocks = [...new Set(logs.map((l) => l.blockNumber))].slice(0, 300);
-    const ts = new Map<string, number>();
-    for (let i = 0; i < blocks.length; i += 50) {
-      const chunk = blocks.slice(i, i + 50);
-      const body = chunk.map((b, j) => ({ jsonrpc: "2.0", id: j, method: "eth_getBlockByNumber", params: [b, false] }));
-      const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
-      const arr = (await res.json()) as { id: number; result?: { timestamp: string } }[];
-      for (const r of arr) if (r.result) ts.set(chunk[r.id], Number(BigInt(r.result.timestamp)));
-    }
-    const d0 = Math.pow(10, dec0), d1 = Math.pow(10, dec1);
-    return logs.flatMap((l) => {
-      const t = ts.get(l.blockNumber); if (!t) return [];
-      const col = l.kind === "col";
-      return [{ ts: t, kind: l.kind, liq: col ? 0 : Number(word(l.data, 0)), a0: Number(word(l.data, col ? 1 : 1)) / d0, a1: Number(word(l.data, col ? 2 : 2)) / d1 }];
-    }).sort((a, b) => a.ts - b.ts);
+    const r = await logsRange(url, npm, id, 0, latest);
+    return { inc: r.inc, dec: r.dec, col: r.col };
   } catch {
-    return null;
+    /* intervalo grande demais: segue em pedaços */
   }
+  let size = 5_000_000;
+  const acc = { inc: [] as Log[], dec: [] as Log[], col: [] as Log[] };
+  let to = latest, rounds = 0;
+  while (to > 0 && rounds++ < 80) {
+    const from = Math.max(0, to - size + 1);
+    try {
+      const r = await logsRange(url, npm, id, from, to);
+      acc.inc.push(...r.inc); acc.dec.push(...r.dec); acc.col.push(...r.col);
+      if (r.minted) return acc;
+      to = from - 1;
+    } catch (e) {
+      if (size <= 20_000) throw e;
+      size = Math.floor(size / 4);
+    }
+  }
+  if (to > 0) throw new Error("histórico longo demais para este nó");
+  return acc;
+}
+
+/** Eventos da posição (NFT) na Uniswap: depósitos, retiradas e coletas, com data. Valores em unidades humanas. Lança erro se nenhum nó responder. */
+export async function loadEvents(chain: string, tokenId: string, dec0: number, dec1: number): Promise<LpEvent[]> {
+  const urls = LOG_RPC[chain], npm = NPM[chain];
+  if (!urls || !npm || !/^\d+$/.test(tokenId)) throw new Error("rede não suportada");
+  const id = "0x" + BigInt(tokenId).toString(16).padStart(64, "0");
+  let lastErr = "";
+  for (const url of urls) {
+    try {
+      const l = await logsFromNode(url, npm, id);
+      const logs = [...l.inc.map((x) => ({ kind: "inc" as const, ...x })), ...l.dec.map((x) => ({ kind: "dec" as const, ...x })), ...l.col.map((x) => ({ kind: "col" as const, ...x }))];
+      const blocks = [...new Set(logs.map((x) => x.blockNumber))].slice(0, 400);
+      const ts = new Map<string, number>();
+      for (let i = 0; i < blocks.length; i += 50) {
+        const chunk = blocks.slice(i, i + 50);
+        const res = await batch<{ timestamp: string } | null>(url, chunk.map((b) => ({ method: "eth_getBlockByNumber", params: [b, false] })));
+        res.forEach((r, k) => { if (r) ts.set(chunk[k], Number(BigInt(r.timestamp))); });
+      }
+      const d0 = Math.pow(10, dec0), d1 = Math.pow(10, dec1);
+      const out = logs.flatMap((x) => {
+        const t = ts.get(x.blockNumber); if (!t) return [];
+        return [{ ts: t, kind: x.kind, liq: x.kind === "col" ? 0 : Number(word(x.data, 0)), a0: Number(word(x.data, 1)) / d0, a1: Number(word(x.data, 2)) / d1 } as LpEvent];
+      }).sort((a, b) => a.ts - b.ts);
+      if (out.some((e) => e.kind === "inc")) return out;
+      lastErr = "nenhum depósito encontrado";
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : "erro";
+    }
+  }
+  throw new Error(lastErr || "nenhum nó respondeu");
 }
 
 /** Preços diários (US$) de um token desde `start` (segundos). */

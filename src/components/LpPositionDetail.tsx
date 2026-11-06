@@ -40,7 +40,7 @@ export function LpPositionDetail({ d }: { d: LpDetail }) {
           ["Situação", hl, hc.split(" ")[0]],
         ].map(([l, v, c]) => <div key={l} className="card p-3"><p className="text-xs text-muted">{l}</p><p className={`text-lg font-semibold ${c}`}>{v}</p></div>)}
       </div>
-      {!d.eventsOk && <p className="mb-3 text-xs text-gold-soft">Não consegui ler o histórico de depósitos desta posição agora (nó público indisponível). PnL, ROI e gráfico de valor aparecem quando o histórico responder. Tente de novo em instantes.</p>}
+      {!d.eventsOk && <p className="mb-3 text-xs text-gold-soft">Não consegui ler o histórico de depósitos desta posição agora (nó público indisponível). PnL, ROI e gráfico de valor aparecem quando o histórico responder. Tente de novo em instantes.{d.eventsError ? ` (detalhe técnico: ${d.eventsError})` : ""}</p>}
       <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
         <div className="space-y-4">
           <LpCharts series={d.series} chart={d.chart} history={d.history.map((h) => ({ t: h.t, apy: h.apy, tvl: h.tvl }))} />

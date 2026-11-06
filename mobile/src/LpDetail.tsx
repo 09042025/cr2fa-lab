@@ -19,7 +19,7 @@ interface D {
   series: { t: number; value: number; hold: number }[];
   dist: null | { center: number; lo: number; hi: number; bins: number[] };
   history: { t: number; apy: number | null; tvl: number | null }[];
-  chart: { embed: string; page: string } | null; eventsOk: boolean;
+  chart: { embed: string; page: string } | null; eventsOk: boolean; eventsError?: string | null;
 }
 const sig = (v: number) => v.toLocaleString("pt-BR", { maximumSignificantDigits: 5 });
 const tok = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 6 });
@@ -98,7 +98,7 @@ export function LpDetailBody({ address, rede, id }: { address: string; rede: str
                 {f && <Text style={{ color: col(f.pnlUsd), fontWeight: "700" }}>PnL {sg(f.pnlUsd)} · ROI {rate(f.roi * 100)} · APR {rate(f.apr * 100)}</Text>}
                 <Text style={{ color: C.up }}>Taxas a coletar: {p.feesUsd === null ? "—" : usd(p.feesUsd)}</Text>
               </Card>
-              {!data.eventsOk && <Muted>Não consegui ler o histórico de depósitos agora. PnL e gráfico de valor aparecem quando responder.</Muted>}
+              {!data.eventsOk && <Muted>Não consegui ler o histórico de depósitos agora. PnL e gráfico de valor aparecem quando responder.{data.eventsError ? ` (detalhe técnico: ${data.eventsError})` : ""}</Muted>}
               <Charts d={data} />
               {data.dist && (() => {
                 const dd = data.dist, llo = Math.log(dd.lo), lhi = Math.log(dd.hi);
