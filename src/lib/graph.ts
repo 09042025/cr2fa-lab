@@ -1,3 +1,4 @@
+import { getSetting } from "./settings";
 /**
  * Acesso de LEITURA ao The Graph (indexador público) com a chave GRAPH_API_KEY, guardada só no servidor.
  * A chave nunca vai para o navegador nem para o app.
@@ -19,7 +20,8 @@ export function graphKey(): string | null {
   const direct = process.env.GRAPH_API_KEY?.trim();
   if (direct) return direct;
   const k = Object.keys(process.env).find((n) => n.trim().toUpperCase() === "GRAPH_API_KEY");
-  return (k && process.env[k]?.trim()) || null;
+  const fromEnv = (k && process.env[k]?.trim()) || null;
+  return fromEnv ?? getSetting("graph_api_key");
 }
 /** Diagnóstico sem revelar valores: nomes (entre aspas) das variáveis que parecem ser a chave. */
 export const graphEnvNames = () => Object.keys(process.env).filter((n) => /graph/i.test(n)).map((n) => JSON.stringify(n));
