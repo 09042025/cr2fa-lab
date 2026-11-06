@@ -1,7 +1,7 @@
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { cached, fetchJson } from "./market";
-import { NPM, positionAmounts } from "./lppositions";
+import { positionAmounts } from "./lppositions";
 import { COIN_CHAIN } from "./pooldetail";
 
 /**
@@ -94,6 +94,9 @@ const LOG_RPC: Record<string, string[]> = {
   Arbitrum: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb", "https://arbitrum-one.public.blastapi.io", "https://arbitrum.llamarpc.com"],
   Polygon: ["https://polygon-bor-rpc.publicnode.com", "https://polygon-rpc.com", "https://polygon.drpc.org", "https://1rpc.io/matic"],
   Optimism: ["https://optimism-rpc.publicnode.com", "https://mainnet.optimism.io", "https://optimism.drpc.org", "https://1rpc.io/op"],
+  BSC: ["https://bsc-rpc.publicnode.com", "https://bsc-dataseed.binance.org", "https://bsc.drpc.org", "https://1rpc.io/bnb"],
+  Unichain: ["https://unichain-rpc.publicnode.com", "https://mainnet.unichain.org"],
+  Avalanche: ["https://avalanche-c-chain-rpc.publicnode.com", "https://api.avax.network/ext/bc/C/rpc"],
 };
 
 async function batch<R>(url: string, calls: { method: string; params: unknown[] }[]): Promise<R[]> {
@@ -154,8 +157,8 @@ async function logsFromNode(url: string, npm: string, id: string) {
 }
 
 /** Eventos da posição (NFT) na Uniswap: depósitos, retiradas e coletas, com data. Valores em unidades humanas. Lança erro se nenhum nó responder. */
-export async function loadEvents(chain: string, tokenId: string, dec0: number, dec1: number): Promise<LpEvent[]> {
-  const urls = LOG_RPC[chain], npm = NPM[chain];
+export async function loadEvents(chain: string, tokenId: string, dec0: number, dec1: number, npm: string): Promise<LpEvent[]> {
+  const urls = LOG_RPC[chain];
   if (!urls || !npm || !/^\d+$/.test(tokenId)) throw new Error("rede não suportada");
   const id = "0x" + BigInt(tokenId).toString(16).padStart(64, "0");
   const errs: string[] = [];

@@ -10,15 +10,15 @@ export interface LpDetail {
 }
 
 /** Tudo de uma posição: desempenho, séries, distribuição de liquidez e histórico do pool. Somente leitura. */
-export async function getLpDetail(address: string, chain: string, tokenId: string): Promise<LpDetail | null> {
+export async function getLpDetail(address: string, chain: string, tokenId: string, protocol = "uniswap-v3"): Promise<LpDetail | null> {
   const res = await getLpPositions(address);
-  const position = res.chains.find((c) => c.chain === chain)?.positions.find((p) => p.tokenId === tokenId);
+  const position = res.chains.find((c) => c.chain === chain)?.positions.find((p) => p.tokenId === tokenId && p.protocol === protocol);
   if (!position) return null;
   const p = position;
   const [evRes, distRes, history] = await Promise.all([
-    cached(`lpev2:${chain}:${tokenId}`, 600, () => loadEvents(chain, tokenId, p.dec0, p.dec1)),
+    cached(`lpev3:${p.npm}:${chain}:${tokenId}`, 600, () => loadEvents(chain, tokenId, p.dec0, p.dec1, p.npm)),
     // falha não pode ficar guardada: lança erro em vez de devolver null
-    cached(`lpdist3:${chain}:${p.pool}`, 300, async () => { const x = await loadDistribution(chain, p.pool, p.token0, p.fee); if (!x) throw new Error("o nó não devolveu dados de liquidez deste pool"); return x; }),
+    cached(`lpdist3:${chain}:${p.pool}`, 300, async () => { const x = await loadDistribution(chain, p.pool, p.token0, p.fee, p.spacing || undefined); if (!x) throw new Error("o nó não devolveu dados de liquidez deste pool"); return x; }),
     p.llamaId ? getPoolHistory(p.llamaId).catch(() => []) : Promise.resolve([] as HistPoint[]),
   ]);
   const events = evRes.data, dist = distRes.data;

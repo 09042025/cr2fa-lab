@@ -14,8 +14,10 @@ export const RPC: Record<string, string> = {
   Optimism: "https://optimism-rpc.publicnode.com",
   "OP Mainnet": "https://optimism-rpc.publicnode.com",
   BSC: "https://bsc-rpc.publicnode.com",
+  Unichain: "https://unichain-rpc.publicnode.com",
+  Avalanche: "https://avalanche-c-chain-rpc.publicnode.com",
 };
-export const TICK_SPACING: Record<number, number> = { 100: 1, 500: 10, 3000: 60, 10000: 200 };
+export const TICK_SPACING: Record<number, number> = { 100: 1, 500: 10, 2500: 50, 3000: 60, 10000: 200 };
 const BINS = 80;
 
 export const sel = (sig: string) => bytesToHex(keccak_256(new TextEncoder().encode(sig))).slice(0, 8);
@@ -98,6 +100,9 @@ const ALT: Record<string, string[]> = {
   "https://arbitrum-one-rpc.publicnode.com": ["https://arb1.arbitrum.io/rpc", "https://arbitrum.llamarpc.com"],
   "https://polygon-bor-rpc.publicnode.com": ["https://polygon-rpc.com"],
   "https://optimism-rpc.publicnode.com": ["https://mainnet.optimism.io"],
+  "https://bsc-rpc.publicnode.com": ["https://bsc-dataseed.binance.org", "https://1rpc.io/bnb"],
+  "https://unichain-rpc.publicnode.com": ["https://mainnet.unichain.org"],
+  "https://avalanche-c-chain-rpc.publicnode.com": ["https://api.avax.network/ext/bc/C/rpc"],
 };
 
 async function rpcChunk(url: string, chunk: { to: string; data: string }[]): Promise<(string | null)[]> {
@@ -128,9 +133,9 @@ export async function rpc(url: string, calls: { to: string; data: string }[]): P
 }
 
 /** Lê a liquidez do pool v3 e devolve a distribuição por faixa de preço, na orientação "tokenB por tokenA". */
-export async function loadDistribution(chain: string, pool: string, tokenA: string, fee: number): Promise<Distribution | null> {
+export async function loadDistribution(chain: string, pool: string, tokenA: string, fee: number, spacingOverride?: number): Promise<Distribution | null> {
   const url = RPC[chain];
-  const spacing = TICK_SPACING[fee];
+  const spacing = spacingOverride ?? TICK_SPACING[fee];
   if (!url || !spacing) return null;
   const [s0, liq, t0] = await rpc(url, [{ to: pool, data: S.slot0 }, { to: pool, data: S.liquidity }, { to: pool, data: S.token0 }]);
   if (!s0 || !liq || !t0) return null;
