@@ -67,3 +67,42 @@ export async function getTopPositions(chain: string, poolAddress: string): Promi
   if (r.data === undefined || (r.data === null && r.error)) throw new Error(r.error ?? "erro");
   return r.data;
 }
+
+/* ------------------------------ ranking geral (todas as pools grandes de uma rede) ------------------------------ */
+
+export interface BoardPosition extends TopPosition { chain: string; pool: string; pair: string; fee: number; poolTvlUsd: number }
+export interface Board { chain: string; positions: BoardPosition[]; pools: number; fetchedAt: number }
+
+const POS_FIELDS = "id owner liquidity tickLower{tickIdx} tickUpper{tickIdx} depositedToken0 depositedToken1 withdrawnToken0 withdrawnToken1 collectedFeesToken0 collectedFeesToken1 transaction{timestamp}";
+const POOLS_Q = `{ pools(first: 25, orderBy: totalValueLockedUSD, orderDirection: desc, where:{totalValueLockedUSD_gt:"200000"}) { id feeTier sqrtPrice tick totalValueLockedUSD token0{id symbol decimals} token1{id symbol decimals} } }`;
+const HEX = /^0x[0-9a-f]{40}$/;
+
+/** Ranking geral: as maiores posições das 25 maiores pools Uniswap v3 da rede (cache de 30 min). Cada pool vira uma consulta ao indexador. */
+export async function getBoard(chain: string): Promise<Board> {
+  const r = await cached<Board>(`board:${chain}`, 1800, async () => {
+    const { pools } = await graphQuery<{ pools: (RawPool & { totalValueLockedUSD: string })[] }>(chain, "v3", POOLS_Q);
+    const valid = pools.filter((p) => HEX.test(p.id));
+    if (!valid.length) return { chain, positions: [], pools: 0, fetchedAt: Math.floor(Date.now() / 1000) };
+    const body = valid.map((p, i) => `p${i}: positions(first: 30, orderBy: liquidity, orderDirection: desc, where:{pool:"${p.id}", liquidity_gt:"0"}) { ${POS_FIELDS} }`).join("\n");
+    const data = await graphQuery<Record<string, RawPos[]>>(chain, "v3", `{ ${body} }`);
+    const tokens = [...new Set(valid.flatMap((p) => [p.token0.id, p.token1.id]))];
+    const px: Record<string, number> = {};
+    for (let i = 0; i < tokens.length; i += 40) Object.assign(px, await usdPrices(chain, tokens.slice(i, i + 40)));
+    const now = Math.floor(Date.now() / 1000);
+    const positions = valid.flatMap((p, i) => {
+      const u0 = px[p.token0.id], u1 = px[p.token1.id];
+      if (!u0 || !u1) return [];
+      return rankPositions(p, data[`p${i}`] ?? [], u0, u1, now).map((x) => ({ ...x, chain, pool: p.id, pair: `${p.token0.symbol}/${p.token1.symbol}`, fee: Number(p.feeTier), poolTvlUsd: Number(p.totalValueLockedUSD) }));
+    });
+    return { chain, positions, pools: valid.length, fetchedAt: now };
+  });
+  if (!r.data) throw new Error(r.error ?? "erro ao consultar o indexador");
+  return r.data;
+}
+
+export interface BoardFilter { minValue: number; minAgeDays: number; onlyInRange: boolean; sort: "apr" | "roi" | "pnl" | "valor"; limit: number }
+const KEY: Record<BoardFilter["sort"], (p: TopPosition) => number> = { apr: (p) => p.apr ?? -1e9, roi: (p) => p.roi, pnl: (p) => p.pnlUsd, valor: (p) => p.valueUsd };
+/** Aplica filtros e ordena. APR de posições muito novas é anualizado de poucos dias e engana, por isso a idade mínima. */
+export function filterBoard(list: BoardPosition[], f: BoardFilter): BoardPosition[] {
+  return list.filter((p) => p.valueUsd >= f.minValue && p.ageDays >= f.minAgeDays && (!f.onlyInRange || p.inRange)).sort((a, b) => KEY[f.sort](b) - KEY[f.sort](a)).slice(0, f.limit);
+}
