@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { ADDRESS } from "@/lib/lppositions";
-import { graphChains, graphEnabled, graphEnvNames } from "@/lib/graph";
+import { graphChains, graphEnabled, envProbe } from "@/lib/graph";
 import { filterBoard, getBoard, getTopPositions, type BoardFilter, type BoardPosition, type TopPosition } from "@/lib/toppositions";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { pct, usd } from "@/lib/format";
@@ -35,7 +35,7 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
   const onlyIn = sp.faixa === "1";
   const sortKey = (["apr", "roi", "pnl", "valor"].includes(sp.ordem ?? "") ? sp.ordem : "apr") as BoardFilter["sort"];
   if (!pool) {
-    if (!graphEnabled()) error = `A chave do The Graph ainda não foi configurada no servidor.${user.role === "admin" ? ` (diagnóstico: variáveis com "graph" no nome = [${graphEnvNames().join(", ")}])` : ""}`;
+    if (!graphEnabled()) error = `A chave do The Graph ainda não foi configurada no servidor.${user.role === "admin" ? ` (diagnóstico: ${envProbe()})` : ""}`;
     else { try { const b = await getBoard(chain); boardPools = b.pools; board = filterBoard(b.positions, { minValue, minAgeDays: minAge, onlyInRange: onlyIn, sort: sortKey, limit: 100 }); } catch (e) { error = e instanceof Error ? e.message : "erro"; } }
   }
   const rows = data ? [...data.positions].sort((a, b) => SORTS[ordem][1](b) - SORTS[ordem][1](a)).slice(0, 50) : [];

@@ -24,6 +24,8 @@ export function graphKey(): string | null {
 /** Diagnóstico sem revelar valores: nomes (entre aspas) das variáveis que parecem ser a chave. */
 export const graphEnvNames = () => Object.keys(process.env).filter((n) => /graph/i.test(n)).map((n) => JSON.stringify(n));
 export const graphEnabled = () => !!graphKey();
+/** Diagnóstico só para admin: confirma se outras variáveis conhecidas chegam ao servidor (sem valores). */
+export const envProbe = () => `GRAPH=[${graphEnvNames().join(", ")}] total=${Object.keys(process.env).length} RPC_ARBITRUM=${process.env.RPC_ARBITRUM ? "sim" : "não"} APP_NAME=${process.env.APP_NAME ? "sim" : "não"} RAILWAY_SERVICE_NAME=${process.env.RAILWAY_SERVICE_NAME ?? "—"} RAILWAY_DEPLOYMENT_ID=${(process.env.RAILWAY_DEPLOYMENT_ID ?? "—").slice(0, 8)}`;
 
 export async function graphQuery<T>(chain: string, v: GraphVersion, query: string, variables: Record<string, unknown> = {}): Promise<T> {
   const key = graphKey(), id = subgraphId(chain, v);
