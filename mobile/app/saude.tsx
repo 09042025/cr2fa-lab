@@ -7,7 +7,7 @@ import { useApi } from "../src/useApi";
 import { Card, GoldButton, H2, Muted, ProGate, Screen, Status } from "../src/ui";
 
 interface P {
-  chain: string; tokenId: string; pair: string; symbol0: string; symbol1: string; fee: number;
+  protocol: string; protocolLabel: string; chain: string; tokenId: string; pair: string; symbol0: string; symbol1: string; fee: number;
   price: number; priceLower: number; priceUpper: number; health: "ok" | "attention" | "out"; pos: number;
   amount0: number; amount1: number; valueUsd: number | null; fees0: number; fees1: number; feesUsd: number | null;
   poolTvlUsd: number | null; poolApr: number | null; estDayUsd: number | null; estApr: number | null; link: string;
@@ -32,21 +32,21 @@ function Result({ address }: { address: string }) {
         <Text style={{ color: C.up }}>Taxas a coletar: {usd(fees)}</Text>
       </Card>
       {failed.length > 0 && <Muted>Algumas redes não responderam agora: {failed.join(", ")}. Tente de novo.</Muted>}
-      {all.length === 0 && <Muted>Nenhuma posição aberta na Uniswap v3 (Ethereum, Base, Arbitrum, Polygon, Optimism) para este endereço.</Muted>}
+      {all.length === 0 && <Muted>Nenhuma posição aberta encontrada (Uniswap v3, PancakeSwap v3 e Aerodrome). Posições na Uniswap v4, Ekubo ou em staking ainda não são lidas.</Muted>}
       {all.map((p, i) => {
         const [label, color] = HEALTH[p.health];
         return (
-          <View key={`${p.chain}-${p.tokenId}`} style={{ gap: 10 }}>
+          <View key={`${p.protocol}-${p.chain}-${p.tokenId}`} style={{ gap: 10 }}>
             {i >= 8 && (
               <>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
                   <Text style={{ color: C.white, fontWeight: "800", fontSize: 17 }}>{p.pair} · {p.fee / 10000}%</Text>
                   <Text style={{ color, fontWeight: "700", fontSize: 12 }}>{label}</Text>
                 </View>
-                <Muted>Uniswap v3 · {p.chain} · #{p.tokenId}</Muted>
+                <Muted>{p.protocolLabel} · {p.chain} · #{p.tokenId}</Muted>
               </>
             )}
-            {i < 8 ? <LpDetailBody address={address} rede={p.chain} id={p.tokenId} /> : (
+            {i < 8 ? <LpDetailBody address={address} rede={p.chain} id={p.tokenId} proto={p.protocol} /> : (
               <Card style={{ gap: 6 }}>
                 <Text style={{ color: C.white }}>Valor: <Text style={{ fontWeight: "700" }}>{p.valueUsd === null ? "—" : usd(p.valueUsd)}</Text> · Taxas a coletar: <Text style={{ color: C.up, fontWeight: "700" }}>{p.feesUsd === null ? "—" : usd(p.feesUsd)}</Text></Text>
                 <Muted>Faixa {sig(p.priceLower)} a {sig(p.priceUpper)} · atual {sig(p.price)}</Muted>

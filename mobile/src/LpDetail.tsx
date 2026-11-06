@@ -11,7 +11,7 @@ try { WebViewC = require("react-native-webview").WebView; } catch { WebViewC = n
 
 interface D {
   position: {
-    pair: string; symbol0: string; symbol1: string; fee: number; chain: string; tokenId: string; price: number; priceLower: number; priceUpper: number;
+    protocolLabel: string; pair: string; symbol0: string; symbol1: string; fee: number; chain: string; tokenId: string; price: number; priceLower: number; priceUpper: number;
     health: "ok" | "attention" | "out"; pos: number; amount0: number; amount1: number; valueUsd: number | null; fees0: number; fees1: number; feesUsd: number | null;
     poolTvlUsd: number | null; poolApr: number | null; estDayUsd: number | null; estApr: number | null; link: string;
   };
@@ -84,8 +84,8 @@ function Charts({ d }: { d: D }) {
   );
 }
 
-export function LpDetailBody({ address, rede, id }: { address: string; rede: string; id: string }) {
-  const { data, error, loading, reload } = useApi<D>(`/api/mobile/lp/posicao?address=${address}&rede=${rede}&id=${id}`);
+export function LpDetailBody({ address, rede, id, proto = "uniswap-v3" }: { address: string; rede: string; id: string; proto?: string }) {
+  const { data, error, loading, reload } = useApi<D>(`/api/mobile/lp/posicao?address=${address}&rede=${rede}&id=${id}&proto=${proto}`);
   return (
     <>
       {!data ? <Status loading={loading} error={error} onRetry={reload} /> : (() => {
@@ -95,7 +95,7 @@ export function LpDetailBody({ address, rede, id }: { address: string; rede: str
               <Card style={{ gap: 4 }}>
                 <Text style={{ color: C.white, fontWeight: "800", fontSize: 17 }}>{p.pair} · {p.fee / 10000}%</Text>
                 <Text style={{ color: hc, fontWeight: "700" }}>{hl}</Text>
-                <Muted>Uniswap v3 · {p.chain} · #{p.tokenId}</Muted>
+                <Muted>{p.protocolLabel} · {p.chain} · #{p.tokenId}</Muted>
                 <Text style={{ color: C.white, fontSize: 24, fontWeight: "800" }}>{p.valueUsd === null ? "—" : usd(p.valueUsd)}</Text>
                 {f && <Text style={{ color: col(f.pnlUsd), fontWeight: "700" }}>PnL {sg(f.pnlUsd)} · ROI {rate(f.roi * 100)} · APR {rate(f.apr * 100)}</Text>}
                 <Text style={{ color: C.up }}>Taxas a coletar: {p.feesUsd === null ? "—" : usd(p.feesUsd)}</Text>
@@ -143,7 +143,7 @@ export function LpDetailBody({ address, rede, id }: { address: string; rede: str
                 <Row k="APR do pool" v={p.poolApr === null ? "—" : rate(p.poolApr)} />
                 <Row k="Ganho estimado/dia" v={p.estDayUsd === null ? "—" : usd(p.estDayUsd)} sub={p.estApr === null ? undefined : `APR estimado ${rate(p.estApr)}`} />
               </Card>
-              <Pressable onPress={() => Linking.openURL(p.link)}><Text style={{ color: C.gold, fontWeight: "700" }}>Ver na Uniswap (só visualização) ↗</Text></Pressable>
+              <Pressable onPress={() => Linking.openURL(p.link)}><Text style={{ color: C.gold, fontWeight: "700" }}>Ver no {p.protocolLabel.split(" ")[0]} (só visualização) ↗</Text></Pressable>
             </>
           );
         })()}

@@ -20,7 +20,7 @@ export default async function SaudePage({ searchParams }: { searchParams: Promis
   const details: Record<string, LpDetail> = {};
   if (data) {
     const top = data.chains.flatMap((c) => c.positions).slice(0, 8);
-    (await Promise.all(top.map((p) => getLpDetail(raw, p.chain, p.tokenId).catch(() => null)))).forEach((d) => { if (d) details[`${d.position.chain}-${d.position.tokenId}`] = d; });
+    (await Promise.all(top.map((p) => getLpDetail(raw, p.chain, p.tokenId, p.protocol).catch(() => null)))).forEach((d) => { if (d) details[`${d.position.protocol}-${d.position.chain}-${d.position.tokenId}`] = d; });
   }
   return (
     <>
@@ -35,10 +35,10 @@ export default async function SaudePage({ searchParams }: { searchParams: Promis
           <button className="btn btn-gold" type="submit">Consultar</button>
         </form>
         {raw && !valid && <p className="mt-2 text-sm text-down">Endereço inválido. Cole o endereço completo (começa com 0x e tem 42 caracteres).</p>}
-        <p className="mt-3 text-xs text-muted">Somente visualização: não conectamos a carteira, não pedimos assinatura e não existe swap, aprovação ou ajuste de pool aqui. Para sua segurança, desconfie de qualquer site que peça para conectar a carteira e assinar algo para “ver” posições. Cobertura: posições Uniswap v3 em Ethereum, Base, Arbitrum, Polygon e Optimism.</p>
+        <p className="mt-3 text-xs text-muted">Somente visualização: não conectamos a carteira, não pedimos assinatura e não existe swap, aprovação ou ajuste de pool aqui. Para sua segurança, desconfie de qualquer site que peça para conectar a carteira e assinar algo para “ver” posições. Cobertura: Uniswap v3 (Ethereum, Arbitrum, Optimism, Polygon, Base, BNB, Unichain, Avalanche), PancakeSwap v3 (Ethereum, BNB, Arbitrum, Base) e Aerodrome Slipstream (Base).</p>
       </section>
       {data && <LpHealth data={data} details={details} />}
-      <p className="mt-4 text-xs text-muted">Taxas a coletar são calculadas direto do contrato da Uniswap. O rendimento estimado usa o volume de 24h e a liquidez ativa do pool e muda todo dia. PnL, ROI e perda de divergência dependem do histórico de depósitos e saques e entram na próxima etapa.</p>
+      <p className="mt-4 text-xs text-muted">Taxas a coletar são calculadas direto do contrato do protocolo. O rendimento estimado usa o volume de 24h e a liquidez ativa do pool e muda todo dia. PnL, ROI e perda de divergência dependem do histórico de depósitos e saques e entram na próxima etapa.</p>
       <Disclaimer />
     </>
   );
