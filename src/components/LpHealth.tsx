@@ -1,4 +1,5 @@
-import type { LpResult } from "@/lib/lppositions";
+import type { LpPosition, LpResult } from "@/lib/lppositions";
+import { HideableCard, RestoreHidden } from "./LpHide";
 import type { LpDetail } from "@/lib/lpdetail";
 import { LpPositionDetail } from "./LpPositionDetail";
 import { pct, usd, usdCompact } from "@/lib/format";
@@ -7,7 +8,7 @@ const sig = (v: number) => v.toLocaleString("pt-BR", { maximumSignificantDigits:
 const LABEL = { ok: ["Saudável", "text-up border-up/50"], attention: ["Atenção: perto da borda", "text-gold-soft border-gold/50"], out: ["Fora da faixa: sem taxas", "text-down border-down/50"] } as const;
 
 /** Lista de posições de uma carteira (somente leitura). Sem botões de transação. */
-export function LpHealth({ data, details = {} }: { data: LpResult; details?: Record<string, LpDetail> }) {
+export function LpHealth({ data, details = {}, hidden = [] }: { data: LpResult; details?: Record<string, LpDetail>; hidden?: LpPosition[] }) {
   const all = data.chains.flatMap((c) => c.positions);
   const total = all.reduce((a, p) => a + (p.valueUsd ?? 0), 0);
   const fees = all.reduce((a, p) => a + (p.feesUsd ?? 0), 0);
@@ -25,17 +26,18 @@ export function LpHealth({ data, details = {} }: { data: LpResult; details?: Rec
       {all.map((p) => {
         const [label, cls] = LABEL[p.health];
         const full = details[`${p.protocol}-${p.chain}-${p.tokenId}`];
+        const hid = `${p.protocol}-${p.chain}-${p.tokenId}`;
         if (full) return (
-          <article key={`${p.protocol}-${p.chain}-${p.tokenId}`} className="card p-4">
+          <HideableCard key={hid} id={hid}><article className="card p-4">
             <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
               <div><h3 className="text-lg font-semibold">{p.pair} <span className="ml-1 rounded border border-line px-1 text-xs text-muted">{p.fee / 10000}%</span></h3><p className="text-xs text-muted">{p.protocolLabel} · {p.chain} · #{p.tokenId} · <a className="text-gold-soft hover:underline" href={p.link} target="_blank" rel="noopener noreferrer nofollow">ver no {p.protocolLabel.split(" ")[0]} ↗</a></p></div>
               <span className={`rounded border px-2 py-0.5 text-xs font-semibold ${cls}`}>{label}</span>
             </div>
             <LpPositionDetail d={full} />
-          </article>
+          </article></HideableCard>
         );
         return (
-          <article key={`${p.protocol}-${p.chain}-${p.tokenId}`} className="card p-4">
+          <HideableCard key={hid} id={hid}><article className="card p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h3 className="font-semibold">{p.pair} <span className="ml-1 rounded border border-line px-1 text-xs text-muted">{p.fee / 10000}%</span></h3>
@@ -57,9 +59,18 @@ export function LpHealth({ data, details = {} }: { data: LpResult; details?: Rec
               <div><dt className="text-xs text-muted">Pool</dt><dd className="font-semibold">{p.poolTvlUsd === null ? "—" : usdCompact(p.poolTvlUsd)}</dd><dd className="text-xs text-muted">APR do pool {p.poolApr === null ? "—" : pct(p.poolApr)}</dd></div>
             </dl>
             <p className="mt-3 flex flex-wrap gap-4 text-xs"><a className="font-semibold text-gold-soft hover:underline" href={`/painel/cripto/defi/saude/posicao?carteira=${data.address}&rede=${p.chain}&id=${p.tokenId}&proto=${p.protocol}`}>Análise completa: PnL, ROI, gráficos →</a><a className="text-gold-soft hover:underline" href={p.link} target="_blank" rel="noopener noreferrer nofollow">Ver esta posição no {p.protocolLabel.split(" ")[0]} (só visualização) ↗</a></p>
-          </article>
+          </article></HideableCard>
         );
       })}
+      <div className="flex flex-wrap items-center gap-4"><RestoreHidden /></div>
+      {hidden.length > 0 && (
+        <details className="card p-3 text-sm">
+          <summary className="cursor-pointer text-muted">{hidden.length} posição(ões) ocultada(s): valor menor que US$ 2 ou token sem preço (comum em tokens falsos de phishing)</summary>
+          <ul className="mt-2 space-y-1 text-xs text-muted">
+            {hidden.map((p) => <li key={`${p.protocol}-${p.chain}-${p.tokenId}`}>{p.pair} · {p.protocolLabel} · {p.chain} · #{p.tokenId} · {p.valueUsd === null ? "sem preço" : usd(p.valueUsd)}</li>)}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

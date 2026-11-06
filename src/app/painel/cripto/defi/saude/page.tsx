@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { ADDRESS, getLpPositions } from "@/lib/lppositions";
+import { ADDRESS, getLpPositions, splitSpam } from "@/lib/lppositions";
 import { LpHealth } from "@/components/LpHealth";
 import { getLpDetail, type LpDetail } from "@/lib/lpdetail";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
@@ -16,7 +16,8 @@ export default async function SaudePage({ searchParams }: { searchParams: Promis
   }
   const raw = (sp.carteira ?? "").trim();
   const valid = ADDRESS.test(raw);
-  const data = valid ? await getLpPositions(raw) : null;
+  const split = valid ? splitSpam(await getLpPositions(raw)) : null;
+  const data = split?.shown ?? null;
   const details: Record<string, LpDetail> = {};
   if (data) {
     const top = data.chains.flatMap((c) => c.positions).slice(0, 8);
@@ -37,7 +38,7 @@ export default async function SaudePage({ searchParams }: { searchParams: Promis
         {raw && !valid && <p className="mt-2 text-sm text-down">Endereço inválido. Cole o endereço completo (começa com 0x e tem 42 caracteres).</p>}
         <p className="mt-3 text-xs text-muted">Somente visualização: não conectamos a carteira, não pedimos assinatura e não existe swap, aprovação ou ajuste de pool aqui. Para sua segurança, desconfie de qualquer site que peça para conectar a carteira e assinar algo para “ver” posições. Cobertura: Uniswap v3 (Ethereum, Arbitrum, Optimism, Polygon, Base, BNB, Unichain, Avalanche), PancakeSwap v3 (Ethereum, BNB, Arbitrum, Base) e Aerodrome Slipstream (Base).</p>
       </section>
-      {data && <LpHealth data={data} details={details} />}
+      {data && <LpHealth data={data} details={details} hidden={split?.hidden ?? []} />}
       <p className="mt-4 text-xs text-muted">Taxas a coletar são calculadas direto do contrato do protocolo. O rendimento estimado usa o volume de 24h e a liquidez ativa do pool e muda todo dia. PnL, ROI e perda de divergência dependem do histórico de depósitos e saques e entram na próxima etapa.</p>
       <Disclaimer />
     </>

@@ -1,4 +1,6 @@
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+import { Pressable } from "react-native";
 import { Text, TextInput, View } from "react-native";
 import { LpDetailBody } from "../src/LpDetail";
 import { usd } from "../src/format";
@@ -12,15 +14,19 @@ interface P {
   amount0: number; amount1: number; valueUsd: number | null; fees0: number; fees1: number; feesUsd: number | null;
   poolTvlUsd: number | null; poolApr: number | null; estDayUsd: number | null; estApr: number | null; link: string;
 }
-interface R { address: string; chains: { chain: string; positions: P[]; error?: string }[] }
+interface R { address: string; chains: { chain: string; positions: P[]; error?: string }[]; hidden?: { pair: string; chain: string; valueUsd: number | null }[] }
+const KEY = "lp-hidden";
 const sig = (v: number) => v.toLocaleString("pt-BR", { maximumSignificantDigits: 5 });
 const HEALTH = { ok: ["Saudável", C.up], attention: ["Atenção: perto da borda", C.gold], out: ["Fora da faixa: sem taxas", C.down] } as const;
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 
 function Result({ address }: { address: string }) {
   const { data, error, loading, reload } = useApi<R>(`/api/mobile/lp?address=${address}`);
+  const [manual, setManual] = useState<string[]>([]);
+  useEffect(() => { SecureStore.getItemAsync(KEY).then((v) => { if (v) setManual(JSON.parse(v) as string[]); }).catch(() => undefined); }, []);
+  const save = (v: string[]) => { setManual(v); SecureStore.setItemAsync(KEY, JSON.stringify(v)).catch(() => undefined); };
   if (!data) return <Status loading={loading} error={error} onRetry={reload} />;
-  const all = data.chains.flatMap((c) => c.positions);
+  const all = data.chains.flatMap((c) => c.positions).filter((p) => !manual.includes(`${p.protocol}-${p.chain}-${p.tokenId}`));
   const total = all.reduce((a, p) => a + (p.valueUsd ?? 0), 0);
   const fees = all.reduce((a, p) => a + (p.feesUsd ?? 0), 0);
   const failed = data.chains.filter((c) => c.error).map((c) => c.chain);
@@ -32,11 +38,14 @@ function Result({ address }: { address: string }) {
         <Text style={{ color: C.up }}>Taxas a coletar: {usd(fees)}</Text>
       </Card>
       {failed.length > 0 && <Muted>Algumas redes não responderam agora: {failed.join(", ")}. Tente de novo.</Muted>}
+      {(data.hidden?.length ?? 0) > 0 && <Muted>{data.hidden!.length} posição(ões) ocultada(s): valor menor que US$ 2 ou token sem preço (comum em tokens falsos).</Muted>}
+      {manual.length > 0 && <Pressable onPress={() => save([])}><Text style={{ color: C.gold, fontWeight: "700" }}>Mostrar {manual.length} que você ocultou</Text></Pressable>}
       {all.length === 0 && <Muted>Nenhuma posição aberta encontrada (Uniswap v3, PancakeSwap v3 e Aerodrome). Posições na Uniswap v4, Ekubo ou em staking ainda não são lidas.</Muted>}
       {all.map((p, i) => {
         const [label, color] = HEALTH[p.health];
         return (
           <View key={`${p.protocol}-${p.chain}-${p.tokenId}`} style={{ gap: 10 }}>
+            <Pressable onPress={() => save([...manual, `${p.protocol}-${p.chain}-${p.tokenId}`])} style={{ alignSelf: "flex-end" }}><Text style={{ color: C.muted, fontSize: 12 }}>Ocultar esta posição ✕</Text></Pressable>
             {i >= 8 && (
               <>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>

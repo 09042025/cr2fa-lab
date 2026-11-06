@@ -202,3 +202,13 @@ export async function getLpPositions(address: string): Promise<LpResult> {
   }));
   return { address, chains, fetchedAt: Math.floor(Date.now() / 1000) };
 }
+
+/** Posições abaixo deste valor (ou com token sem preço) são tratadas como lixo/phishing e ficam ocultas por padrão. */
+export const MIN_VALUE_USD = 2;
+export const isRelevant = (p: LpPosition) => (p.valueUsd ?? 0) >= MIN_VALUE_USD;
+
+/** Separa as posições relevantes das ocultas (valor menor que US$ 2 ou token sem preço, típico de token falso). */
+export function splitSpam(res: LpResult): { shown: LpResult; hidden: LpPosition[] } {
+  const hidden = res.chains.flatMap((c) => c.positions.filter((p) => !isRelevant(p)));
+  return { shown: { ...res, chains: res.chains.map((c) => ({ ...c, positions: c.positions.filter(isRelevant) })) }, hidden };
+}
