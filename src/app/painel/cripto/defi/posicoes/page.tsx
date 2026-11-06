@@ -4,6 +4,7 @@ import { ADDRESS } from "@/lib/lppositions";
 import { graphChains, graphEnabled, envProbe } from "@/lib/graph";
 import { filterBoard, getBoard, getTopPositions, type BoardFilter, type BoardPosition, type TopPosition } from "@/lib/toppositions";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
+import { GraphKeyForm } from "@/components/GraphKeyForm";
 import { pct, usd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +61,7 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
           </form>
           <p className="mt-3 text-xs text-muted">Ranking das maiores posições das 25 maiores pools Uniswap v3 de cada rede, atualizado a cada 30 minutos. Toque em “Analisar” para ver a posição inteira: faixa, taxas, PnL, gráficos e o histórico da carteira. Redes disponíveis agora: {chains.join(", ")}.</p>
           {error && <p className="mt-2 text-sm text-down">{error}</p>}
+          {user.role === "admin" && !graphEnabled() && <GraphKeyForm />}
         </section>
       )}
       {!pool && !error && (
