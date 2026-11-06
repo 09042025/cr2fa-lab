@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Linking, Pressable, Text, TextInput, View } from "react-native";
 import { RangeChart } from "../src/RangeChart";
@@ -151,6 +151,7 @@ function Sim({ d }: { d: D }) {
 }
 
 function Detail() {
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: d, error, loading, reload } = useApi<D>(`/api/mobile/defi/pool?id=${encodeURIComponent(String(id ?? ""))}`);
   return (
@@ -158,6 +159,9 @@ function Detail() {
       <Status loading={loading && !d} error={error} onRetry={reload} />
       {d && (
         <>
+          {d.project === "uniswap-v3" && d.link.kind === "direct" && d.chart && (
+            <GoldButton ghost label="Melhores posições deste pool →" onPress={() => router.push({ pathname: "/pools-position", params: { rede: d.chain, pool: d.chart!.page.split("/").pop() ?? "" } })} />
+          )}
           <Text style={{ color: C.muted }}>{d.project} · {d.chain}{d.stablecoin ? " · stable" : ""}{d.rwa ? " · RWA" : ""}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <Stat l="TVL" v={usdCompact(d.tvlUsd)} />

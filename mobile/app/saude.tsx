@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Pressable } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { Text, TextInput, View } from "react-native";
 import { LpDetailBody } from "../src/LpDetail";
 import { usd } from "../src/format";
@@ -69,8 +70,9 @@ function Result({ address }: { address: string }) {
 }
 
 export default function Saude() {
-  const [text, setText] = useState("");
-  const [addr, setAddr] = useState("");
+  const params = useLocalSearchParams<{ carteira?: string }>();
+  const [text, setText] = useState(params.carteira ?? "");
+  const [addr, setAddr] = useState(params.carteira && ADDRESS.test(params.carteira) ? params.carteira : "");
   const bad = text.trim() !== "" && !ADDRESS.test(text.trim());
   return (
     <Screen title="Saúde das pools" subtitle="Siga o dinheiro na blockchain. Somente visualização.">
