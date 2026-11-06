@@ -46,7 +46,7 @@ export function LpPositionDetail({ d }: { d: LpDetail }) {
           <LpCharts series={d.series} chart={d.chart} history={d.history.map((h) => ({ t: h.t, apy: h.apy, tvl: h.tvl }))} />
           <section className="card p-4">
             <h3 className="mb-2 font-semibold text-gold-soft">Distribuição de liquidez</h3>
-            {dist ? <LiquidityView bins={dist.bins} center={dist.center} lo={dist.lo} hi={dist.hi} price={dist.center} min={p.priceLower} max={p.priceUpper} fmt={sig} /> : <p className="text-sm text-muted">Distribuição indisponível para este pool agora.</p>}
+            {dist ? <LiquidityView bins={dist.bins} center={dist.center} lo={dist.lo} hi={dist.hi} price={dist.center} min={p.priceLower} max={p.priceUpper} fmt={sig} /> : <p className="text-sm text-muted">Distribuição indisponível para este pool agora.{d.distError ? ` (detalhe técnico: ${d.distError})` : ""}</p>}
           </section>
         </div>
         <div className="space-y-4">

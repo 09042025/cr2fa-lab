@@ -91,16 +91,38 @@ export function binProfile(profile: { from: number; to: number; l: number }[], c
   return { center, lo, hi, bins: raw.map((v) => (max > 0 ? v / max : 0)) };
 }
 
+/** Nós alternativos para leitura (eth_call) quando o principal recusa ou falha. */
+const ALT: Record<string, string[]> = {
+  "https://ethereum-rpc.publicnode.com": ["https://eth.llamarpc.com"],
+  "https://base-rpc.publicnode.com": ["https://mainnet.base.org"],
+  "https://arbitrum-one-rpc.publicnode.com": ["https://arb1.arbitrum.io/rpc", "https://arbitrum.llamarpc.com"],
+  "https://polygon-bor-rpc.publicnode.com": ["https://polygon-rpc.com"],
+  "https://optimism-rpc.publicnode.com": ["https://mainnet.optimism.io"],
+};
+
+async function rpcChunk(url: string, chunk: { to: string; data: string }[]): Promise<(string | null)[]> {
+  const body = chunk.map((c, j) => ({ jsonrpc: "2.0", id: j, method: "eth_call", params: [{ to: c.to, data: "0x" + c.data }, "latest"] }));
+  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`RPC ${res.status}`);
+  const arr = (await res.json()) as { id: number; result?: string; error?: { message?: string } }[] | { error?: { message?: string } };
+  if (!Array.isArray(arr)) throw new Error(arr.error?.message ?? "RPC resposta inválida");
+  const byId = new Map(arr.map((r) => [r.id, r.result ?? null]));
+  const out = chunk.map((_, j) => byId.get(j) ?? null);
+  if (chunk.length > 1 && out.every((x) => x === null)) throw new Error(arr.find((r) => r.error)?.error?.message ?? "RPC sem resultado");
+  return out;
+}
+
 export async function rpc(url: string, calls: { to: string; data: string }[]): Promise<(string | null)[]> {
+  const urls = [url, ...(ALT[url] ?? [])];
   const out: (string | null)[] = [];
-  for (let i = 0; i < calls.length; i += 80) {
-    const chunk = calls.slice(i, i + 80);
-    const body = chunk.map((c, j) => ({ jsonrpc: "2.0", id: j, method: "eth_call", params: [{ to: c.to, data: "0x" + c.data }, "latest"] }));
-    const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(12000) });
-    if (!res.ok) throw new Error(`RPC ${res.status}`);
-    const arr = (await res.json()) as { id: number; result?: string }[];
-    const byId = new Map(arr.map((r) => [r.id, r.result ?? null]));
-    chunk.forEach((_, j) => out.push(byId.get(j) ?? null));
+  for (let i = 0; i < calls.length; i += 40) {
+    const chunk = calls.slice(i, i + 40);
+    let err: unknown = null, got: (string | null)[] | null = null;
+    for (const u of urls) {
+      try { got = await rpcChunk(u, chunk); break; } catch (e) { err = e; }
+    }
+    if (!got) throw err instanceof Error ? err : new Error("RPC indisponível");
+    out.push(...got);
   }
   return out;
 }
