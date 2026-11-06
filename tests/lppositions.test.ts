@@ -67,3 +67,12 @@ test("série de valor: sem divergência quando o preço não muda", () => {
   assert.equal(s.length, 2);
   assert.ok(s[0].value > 0 && Math.abs(s[0].value - s[1].value) < 1e-9);
 });
+
+import { splitSpam, type LpPosition, type LpResult } from "../src/lib/lppositions";
+test("posições de lixo (abaixo de US$ 2 ou sem preço) ficam ocultas", () => {
+  const mk = (valueUsd: number | null) => ({ valueUsd } as LpPosition);
+  const res: LpResult = { address: "0x", fetchedAt: 0, chains: [{ chain: "Unichain", positions: [mk(null), mk(1.5), mk(2), mk(900)] }] };
+  const { shown, hidden } = splitSpam(res);
+  assert.equal(shown.chains[0].positions.length, 2);
+  assert.equal(hidden.length, 2);
+});
