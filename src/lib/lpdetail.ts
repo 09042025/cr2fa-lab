@@ -6,7 +6,7 @@ import { dailyPrices, loadEvents, summarize, valueSeries, type Perf, type Series
 
 export interface LpDetail {
   position: LpPosition; perf: Perf | null; series: SeriesPoint[]; dist: Distribution | null; history: HistPoint[];
-  chart: { embed: string; page: string } | null; eventsOk: boolean; eventsError: string | null;
+  chart: { embed: string; page: string } | null; eventsOk: boolean; eventsError: string | null; distError: string | null;
 }
 
 /** Tudo de uma posição: desempenho, séries, distribuição de liquidez e histórico do pool. Somente leitura. */
@@ -15,13 +15,13 @@ export async function getLpDetail(address: string, chain: string, tokenId: strin
   const position = res.chains.find((c) => c.chain === chain)?.positions.find((p) => p.tokenId === tokenId);
   if (!position) return null;
   const p = position;
-  const [evRes, dist, history] = await Promise.all([
+  const [evRes, distRes, history] = await Promise.all([
     cached(`lpev2:${chain}:${tokenId}`, 600, () => loadEvents(chain, tokenId, p.dec0, p.dec1)),
     // falha não pode ficar guardada: lança erro em vez de devolver null
-    cached(`lpdist2:${chain}:${p.pool}`, 300, async () => { const x = await loadDistribution(chain, p.pool, p.token0, p.fee); if (!x) throw new Error("sem distribuição"); return x; }).then((r) => r.data ?? null),
+    cached(`lpdist3:${chain}:${p.pool}`, 300, async () => { const x = await loadDistribution(chain, p.pool, p.token0, p.fee); if (!x) throw new Error("o nó não devolveu dados de liquidez deste pool"); return x; }),
     p.llamaId ? getPoolHistory(p.llamaId).catch(() => []) : Promise.resolve([] as HistPoint[]),
   ]);
-  const events = evRes.data;
+  const events = evRes.data, dist = distRes.data;
   let perf: Perf | null = null, series: SeriesPoint[] = [];
   if (events && p.usd0 && p.usd1) {
     perf = summarize(events, { t: Math.floor(Date.now() / 1000), amount0: p.amount0, amount1: p.amount1, fees0: p.fees0, fees1: p.fees1, u0: p.usd0, u1: p.usd1 });
@@ -34,5 +34,5 @@ export async function getLpDetail(address: string, chain: string, tokenId: strin
   }
   const ds = DEXS_CHAIN[chain];
   const chart = ds ? { embed: `https://dexscreener.com/${ds}/${p.pool}?embed=1&theme=dark&trades=0&info=0&loadChartSettings=0`, page: `https://dexscreener.com/${ds}/${p.pool}` } : null;
-  return { position, perf, series, dist, history, chart, eventsOk: events !== null, eventsError: events === null ? (evRes.error ?? null) : null };
+  return { position, perf, series, dist, history, chart, eventsOk: events !== null, eventsError: events === null ? (evRes.error ?? null) : null, distError: dist === null ? (distRes.error ?? null) : null };
 }
