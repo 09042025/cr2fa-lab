@@ -37,6 +37,9 @@ export default async function PoolPage({ searchParams }: { searchParams: Promise
         <Stat l="Média 30 dias" v={pct(d.apyMean30d)} />
         <Stat l="Taxa do pool" v={d.feeRate === null ? "—" : `${(d.feeRate * 100).toLocaleString("pt-BR", { maximumFractionDigits: 3 })}%${d.feeFromDex ? "" : " (est.)"}`} />
       </div>
+      {d.project === "uniswap-v3" && d.link.kind === "direct" && d.chart && (
+        <p className="mb-3 text-sm"><Link href={`/painel/cripto/defi/posicoes?rede=${d.chain}&pool=${d.chart.address}`} className="font-semibold text-gold-soft hover:underline">Melhores posições deste pool (Pools Position) →</Link></p>
+      )}
       <p className="mb-4 text-xs text-muted">APR, TVL e volume vêm do DefiLlama (média do período) e podem diferir um pouco dos números que a própria DEX mostra, que usa só as taxas das últimas 24h. Recompensas em 0,00% = o pool não paga incentivos extras em token, só as taxas de negociação.</p>
       <PoolCharts chart={d.chart} history={d.history} />
       <PoolSimulator dist={d.dist} symA={symA} symB={symB} price={d.price} usdA={d.usdA} usdB={d.usdB} fees24h={d.fees24h} poolValueUsd={d.poolValueUsd} poolValueFromChain={d.poolValueFromChain} stable={d.stablecoin} priceNote={d.priceNote} dexName={d.link.kind === "llama" ? "DefiLlama" : d.link.name} dexUrl={d.link.url} />

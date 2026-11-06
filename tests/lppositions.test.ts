@@ -76,3 +76,13 @@ test("posições de lixo (abaixo de US$ 2 ou sem preço) ficam ocultas", () => {
   assert.equal(shown.chains[0].positions.length, 2);
   assert.equal(hidden.length, 2);
 });
+
+import { rankPositions } from "../src/lib/toppositions";
+test("Pools Position: PnL, ROI e filtro de valor mínimo", () => {
+  const pool = { id: "p", feeTier: "3000", sqrtPrice: String(Math.sqrt(1) * 2 ** 96), tick: "0", token0: { id: "a", symbol: "A", decimals: "18" }, token1: { id: "b", symbol: "B", decimals: "18" } };
+  const mk = (id: string, L: string, dep: string) => ({ id, owner: "0xabc", liquidity: L, tickLower: { tickIdx: "-1000" }, tickUpper: { tickIdx: "1000" }, depositedToken0: dep, depositedToken1: dep, withdrawnToken0: "0", withdrawnToken1: "0", collectedFeesToken0: "1", collectedFeesToken1: "1", transaction: { timestamp: String(1000) } });
+  const out = rankPositions(pool, [mk("1", "1" + "0".repeat(21), "10"), mk("2", "1000", "10")], 100, 100, 1000 + 100 * 86400);
+  assert.equal(out.length, 1); // a posição de liquidez minúscula vale menos de US$ 2 e some
+  assert.ok(out[0].inRange && out[0].ageDays === 100);
+  assert.ok(Math.abs(out[0].pnlUsd - (out[0].valueUsd + 200 - 2000)) < 1e-6);
+});
