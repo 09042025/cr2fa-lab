@@ -95,3 +95,9 @@ test("ranking geral: filtros e ordenação", () => {
   assert.deepEqual(filterBoard(list, f).map((p) => p.tokenId), ["a", "d"]);
   assert.deepEqual(filterBoard(list, { ...f, onlyInRange: true }).map((p) => p.tokenId), ["a"]);
 });
+
+test("Pools Position: descarta taxas absurdas do indexador", () => {
+  const pool = { id: "p", feeTier: "3000", sqrtPrice: String(2 ** 96), tick: "0", token0: { id: "a", symbol: "A", decimals: "18" }, token1: { id: "b", symbol: "B", decimals: "18" } };
+  const bad = { id: "9", owner: "0xabc", liquidity: "1" + "0".repeat(21), tickLower: { tickIdx: "-1000" }, tickUpper: { tickIdx: "1000" }, depositedToken0: "10", depositedToken1: "10", withdrawnToken0: "0", withdrawnToken1: "0", collectedFeesToken0: "1" + "0".repeat(15), collectedFeesToken1: "1", transaction: { timestamp: "1000" } };
+  assert.equal(rankPositions(pool, [bad], 100, 100, 1000 + 100 * 86400).length, 0);
+});

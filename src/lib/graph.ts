@@ -8,7 +8,7 @@ export type GraphVersion = "v3" | "v4";
 /** IDs oficiais dos subgraphs da Uniswap. Outras redes entram aqui (ou por variável de ambiente GRAPH_ID_<REDE>_<VERSÃO>) quando confirmadas. */
 const IDS: Record<string, Partial<Record<GraphVersion, string>>> = {
   Ethereum: { v3: "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV", v4: "DiYPVdygkfjDWhbxGSqAQxwBKmfKnkWQojqeM2rkLb3G" },
-  Arbitrum: { v3: "FQ6JYszEKApsBpAmiHesRsd9Ygc6mzmpNRANeVQFYoVX" },
+  // Arbitrum: o subgraph FQ6JYsz… tem outro esquema (sem o campo "pools"). Entra por GRAPH_ID_ARBITRUM_V3 quando houver um compatível.
 };
 
 export function subgraphId(chain: string, v: GraphVersion): string | null {

@@ -40,6 +40,8 @@ export function rankPositions(pool: RawPool, raws: RawPos[], u0: number, u1: num
     const deposited = Number(r.depositedToken0) * u0 + Number(r.depositedToken1) * u1;
     const withdrawn = Number(r.withdrawnToken0) * u0 + Number(r.withdrawnToken1) * u1;
     const fees = Number(r.collectedFeesToken0) * u0 + Number(r.collectedFeesToken1) * u1;
+    // O indexador às vezes devolve "taxas coletadas" absurdas (bug conhecido do subgraph). Nesses casos o dado não é confiável e a posição sai do ranking.
+    if (!(fees >= 0) || !(deposited > 0) || fees > deposited * 3 || fees > value * 3 + 1000) return [];
     const pnl = value + withdrawn + fees - deposited;
     const roi = deposited > 0 ? pnl / deposited : 0;
     const ageDays = Math.max(0, (now - Number(r.transaction.timestamp)) / 86400);
@@ -79,7 +81,7 @@ const HEX = /^0x[0-9a-f]{40}$/;
 
 /** Ranking geral: as maiores posições das 25 maiores pools Uniswap v3 da rede (cache de 30 min). Cada pool vira uma consulta ao indexador. */
 export async function getBoard(chain: string): Promise<Board> {
-  const r = await cached<Board>(`board:${chain}`, 1800, async () => {
+  const r = await cached<Board>(`board2:${chain}`, 1800, async () => {
     const { pools } = await graphQuery<{ pools: (RawPool & { totalValueLockedUSD: string })[] }>(chain, "v3", POOLS_Q);
     const valid = pools.filter((p) => HEX.test(p.id));
     if (!valid.length) return { chain, positions: [], pools: 0, fetchedAt: Math.floor(Date.now() / 1000) };
