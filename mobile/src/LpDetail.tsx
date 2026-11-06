@@ -73,8 +73,9 @@ function Charts({ d }: { d: D }) {
         <Card style={{ gap: 8 }}>
           <H2>Preço do par</H2>
           {WebViewC
-            ? <View style={{ height: 320, borderRadius: 10, overflow: "hidden" }}><WebViewC source={{ uri: d.chart.embed }} style={{ flex: 1, backgroundColor: C.ink }} javaScriptEnabled domStorageEnabled nestedScrollEnabled /></View>
-            : <GoldButton label="Abrir gráfico no DexScreener ↗" onPress={() => Linking.openURL(d.chart!.page)} />}
+            ? <View style={{ height: 320, borderRadius: 10, overflow: "hidden" }}><WebViewC source={{ html: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;height:100%;background:#0b1020}iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${d.chart.embed}" allow="clipboard-write"></iframe></body></html>`, baseUrl: "https://nizainvest.com.br" }} originWhitelist={["*"]} setSupportMultipleWindows={false} startInLoadingState style={{ flex: 1, backgroundColor: C.ink }} javaScriptEnabled domStorageEnabled nestedScrollEnabled /></View>
+            : null}
+          <GoldButton ghost label="Abrir gráfico no DexScreener ↗" onPress={() => Linking.openURL(d.chart!.page)} />
         </Card>
       )}
       <Bars title="APR do pool" values={apr} fm={(v) => `${v.toFixed(1)}%`} note="APR total diário do pool. Fonte: DefiLlama." />
