@@ -10,7 +10,11 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as { key?: unknown } | null;
   const key = typeof body?.key === "string" ? body.key.trim() : "";
   if (!/^[A-Za-z0-9]{20,64}$/.test(key)) return fail("A chave deve ter só letras e números (cerca de 32 caracteres).");
-  setSetting("graph_api_key", key);
+  try {
+    setSetting("graph_api_key", key);
+  } catch (e) {
+    return fail(`Erro ao gravar no banco: ${e instanceof Error ? e.message : "desconhecido"}`, 500);
+  }
   return json({ ok: true });
 }
 

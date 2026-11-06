@@ -11,7 +11,7 @@ export function GraphKeyForm() {
     try {
       const r = await fetch("/api/admin/graph-key", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key }) });
       const j = (await r.json().catch(() => ({}))) as { error?: string };
-      if (!r.ok) setMsg(j.error ?? "Não consegui salvar."); else { setKey(""); window.location.reload(); }
+      if (!r.ok) setMsg(j.error ?? `Não consegui salvar (erro ${r.status}).`); else { setKey(""); window.location.reload(); }
     } catch { setMsg("Falha de conexão."); }
     setBusy(false);
   }
