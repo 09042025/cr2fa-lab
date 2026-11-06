@@ -38,7 +38,7 @@ export function LpPositionDetail({ d }: { d: LpDetail }) {
           ["APR médio", perf ? pct(perf.apr * 100) : "—", perf ? tone(perf.apr) : ""],
           ["Taxas a coletar", p.feesUsd === null ? "—" : usd(p.feesUsd), "text-up"],
           ["Situação", hl, hc.split(" ")[0]],
-        ].map(([l, v, c]) => <div key={l} className="card p-3"><p className="text-xs text-muted">{l}</p><p className={`text-lg font-semibold ${c}`}>{v}</p></div>)}
+        ].map(([l, v, c]) => <div key={l} className={`card p-3 ${l === "Situação" ? "flex flex-col items-center justify-center text-center" : ""}`}><p className="text-xs text-muted">{l}</p><p className={`text-lg font-semibold ${c}`}>{v}</p></div>)}
       </div>
       {!d.eventsOk && <p className="mb-3 text-xs text-gold-soft">Não consegui ler o histórico de depósitos desta posição agora (nó público indisponível). PnL, ROI e gráfico de valor aparecem quando o histórico responder. Tente de novo em instantes.{d.eventsError ? ` (detalhe técnico: ${d.eventsError})` : ""}</p>}
       <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
