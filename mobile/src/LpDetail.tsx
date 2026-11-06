@@ -93,8 +93,9 @@ export function LpDetailBody({ address, rede, id }: { address: string; rede: str
           return (
             <>
               <Card style={{ gap: 4 }}>
-                <Text style={{ color: hc, fontWeight: "800" }}>{hl}</Text>
-                <Muted>{p.chain} · #{p.tokenId}</Muted>
+                <Text style={{ color: C.white, fontWeight: "800", fontSize: 17 }}>{p.pair} · {p.fee / 10000}%</Text>
+                <Text style={{ color: hc, fontWeight: "700" }}>{hl}</Text>
+                <Muted>Uniswap v3 · {p.chain} · #{p.tokenId}</Muted>
                 <Text style={{ color: C.white, fontSize: 24, fontWeight: "800" }}>{p.valueUsd === null ? "—" : usd(p.valueUsd)}</Text>
                 {f && <Text style={{ color: col(f.pnlUsd), fontWeight: "700" }}>PnL {sg(f.pnlUsd)} · ROI {rate(f.roi * 100)} · APR {rate(f.apr * 100)}</Text>}
                 <Text style={{ color: C.up }}>Taxas a coletar: {p.feesUsd === null ? "—" : usd(p.feesUsd)}</Text>

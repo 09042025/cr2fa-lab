@@ -89,11 +89,11 @@ const word = (data: string, i: number) => BigInt("0x" + (data.replace(/^0x/, "")
 
 /** Nós que costumam aceitar consulta de eventos. Tentamos em ordem até um responder. */
 const LOG_RPC: Record<string, string[]> = {
-  Ethereum: ["https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com", "https://cloudflare-eth.com"],
-  Base: ["https://base-rpc.publicnode.com", "https://mainnet.base.org"],
-  Arbitrum: ["https://arbitrum-one-rpc.publicnode.com", "https://arb1.arbitrum.io/rpc", "https://arbitrum.llamarpc.com"],
-  Polygon: ["https://polygon-bor-rpc.publicnode.com", "https://polygon-rpc.com"],
-  Optimism: ["https://optimism-rpc.publicnode.com", "https://mainnet.optimism.io"],
+  Ethereum: ["https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com", "https://eth.drpc.org", "https://1rpc.io/eth"],
+  Base: ["https://base-rpc.publicnode.com", "https://mainnet.base.org", "https://base.drpc.org", "https://1rpc.io/base"],
+  Arbitrum: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb", "https://arbitrum-one.public.blastapi.io", "https://arbitrum.llamarpc.com"],
+  Polygon: ["https://polygon-bor-rpc.publicnode.com", "https://polygon-rpc.com", "https://polygon.drpc.org", "https://1rpc.io/matic"],
+  Optimism: ["https://optimism-rpc.publicnode.com", "https://mainnet.optimism.io", "https://optimism.drpc.org", "https://1rpc.io/op"],
 };
 
 async function batch<R>(url: string, calls: { method: string; params: unknown[] }[]): Promise<R[]> {
@@ -135,7 +135,7 @@ async function logsFromNode(url: string, npm: string, id: string) {
   let size = 5_000_000;
   const acc = { inc: [] as Log[], dec: [] as Log[], col: [] as Log[] };
   let to = latest, rounds = 0;
-  while (to > 0 && rounds++ < 80) {
+  while (to > 0 && rounds++ < 60) {
     const from = Math.max(0, to - size + 1);
     try {
       const r = await logsRange(url, npm, id, from, to);
@@ -143,12 +143,14 @@ async function logsFromNode(url: string, npm: string, id: string) {
       if (r.minted) return acc;
       to = from - 1;
     } catch (e) {
+      const hint = /limited to (?:a )?([\d,]+)/i.exec(e instanceof Error ? e.message : "");
+      const lim = hint ? Number(hint[1].replace(/,/g, "")) : 0;
+      if (lim && lim < 20_000) throw new Error(`limite de ${lim} blocos por consulta`);
       if (size <= 20_000) throw e;
-      size = Math.floor(size / 4);
+      size = Math.max(10_000, Math.floor(size / 4));
     }
   }
-  if (to > 0) throw new Error("histórico longo demais para este nó");
-  return acc;
+  throw new Error("histórico longo demais para este nó");
 }
 
 /** Eventos da posição (NFT) na Uniswap: depósitos, retiradas e coletas, com data. Valores em unidades humanas. Lança erro se nenhum nó responder. */
@@ -156,7 +158,7 @@ export async function loadEvents(chain: string, tokenId: string, dec0: number, d
   const urls = LOG_RPC[chain], npm = NPM[chain];
   if (!urls || !npm || !/^\d+$/.test(tokenId)) throw new Error("rede não suportada");
   const id = "0x" + BigInt(tokenId).toString(16).padStart(64, "0");
-  let lastErr = "";
+  const errs: string[] = [];
   for (const url of urls) {
     try {
       const l = await logsFromNode(url, npm, id);
@@ -174,12 +176,12 @@ export async function loadEvents(chain: string, tokenId: string, dec0: number, d
         return [{ ts: t, kind: x.kind, liq: x.kind === "col" ? 0 : Number(word(x.data, 0)), a0: Number(word(x.data, 1)) / d0, a1: Number(word(x.data, 2)) / d1 } as LpEvent];
       }).sort((a, b) => a.ts - b.ts);
       if (out.some((e) => e.kind === "inc")) return out;
-      lastErr = "nenhum depósito encontrado";
+      errs.push(`${new URL(url).hostname}: nenhum depósito encontrado`);
     } catch (e) {
-      lastErr = e instanceof Error ? e.message : "erro";
+      errs.push(`${new URL(url).hostname}: ${e instanceof Error ? e.message : "erro"}`);
     }
   }
-  throw new Error(lastErr || "nenhum nó respondeu");
+  throw new Error(errs.join(" | ") || "nenhum nó respondeu");
 }
 
 /** Preços diários (US$) de um token desde `start` (segundos). */

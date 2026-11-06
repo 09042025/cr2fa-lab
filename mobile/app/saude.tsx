@@ -37,11 +37,15 @@ function Result({ address }: { address: string }) {
         const [label, color] = HEALTH[p.health];
         return (
           <View key={`${p.chain}-${p.tokenId}`} style={{ gap: 10 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-              <Text style={{ color: C.white, fontWeight: "800", fontSize: 17 }}>{p.pair} · {p.fee / 10000}%</Text>
-              <Text style={{ color, fontWeight: "700", fontSize: 12 }}>{label}</Text>
-            </View>
-            <Muted>Uniswap v3 · {p.chain} · #{p.tokenId}</Muted>
+            {i >= 8 && (
+              <>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                  <Text style={{ color: C.white, fontWeight: "800", fontSize: 17 }}>{p.pair} · {p.fee / 10000}%</Text>
+                  <Text style={{ color, fontWeight: "700", fontSize: 12 }}>{label}</Text>
+                </View>
+                <Muted>Uniswap v3 · {p.chain} · #{p.tokenId}</Muted>
+              </>
+            )}
             {i < 8 ? <LpDetailBody address={address} rede={p.chain} id={p.tokenId} /> : (
               <Card style={{ gap: 6 }}>
                 <Text style={{ color: C.white }}>Valor: <Text style={{ fontWeight: "700" }}>{p.valueUsd === null ? "—" : usd(p.valueUsd)}</Text> · Taxas a coletar: <Text style={{ color: C.up, fontWeight: "700" }}>{p.feesUsd === null ? "—" : usd(p.feesUsd)}</Text></Text>
