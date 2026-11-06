@@ -14,10 +14,19 @@ export function subgraphId(chain: string, v: GraphVersion): string | null {
   return process.env[`GRAPH_ID_${chain.toUpperCase()}_${v.toUpperCase()}`] ?? IDS[chain]?.[v] ?? null;
 }
 export const graphChains = (v: GraphVersion = "v3") => ["Ethereum", "Arbitrum", "Base", "Optimism", "Polygon", "BSC", "Avalanche", "Unichain"].filter((c) => subgraphId(c, v));
-export const graphEnabled = () => !!process.env.GRAPH_API_KEY;
+/** Lê a chave tolerando espaços acidentais no nome ou no valor da variável (comum ao colar no Railway). */
+export function graphKey(): string | null {
+  const direct = process.env.GRAPH_API_KEY?.trim();
+  if (direct) return direct;
+  const k = Object.keys(process.env).find((n) => n.trim().toUpperCase() === "GRAPH_API_KEY");
+  return (k && process.env[k]?.trim()) || null;
+}
+/** Diagnóstico sem revelar valores: nomes (entre aspas) das variáveis que parecem ser a chave. */
+export const graphEnvNames = () => Object.keys(process.env).filter((n) => /graph/i.test(n)).map((n) => JSON.stringify(n));
+export const graphEnabled = () => !!graphKey();
 
 export async function graphQuery<T>(chain: string, v: GraphVersion, query: string, variables: Record<string, unknown> = {}): Promise<T> {
-  const key = process.env.GRAPH_API_KEY, id = subgraphId(chain, v);
+  const key = graphKey(), id = subgraphId(chain, v);
   if (!key) throw new Error("chave do The Graph não configurada no servidor");
   if (!id) throw new Error(`sem banco de dados ${v} para ${chain} ainda`);
   const res = await fetch(`https://gateway.thegraph.com/api/${key}/subgraphs/id/${id}`, {
