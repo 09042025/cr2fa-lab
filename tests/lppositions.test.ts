@@ -86,3 +86,12 @@ test("Pools Position: PnL, ROI e filtro de valor mínimo", () => {
   assert.ok(out[0].inRange && out[0].ageDays === 100);
   assert.ok(Math.abs(out[0].pnlUsd - (out[0].valueUsd + 200 - 2000)) < 1e-6);
 });
+
+import { filterBoard, type BoardPosition } from "../src/lib/toppositions";
+test("ranking geral: filtros e ordenação", () => {
+  const mk = (o: Partial<BoardPosition>) => ({ valueUsd: 5000, ageDays: 30, inRange: true, apr: 0.1, roi: 0.01, pnlUsd: 10, ...o } as BoardPosition);
+  const list = [mk({ tokenId: "a", apr: 0.5 }), mk({ tokenId: "b", apr: 2, ageDays: 2 }), mk({ tokenId: "c", apr: 0.9, valueUsd: 100 }), mk({ tokenId: "d", apr: 0.3, inRange: false })];
+  const f = { minValue: 1000, minAgeDays: 7, onlyInRange: false, sort: "apr" as const, limit: 10 };
+  assert.deepEqual(filterBoard(list, f).map((p) => p.tokenId), ["a", "d"]);
+  assert.deepEqual(filterBoard(list, { ...f, onlyInRange: true }).map((p) => p.tokenId), ["a"]);
+});
