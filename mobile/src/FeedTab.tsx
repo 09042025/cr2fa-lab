@@ -13,9 +13,12 @@ import { C } from "./theme";
 import { Act, ConfirmAct, ReportAct, Row } from "./actions";
 import type { Picked } from "./upload";
 import { Card, GoldButton, Muted, Status } from "./ui";
+import { Icon } from "./icons";
+import { ShareSheet } from "./ShareSheet";
+import { compact } from "./share";
 
 interface Comment { id: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; body: string; createdAt: number }
-interface Post { id: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; topic: string; body: string; imageId: number | null; createdAt: number; likes: number; liked: boolean; pinned: boolean; bookmarked?: boolean; comments: Comment[] }
+interface Post { id: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; topic: string; body: string; imageId: number | null; createdAt: number; likes: number; liked: boolean; reposts?: number; reposted?: boolean; views?: number; pinned: boolean; bookmarked?: boolean; comments: Comment[] }
 interface FeedData { topics: { id: string; label: string }[]; reportReasons: string[]; me: { id: number; admin: boolean }; posts: Post[]; more: boolean }
 
 const input = { backgroundColor: C.ink, borderColor: C.line, borderWidth: 1, borderRadius: 10, color: C.white, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 } as const;
@@ -28,6 +31,8 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
   );
 }
 
+const counted = new Set<number>();
+
 function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLabel: string; onChanged: () => void; me: { id: number; admin: boolean }; reasons: string[] }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -35,6 +40,25 @@ function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLab
   const [liked, setLiked] = useState(p.liked);
   const [likes, setLikes] = useState(p.likes);
   const [saved, setSaved] = useState(!!p.bookmarked);
+  const [reposted, setReposted] = useState(!!p.reposted);
+  const [reposts, setReposts] = useState(p.reposts ?? 0);
+  const [share, setShare] = useState(false);
+  const own = p.userId === me.id;
+
+  // Visualização: conta uma vez, depois de 1 segundo com a publicação na tela (como no site).
+  useEffect(() => {
+    if (counted.has(p.id)) return;
+    const t = setTimeout(() => { counted.add(p.id); void send("/api/community/feed", { action: "views", postIds: [p.id] }); }, 1000);
+    return () => clearTimeout(t);
+  }, [p.id]);
+
+  async function repost() {
+    if (own) return setMsg("Você não pode repostar a sua publicação.");
+    const was = reposted;
+    setReposted(!was); setReposts(reposts + (was ? -1 : 1));
+    const e = await send("/api/community/feed", { action: "repost", postId: p.id });
+    if (e) { setReposted(was); setReposts(reposts); setMsg(e); }
+  }
 
   async function like() {
     const was = liked;
@@ -80,11 +104,25 @@ function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLab
       </View>
       {p.body ? <RichText body={p.body} style={{ color: C.white, fontSize: 15, lineHeight: 22 }} /> : null}
       {p.imageId ? <PostImage id={p.imageId} /> : null}
-      <View style={{ flexDirection: "row", gap: 18, alignItems: "center" }}>
-        <Pressable onPress={like}><Text style={{ color: liked ? C.down : C.muted, fontWeight: "700" }}>{liked ? "♥" : "♡"} {likes}</Text></Pressable>
-        <Pressable onPress={() => setOpen(!open)}><Text style={{ color: C.muted, fontWeight: "600" }}>💬 {p.comments.length}</Text></Pressable>
-        <Pressable onPress={bookmark}><Text style={{ color: saved ? C.goldSoft : C.muted, fontWeight: "700" }}>{saved ? "🔖 Salvo" : "🔖 Salvar"}</Text></Pressable>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Pressable onPress={() => setOpen(!open)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Icon name="comment" color={open ? "#38bdf8" : C.muted} /><Text style={{ color: C.muted, fontSize: 13 }}>{compact(p.comments.length)}</Text>
+        </Pressable>
+        <Pressable onPress={repost} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, opacity: own ? 0.5 : 1 }}>
+          <Icon name="repost" color={reposted ? C.up : C.muted} /><Text style={{ color: reposted ? C.up : C.muted, fontSize: 13 }}>{compact(reposts)}</Text>
+        </Pressable>
+        <Pressable onPress={like} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Icon name="heart" color={liked ? "#f472b6" : C.muted} fill={liked} /><Text style={{ color: liked ? "#f472b6" : C.muted, fontSize: 13 }}>{compact(likes)}</Text>
+        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Icon name="views" color={C.muted} /><Text style={{ color: C.muted, fontSize: 13 }}>{compact(p.views ?? 0)}</Text>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <Pressable onPress={bookmark} hitSlop={8}><Icon name="bookmark" color={saved ? C.goldSoft : C.muted} fill={saved} /></Pressable>
+          <Pressable onPress={() => setShare(true)} hitSlop={8}><Icon name="share" color={C.muted} /></Pressable>
+        </View>
       </View>
+      {share && <ShareSheet id={p.id} author={p.author} body={p.body} imageId={p.imageId} onClose={() => setShare(false)} />}
       <Row>
         {p.userId === me.id && <Act label={p.pinned ? "Desafixar" : "Fixar no perfil"} onPress={pin} />}
         {(p.userId === me.id || me.admin) && <ConfirmAct label="Apagar" ask="Apagar a publicação?" onConfirm={remove} />}

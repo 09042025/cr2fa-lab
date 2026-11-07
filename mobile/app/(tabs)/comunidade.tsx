@@ -3,11 +3,12 @@ import { useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { ChatTab } from "../../src/ChatTab";
 import { FeedTab } from "../../src/FeedTab";
+import { PortfolioTab } from "../../src/PortfolioTab";
 import { C } from "../../src/theme";
 import { Card, H2, Muted, ProBadge, ProGate, Screen } from "../../src/ui";
 
 // Mesma divisão do site: Chat (só chat-geral livre), Feed livre, Lives VIP é Premium.
-const TABS = ["Chat", "Feed", "Lives VIP"] as const;
+const TABS = ["Chat", "Feed", "Portfólio", "Lives VIP"] as const;
 const CANAIS = [
   { nome: "chat-geral", pro: false },
   { nome: "boas-vindas-e-regras", pro: true },
@@ -59,7 +60,7 @@ export default function Comunidade() {
   const pro = CANAIS.find((c) => c.nome === canal)?.pro ?? false;
   return (
     <Screen title="White Flame Society">
-      <SegTabs items={TABS} value={tab} onChange={setTab} badge={(t) => t === "Lives VIP"} />
+      <SegTabs items={TABS} value={tab} onChange={setTab} badge={(t) => t === "Lives VIP" || t === "Portfólio"} />
       {tab === "Chat" && (
         <>
           <ListPick prefix="# " items={CANAIS.map((c) => c.nome)} value={canal} onChange={setCanal} badge={(n) => !!CANAIS.find((c) => c.nome === n)?.pro} />
@@ -71,6 +72,7 @@ export default function Comunidade() {
         </>
       )}
       {tab === "Feed" && <FeedTab />}
+      {tab === "Portfólio" && <ProGate feature="Portfólio (exclusivo do plano Premium)"><PortfolioTab /></ProGate>}
       {tab === "Lives VIP" && <ProGate feature="Lives VIP (exclusivo do plano Premium)"><Card><H2>Ao vivo</H2><Muted>A live do canal @EMERSON-NIZA aparece aqui.</Muted></Card></ProGate>}
     </Screen>
   );

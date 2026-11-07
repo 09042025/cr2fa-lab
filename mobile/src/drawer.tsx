@@ -3,10 +3,12 @@ import { Animated, Dimensions, Image, Linking, Modal, Pressable, ScrollView, Tex
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import { Avatar } from "./Avatar";
+import { Icon } from "./icons";
+import { ProBadge } from "./ui";
 import { useAuth } from "./auth";
 import { C } from "./theme";
 
-interface Item { label: string; to?: Href; url?: string; pro?: boolean; diamond?: boolean }
+interface Item { label: string; to?: Href; url?: string; pro?: boolean; diamond?: boolean; saved?: boolean; logo?: boolean }
 
 // Mesma lista e mesma ordem do menu lateral do site. Sem destino = ainda não chegou ao app.
 const ITEMS: Item[] = [
@@ -19,12 +21,10 @@ const ITEMS: Item[] = [
   { label: "Mentoria com Niza", to: "/mentoria", diamond: true },
   { label: "Notícias", to: "/noticias" },
   { label: "Planos e pagamento", to: "/planos" },
-  { label: "Posts Salvos", to: "/salvos" },
+  { label: "Posts Salvos", to: "/salvos", saved: true },
   { label: "Renda fixa", to: "/renda-fixa" },
   { label: "Visão geral", to: "/visao-geral" },
-  { label: "Mercado Cripto", to: "/mercado" },
-  { label: "Portfólio", to: "/portfolio", pro: true },
-  { label: "White Flame Society", to: "/comunidade", pro: true },
+  { label: "White Flame Society", to: "/comunidade", pro: true, logo: true },
 ];
 
 const Ctx = createContext<{ open: () => void }>({ open: () => {} });
@@ -56,9 +56,17 @@ function Panel({ onClose }: { onClose: () => void }) {
   ];
   const row = (it: Item) => {
     const on = !!it.to || !!it.url;
+    if (it.logo) {
+      return (
+        <Pressable key={it.label} onPress={() => go(it)} style={({ pressed }) => ({ alignItems: "center", gap: 4, paddingVertical: 8, opacity: pressed ? 0.6 : 1 })}>
+          <Image source={require("../assets/wfs-title.webp")} style={{ width: "86%", height: 92 }} resizeMode="contain" />
+          {!isPro && <ProBadge />}
+        </Pressable>
+      );
+    }
     return (
       <Pressable key={it.label} disabled={!on} onPress={() => go(it)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 15, paddingHorizontal: 12, opacity: pressed ? 0.6 : on ? 1 : 0.45 })}>
-        <Text style={{ color: C.white, fontSize: 17 }}>{it.diamond ? "◆  " : ""}{it.label}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>{it.saved ? <Icon name="bookmark" color={C.white} size={18} /> : null}<Text style={{ color: C.white, fontSize: 17 }}>{it.diamond ? "◆  " : ""}{it.label}</Text></View>
         {!on ? <Text style={{ color: C.muted, fontSize: 11 }}>em breve</Text> : it.pro && !isPro ? <Text style={{ color: C.goldSoft, fontSize: 11, fontWeight: "700" }}>PREMIUM</Text> : null}
       </Pressable>
     );
