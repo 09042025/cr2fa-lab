@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useImageUpload } from "./imageUpload";
 import { CashpillButton } from "./Cashpills";
+import { Avatar } from "./Avatar";
 
 const link = "text-xs text-muted underline hover:text-white";
 const post = (body: unknown) => fetch("/api/community/feed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -13,9 +14,10 @@ const PlusIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden className="text-gold"><path d="M9 3v12M3 9h12" /></svg>
 );
 
-/** Caixa de nova publicação: texto, assunto e imagem (colar com Ctrl+V, arrastar ou botão +). */
-export function PostForm({ topics, max, current }: { topics: readonly { id: string; label: string }[]; max: number; current?: string }) {
+/** Nova publicação no estilo do X: botão "+" flutuante que abre a tela de escrever (texto, imagem, Cashpill e assunto). */
+export function PostForm({ topics, max, current, me }: { topics: readonly { id: string; label: string }[]; max: number; current?: string; me?: { name: string; avatarId: number | null } }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
   const [topic, setTopic] = useState(topics.some((t) => t.id === current) ? current! : "geral");
   const [err, setErr] = useState("");
@@ -23,6 +25,15 @@ export function PostForm({ topics, max, current }: { topics: readonly { id: stri
   const [drag, setDrag] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const img = useImageUpload();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [open]);
 
   async function send() {
     if ((!body.trim() && !img.image) || busy || img.busy) return;
@@ -33,49 +44,69 @@ export function PostForm({ topics, max, current }: { topics: readonly { id: stri
     if (!res.ok) return setErr(await errOf(res, "Não foi possível publicar."));
     setBody("");
     img.clear();
+    setOpen(false);
     router.refresh();
   }
 
+  const canPost = (!!body.trim() || !!img.image) && !busy && !img.busy;
   return (
-    <div
-      className={`card mb-5 p-4 ${drag ? "outline outline-2 outline-dashed outline-gold" : ""}`}
-      onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDrag(true); } }}
-      onDragLeave={() => setDrag(false)}
-      onDrop={(e) => { e.preventDefault(); setDrag(false); void img.upload(Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"))); }}
-    >
-      <textarea
-        value={body}
-        maxLength={max}
-        rows={3}
-        onChange={(e) => setBody(e.target.value)}
-        onPaste={(e) => {
-          const f = Array.from(e.clipboardData.files).find((x) => x.type.startsWith("image/"));
-          if (f) { e.preventDefault(); void img.upload(f); }
-        }}
-        placeholder="Compartilhe uma análise, uma dúvida ou uma ideia de investimento… (cole prints com Ctrl+V)"
-        className="w-full resize-none rounded-lg border border-line bg-ink px-3 py-3 text-sm leading-6 outline-none focus:outline-none"
-      />
-      {img.image && (
-        <div className="mt-2 flex items-center gap-3 rounded-lg bg-panel-2 p-2 text-xs text-muted">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={img.image.preview} alt="Prévia da imagem" className="h-16 w-16 rounded-md object-cover" />
-          <span className="min-w-0 flex-1 truncate">{img.image.name}<br />Pronta para publicar</span>
-          <button className="underline hover:text-white" onClick={img.clear}>remover</button>
+    <>
+      <button type="button" onClick={() => setOpen(true)} aria-label="Nova publicação" title="Nova publicação" className="fixed bottom-6 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gold text-3xl font-light text-ink shadow-lg shadow-black/50 hover:brightness-110 sm:right-8">
+        <svg width="26" height="26" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M9 3v12M3 9h12" /></svg>
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-[60] flex items-stretch justify-center bg-black/70 sm:items-start sm:p-6" role="dialog" aria-modal="true" aria-label="Nova publicação" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
+          <div
+            className={`flex w-full max-w-xl flex-col bg-ink sm:mt-8 sm:max-h-[90vh] sm:rounded-2xl sm:border sm:border-line ${drag ? "outline outline-2 outline-dashed outline-gold" : ""}`}
+            onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDrag(true); } }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => { e.preventDefault(); setDrag(false); void img.upload(Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"))); }}
+          >
+            <div className="flex items-center justify-between px-4 py-3">
+              <button type="button" onClick={() => setOpen(false)} className="text-sm text-white hover:underline">Cancelar</button>
+              <button type="button" onClick={send} disabled={!canPost} className="btn btn-gold h-9 !py-0 !px-5 disabled:opacity-50">{busy ? "…" : "Postar"}</button>
+            </div>
+            <div className="flex min-h-0 flex-1 gap-3 overflow-y-auto px-4 pb-2">
+              {me ? <Avatar name={me.name} id={me.avatarId} size={40} /> : null}
+              <div className="min-w-0 flex-1">
+                <select value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Assunto" className="mb-2 h-8 rounded-full border border-gold/60 bg-ink px-3 text-sm font-semibold text-gold-soft">
+                  {topics.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                </select>
+                <textarea
+                  autoFocus
+                  value={body}
+                  maxLength={max}
+                  rows={8}
+                  onChange={(e) => setBody(e.target.value)}
+                  onPaste={(e) => {
+                    const f = Array.from(e.clipboardData.files).find((x) => x.type.startsWith("image/"));
+                    if (f) { e.preventDefault(); void img.upload(f); }
+                  }}
+                  placeholder="Compartilhe uma análise, uma dúvida ou uma ideia de investimento… (cole prints com Ctrl+V)"
+                  className="w-full resize-none bg-transparent text-lg leading-7 outline-none placeholder:text-muted focus:outline-none"
+                />
+                {img.image && (
+                  <div className="mt-2 flex items-center gap-3 rounded-lg bg-panel-2 p-2 text-xs text-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.image.preview} alt="Prévia da imagem" className="h-16 w-16 rounded-md object-cover" />
+                    <span className="min-w-0 flex-1 truncate">{img.image.name}<br />Pronta para publicar</span>
+                    <button className="underline hover:text-white" onClick={img.clear}>remover</button>
+                  </div>
+                )}
+                {(err || img.err) && <p className="mt-2 text-xs text-down">{err || img.err}</p>}
+              </div>
+            </div>
+            <p className="px-4 pb-2 text-[11px] text-muted">Conteúdo da comunidade é opinião dos membros, não recomendação de investimento. Nada de pedir dinheiro, divulgar terceiros ou prometer ganhos.</p>
+            <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void img.upload(e.target.files?.[0]); e.target.value = ""; }} />
+              <button type="button" title="Anexar imagem" aria-label="Anexar imagem" disabled={img.busy} onClick={() => file.current?.click()} className="flex h-10 items-center gap-2 rounded-[10px] border border-line px-3 text-sm font-semibold hover:bg-panel-2 disabled:opacity-50"><PlusIcon />Foto</button>
+              <CashpillButton />
+              <span className="ml-auto text-[11px] text-muted">{body.length}/{max}</span>
+            </div>
+          </div>
         </div>
       )}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void img.upload(e.target.files?.[0]); e.target.value = ""; }} />
-        <button type="button" title="Anexar imagem" aria-label="Anexar imagem" disabled={img.busy} onClick={() => file.current?.click()} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-line hover:bg-panel-2 disabled:opacity-50"><PlusIcon /></button>
-        <CashpillButton />
-        <select value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Assunto" className="h-10 rounded-lg border border-line bg-ink px-3 text-sm">
-          {topics.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-        </select>
-        <span className="ml-auto text-[11px] text-muted">{body.length}/{max}</span>
-        <button type="button" className="btn btn-gold h-10 !py-0" onClick={send} disabled={busy || img.busy}>{busy ? "…" : "Publicar"}</button>
-      </div>
-      {(err || img.err) && <p className="mt-2 text-xs text-down">{err || img.err}</p>}
-      <p className="mt-2 text-[11px] text-muted">Conteúdo da comunidade é opinião dos membros, não recomendação de investimento. Nada de pedir dinheiro, divulgar terceiros ou prometer ganhos.</p>
-    </div>
+    </>
   );
 }
 
