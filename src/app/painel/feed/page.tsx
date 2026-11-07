@@ -6,7 +6,6 @@ import { PostForm } from "@/components/FeedClient";
 import { StoriesBar } from "@/components/StoriesBar";
 import { PeopleSearch } from "@/components/PeopleSearch";
 import { PostCard } from "@/components/PostCard";
-import { PageTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Feed da comunidade" };
@@ -24,7 +23,6 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   );
   return (
     <div className="mx-auto max-w-2xl">
-      <PageTitle title="Feed" subtitle="Publicações dos membros sobre investimentos: análises, dúvidas e ideias." />
       <PeopleSearch />
       <StoriesBar me={{ id: user.id, name: user.name, avatarId: avatarId }} canPost={!banned} />
       {banned ? (
