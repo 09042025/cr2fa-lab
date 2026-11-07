@@ -72,21 +72,70 @@ export async function getTopPositions(chain: string, poolAddress: string): Promi
 
 /* ------------------------------ ranking geral (todas as pools grandes de uma rede) ------------------------------ */
 
-export interface BoardPosition extends TopPosition { chain: string; pool: string; pair: string; fee: number; poolTvlUsd: number }
+export interface BoardPosition extends TopPosition { chain: string; dex: string; pool: string; pair: string; symbol0: string; symbol1: string; kind: PoolKind; fee: number; poolTvlUsd: number }
 export interface Board { chain: string; positions: BoardPosition[]; pools: number; fetchedAt: number }
 
 const POS_FIELDS = "id owner liquidity tickLower{tickIdx} tickUpper{tickIdx} depositedToken0 depositedToken1 withdrawnToken0 withdrawnToken1 collectedFeesToken0 collectedFeesToken1 transaction{timestamp}";
-const POOLS_Q = `{ pools(first: 25, orderBy: totalValueLockedUSD, orderDirection: desc, where:{totalValueLockedUSD_gt:"200000"}) { id feeTier sqrtPrice tick totalValueLockedUSD token0{id symbol decimals} token1{id symbol decimals} } }`;
 const HEX = /^0x[0-9a-f]{40}$/;
 
-/** Ranking geral: as maiores posições das 25 maiores pools Uniswap v3 da rede (cache de 30 min). Cada pool vira uma consulta ao indexador. */
-export async function getBoard(chain: string): Promise<Board> {
-  const r = await cached<Board>(`board2:${chain}`, 1800, async () => {
-    const { pools } = await graphQuery<{ pools: (RawPool & { totalValueLockedUSD: string })[] }>(chain, "v3", POOLS_Q);
-    const valid = pools.filter((p) => HEX.test(p.id));
+/* ------------------------------ tipo de pool e busca por token ------------------------------ */
+
+export type PoolKind = "cripto" | "rwa" | "stable" | "outros";
+export const KINDS: [PoolKind | "todos", string][] = [["todos", "Todos"], ["cripto", "Cripto"], ["rwa", "RWA (ativos do mundo real)"], ["stable", "Stablecoins"], ["outros", "Outros"]];
+const STABLE = new Set(["USDC", "USDT", "DAI", "USDE", "FDUSD", "USDS", "PYUSD", "FRAX", "LUSD", "CRVUSD", "GHO", "USDC.E", "USDBC", "BUSD", "TUSD", "USDD", "USD0", "RLUSD", "USDG", "EURC"]);
+const RWA = new Set(["BUIDL", "USDY", "OUSG", "ONDO", "PAXG", "XAUT", "USTB", "BENJI", "SYRUPUSDC", "USDTB", "STBT", "BCSPX", "BIB01", "TBILL", "WTGXX", "USYC", "JTRSY", "JAAA"]);
+const MAJOR = new Set(["ETH", "WETH", "BTC", "WBTC", "CBBTC", "TBTC", "BTCB", "SOL", "WSOL", "BNB", "WBNB", "MATIC", "WMATIC", "POL", "WPOL", "ARB", "OP", "AVAX", "WAVAX", "LINK", "UNI", "AAVE", "WSTETH", "STETH", "WEETH", "RETH", "CBETH", "PEPE", "SHIB", "LDO", "CRV", "MKR", "ENA"]);
+/** Classifica o pool pelos símbolos dos dois tokens. */
+export function poolKind(s0: string, s1: string): PoolKind {
+  const a = s0.toUpperCase(), b = s1.toUpperCase();
+  if (RWA.has(a) || RWA.has(b)) return "rwa";
+  if (STABLE.has(a) && STABLE.has(b)) return "stable";
+  if (MAJOR.has(a) || MAJOR.has(b)) return "cripto";
+  return "outros";
+}
+const ALIAS: Record<string, string[]> = {
+  ETH: ["WETH", "ETH"], WETH: ["WETH", "ETH"], BTC: ["WBTC", "cbBTC", "BTCB", "tBTC", "BTC"], WBTC: ["WBTC"], BNB: ["WBNB", "BNB"], MATIC: ["WMATIC", "WPOL", "MATIC", "POL"], POL: ["WPOL", "WMATIC", "POL"],
+  AVAX: ["WAVAX", "AVAX"], SOL: ["SOL", "WSOL"], USD: ["USDC", "USDT", "DAI", "USDe", "FDUSD", "USDS", "PYUSD"],
+};
+/** Variações do símbolo digitado (a busca do indexador diferencia maiúsculas de minúsculas). Retorna null quando vazio. */
+export function symbolVariants(input: string): string[] | null {
+  const t = input.trim().replace(/[^A-Za-z0-9.\-_]/g, "").slice(0, 20);
+  if (!t) return null;
+  const base = ALIAS[t.toUpperCase()] ?? [t];
+  return [...new Set(base.flatMap((x) => [x, x.toUpperCase(), x.toLowerCase()]).concat([t]))];
+}
+/** Aceita "ETH-USDC", "ETH/USDC", "ETH USDC" ou só "ETH". */
+export function parsePair(text: string, second = ""): [string, string] {
+  const parts = text.split(/[-/\s,]+/).filter(Boolean);
+  return [parts[0] ?? "", second.trim() || parts[1] || ""];
+}
+
+const poolsQuery = (mode: "top" | "pair" | "one") => {
+  const sel = "id feeTier sqrtPrice tick totalValueLockedUSD token0{id symbol decimals} token1{id symbol decimals}";
+  const base = 'orderBy: totalValueLockedUSD, orderDirection: desc';
+  if (mode === "top") return `{ pools(first: 25, ${base}, where:{totalValueLockedUSD_gt:"200000"}) { ${sel} } }`;
+  if (mode === "pair") return `query($a:[String!]!,$b:[String!]!){ x: pools(first: 25, ${base}, where:{totalValueLockedUSD_gt:"20000", token0_:{symbol_in:$a}, token1_:{symbol_in:$b}}) { ${sel} } y: pools(first: 25, ${base}, where:{totalValueLockedUSD_gt:"20000", token0_:{symbol_in:$b}, token1_:{symbol_in:$a}}) { ${sel} } }`;
+  return `query($a:[String!]!){ x: pools(first: 25, ${base}, where:{totalValueLockedUSD_gt:"20000", token0_:{symbol_in:$a}}) { ${sel} } y: pools(first: 25, ${base}, where:{totalValueLockedUSD_gt:"20000", token1_:{symbol_in:$a}}) { ${sel} } }`;
+};
+type PoolRow = RawPool & { totalValueLockedUSD: string };
+
+/**
+ * Ranking geral de uma fonte (rede + exchange): as maiores posições das 25 maiores pools (ou das pools do par buscado). Cache de 30 min.
+ * Cada pool vira uma consulta ao indexador.
+ */
+export async function getBoard(chain: string, dex = "uniswap-v3", tokenA = "", tokenB = ""): Promise<Board> {
+  const A = symbolVariants(tokenA), B = symbolVariants(tokenB);
+  const sk = `${(A?.[0] ?? "").toLowerCase()}|${(B?.[0] ?? "").toLowerCase()}`;
+  const r = await cached<Board>(`board3:${chain}:${dex}:${sk}`, 1800, async () => {
+    let pools: PoolRow[];
+    if (A && B) { const d = await graphQuery<{ x: PoolRow[]; y: PoolRow[] }>(chain, dex, poolsQuery("pair"), { a: A, b: B }); pools = [...d.x, ...d.y]; }
+    else if (A || B) { const d = await graphQuery<{ x: PoolRow[]; y: PoolRow[] }>(chain, dex, poolsQuery("one"), { a: A ?? B }); pools = [...d.x, ...d.y]; }
+    else pools = (await graphQuery<{ pools: PoolRow[] }>(chain, dex, poolsQuery("top"))).pools;
+    const seen = new Set<string>();
+    const valid = pools.filter((p) => HEX.test(p.id) && !seen.has(p.id) && seen.add(p.id)).sort((a, b) => Number(b.totalValueLockedUSD) - Number(a.totalValueLockedUSD)).slice(0, 25);
     if (!valid.length) return { chain, positions: [], pools: 0, fetchedAt: Math.floor(Date.now() / 1000) };
     const body = valid.map((p, i) => `p${i}: positions(first: 30, orderBy: liquidity, orderDirection: desc, where:{pool:"${p.id}", liquidity_gt:"0"}) { ${POS_FIELDS} }`).join("\n");
-    const data = await graphQuery<Record<string, RawPos[]>>(chain, "v3", `{ ${body} }`);
+    const data = await graphQuery<Record<string, RawPos[]>>(chain, dex, `{ ${body} }`);
     const tokens = [...new Set(valid.flatMap((p) => [p.token0.id, p.token1.id]))];
     const px: Record<string, number> = {};
     for (let i = 0; i < tokens.length; i += 40) Object.assign(px, await usdPrices(chain, tokens.slice(i, i + 40)));
@@ -94,7 +143,10 @@ export async function getBoard(chain: string): Promise<Board> {
     const positions = valid.flatMap((p, i) => {
       const u0 = px[p.token0.id], u1 = px[p.token1.id];
       if (!u0 || !u1) return [];
-      return rankPositions(p, data[`p${i}`] ?? [], u0, u1, now).map((x) => ({ ...x, chain, pool: p.id, pair: `${p.token0.symbol}/${p.token1.symbol}`, fee: Number(p.feeTier), poolTvlUsd: Number(p.totalValueLockedUSD) }));
+      return rankPositions(p, data[`p${i}`] ?? [], u0, u1, now).map((x) => ({
+        ...x, chain, dex, pool: p.id, pair: `${p.token0.symbol}/${p.token1.symbol}`, symbol0: p.token0.symbol, symbol1: p.token1.symbol, kind: poolKind(p.token0.symbol, p.token1.symbol),
+        fee: Number(p.feeTier), poolTvlUsd: Number(p.totalValueLockedUSD),
+      }));
     });
     return { chain, positions, pools: valid.length, fetchedAt: now };
   });
@@ -102,9 +154,9 @@ export async function getBoard(chain: string): Promise<Board> {
   return r.data;
 }
 
-export interface BoardFilter { minValue: number; minAgeDays: number; onlyInRange: boolean; sort: "apr" | "roi" | "pnl" | "valor"; limit: number }
+export interface BoardFilter { minValue: number; minAgeDays: number; onlyInRange: boolean; sort: "apr" | "roi" | "pnl" | "valor"; limit: number; kind?: PoolKind | "todos" }
 const KEY: Record<BoardFilter["sort"], (p: TopPosition) => number> = { apr: (p) => p.apr ?? -1e9, roi: (p) => p.roi, pnl: (p) => p.pnlUsd, valor: (p) => p.valueUsd };
 /** Aplica filtros e ordena. APR de posições muito novas é anualizado de poucos dias e engana, por isso a idade mínima. */
 export function filterBoard(list: BoardPosition[], f: BoardFilter): BoardPosition[] {
-  return list.filter((p) => p.valueUsd >= f.minValue && p.ageDays >= f.minAgeDays && (!f.onlyInRange || p.inRange)).sort((a, b) => KEY[f.sort](b) - KEY[f.sort](a)).slice(0, f.limit);
+  return list.filter((p) => p.valueUsd >= f.minValue && p.ageDays >= f.minAgeDays && (!f.onlyInRange || p.inRange) && (!f.kind || f.kind === "todos" || p.kind === f.kind)).sort((a, b) => KEY[f.sort](b) - KEY[f.sort](a)).slice(0, f.limit);
 }
