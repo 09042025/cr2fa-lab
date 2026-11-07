@@ -423,6 +423,8 @@ export interface Quote {
   changePct: number | null;
   volume: number | null;
   marketCap: number | null;
+  /** Logo da empresa/fundo (brapi). */
+  logo?: string | null;
 }
 
 /** Tickers de exemplo por setor (estrutura do Protocolo). Não são recomendações de compra. */
@@ -449,6 +451,7 @@ interface BrapiResult {
   regularMarketChangePercent?: number;
   regularMarketVolume?: number;
   marketCap?: number;
+  logourl?: string;
 }
 
 async function fetchBrapi(symbols: string[]): Promise<Record<string, BrapiResult>> {
@@ -497,6 +500,7 @@ async function loadGroup(groups: Record<string, string[]>): Promise<Quote[]> {
         changePct: r?.regularMarketChangePercent ?? null,
         volume: r?.regularMarketVolume ?? null,
         marketCap: r?.marketCap ?? null,
+        logo: r?.logourl ?? null,
       });
     }
   }
@@ -523,7 +527,7 @@ const SECTOR_PT: Record<string, string> = {
   "Distribution Services": "Distribuição", "Industrial Services": "Serviços industriais", Miscellaneous: "Outros",
 };
 
-interface BrapiListItem { stock: string; name?: string; close?: number | null; change?: number | null; volume?: number | null; market_cap?: number | null; sector?: string | null }
+interface BrapiListItem { stock: string; name?: string; close?: number | null; change?: number | null; volume?: number | null; market_cap?: number | null; sector?: string | null; logo?: string | null }
 
 async function fetchBrapiList(params: string): Promise<BrapiListItem[]> {
   const token = process.env.BRAPI_TOKEN;
@@ -533,12 +537,12 @@ async function fetchBrapiList(params: string): Promise<BrapiListItem[]> {
 }
 
 const toQuote = (i: BrapiListItem, sector: string): Quote => ({
-  symbol: i.stock, name: i.name || i.stock, sector, price: i.close ?? null, changePct: i.change ?? null, volume: i.volume ?? null, marketCap: i.market_cap ?? null,
+  symbol: i.stock, name: i.name || i.stock, sector, price: i.close ?? null, changePct: i.change ?? null, volume: i.volume ?? null, marketCap: i.market_cap ?? null, logo: i.logo ?? null,
 });
 
 /** Todas as ações da B3 (lista completa da brapi). Se a lista falhar, cai nos exemplos por setor. */
 export const getStocks = () =>
-  cached<Quote[]>("brapi:stocks:all:v1", 15 * 60, async () => {
+  cached<Quote[]>("brapi:stocks:all:v2", 15 * 60, async () => {
     try {
       const items = (await fetchBrapiList("type=stock")).filter((i) => /^[A-Z]{4}\d{1,2}$/.test(i.stock));
       if (items.length < 20) throw new Error("lista curta");
@@ -550,7 +554,7 @@ export const getStocks = () =>
 
 /** Todos os FIIs da B3, com segmento quando conhecido. Se a lista falhar, cai nos exemplos por segmento. */
 export const getFiis = () =>
-  cached<Quote[]>("brapi:fiis:all:v1", 15 * 60, async () => {
+  cached<Quote[]>("brapi:fiis:all:v2", 15 * 60, async () => {
     try {
       const items = (await fetchBrapiList("type=fund&subType=fii")).filter((i) => /^[A-Z]{4}1[1-3]$/.test(i.stock));
       if (items.length < 20) throw new Error("lista curta");

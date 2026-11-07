@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Image } from "expo-image";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { brl, brlCompact, pct } from "./format";
 import { Select } from "./Select";
@@ -7,7 +8,7 @@ import { useApi } from "./useApi";
 import { Card, GoldButton, Muted, ProBadge, Screen, Status } from "./ui";
 import { router } from "expo-router";
 
-interface Row { symbol: string; name: string; sector: string; price: number | null; changePct: number | null; volume: number | null; marketCap: number | null }
+interface Row { symbol: string; name: string; sector: string; price: number | null; changePct: number | null; volume: number | null; marketCap: number | null; logo?: string | null }
 interface Data { pro: boolean; total: number; shown: number; sectors: string[]; rows: Row[]; stale: boolean; failed: boolean }
 
 /** Lista de ações ou de FIIs, igual à do site: Premium vê tudo, filtra por setor/segmento e busca; grátis vê o começo da lista. */
@@ -40,7 +41,14 @@ export function Quotes({ kind }: { kind: "acoes" | "fiis" }) {
             <Pressable key={r.symbol} onPress={() => router.push({ pathname: "/acao", params: { t: r.symbol, de: kind } })}>
             <Card style={{ gap: 4 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Text style={{ color: C.goldSoft, fontWeight: "800", fontSize: 16 }}>{r.symbol}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  {r.logo ? (
+                    <Image source={{ uri: r.logo }} contentFit="contain" style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: "#fff" }} />
+                  ) : (
+                    <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: C.ink, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}><Text style={{ color: C.goldSoft, fontSize: 10, fontWeight: "800" }}>{r.symbol.slice(0, 2)}</Text></View>
+                  )}
+                  <Text style={{ color: C.goldSoft, fontWeight: "800", fontSize: 16 }}>{r.symbol}</Text>
+                </View>
                 <Text style={{ color: C.white, fontWeight: "700", fontSize: 16 }}>{brl(r.price)}</Text>
               </View>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
