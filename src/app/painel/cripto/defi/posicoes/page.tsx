@@ -6,6 +6,7 @@ import { filterBoard, getTopPositions, parsePair, KINDS, type BoardFilter, type 
 import { loadMulti, parseSelection, type MultiBoard } from "@/lib/boards";
 import { EXCHANGES, NETWORKS, dexLabel, netLabel, readySources, sourceReady, sourceShort } from "@/lib/sources";
 import { BoardTable, type BoardRow } from "@/components/BoardTable";
+import { listGraphSources } from "@/lib/settings";
 import { GraphSourcesForm } from "@/components/GraphSourcesForm";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { GraphKeyForm } from "@/components/GraphKeyForm";
@@ -94,7 +95,7 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
           {multi && multi.errors.length > 0 && multi.loaded > 0 && <p className="mt-2 text-xs text-down">Falha ao ler: {multi.errors.map((e) => `${netLabel(e.chain)} · ${dexLabel(e.dex)} (${e.error})`).join("; ")}</p>}
           {error && <p className="mt-2 text-sm text-down">{error}</p>}
           {user.role === "admin" && !graphEnabled() && <GraphKeyForm />}
-          {user.role === "admin" && graphEnabled() && <details className="mt-3"><summary className="cursor-pointer text-sm text-gold-soft">Fontes de dados (administrador)</summary><GraphSourcesForm networks={NETWORKS.filter((n) => n.family === "evm").map((n) => ({ id: n.id, label: n.label }))} exchanges={EXCHANGES.filter((e) => e.schema === "uni3").map((e) => ({ id: e.id, label: e.label }))} /></details>}
+          {user.role === "admin" && graphEnabled() && <details className="mt-3"><summary className="cursor-pointer text-sm text-gold-soft">Fontes de dados (administrador)</summary><GraphSourcesForm saved={listGraphSources()} networks={NETWORKS.filter((n) => n.family === "evm").map((n) => ({ id: n.id, label: n.label }))} exchanges={EXCHANGES.filter((e) => e.schema === "uni3").map((e) => ({ id: e.id, label: e.label }))} /></details>}
         </section>
       )}
       {!pool && !error && (
