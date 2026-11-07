@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "./Avatar";
 
-interface Member { id: number; name: string; avatarId: number | null }
+interface Member { id: number; name: string; avatarId: number | null; handle?: string | null }
 
 /** Ao digitar @ num campo de texto, busca membros da plataforma e insere @PrimeiroNome. */
 export function useMention(value: string, setValue: (v: string) => void) {
@@ -32,7 +32,7 @@ export function useMention(value: string, setValue: (v: string) => void) {
   }, [q]);
 
   function pick(m: Member) {
-    const first = m.name.trim().split(/\s+/)[0].replace(/[^\p{L}\p{N}_.-]/gu, "");
+    const first = m.handle || m.name.trim().split(/\s+/)[0].replace(/[^\p{L}\p{N}_.-]/gu, "");
     const caret = el.current?.selectionStart ?? value.length;
     const next = `${value.slice(0, start.current)}@${first} ${value.slice(caret)}`;
     setValue(next);

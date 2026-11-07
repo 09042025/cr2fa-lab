@@ -1,3 +1,4 @@
+import { MentionsBell } from "./MentionsBell";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Animated, Dimensions, Image, Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -131,9 +132,12 @@ export function AppHeader() {
   const insets = useSafeAreaInsets();
   return (
     <View style={{ paddingTop: insets.top + 6, paddingBottom: 10, paddingHorizontal: 14, backgroundColor: C.ink, borderBottomWidth: 1, borderBottomColor: C.line, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-      <Pressable onPress={open} hitSlop={10}><Avatar name={user?.name ?? ""} id={user?.avatarId ?? null} size={40} /></Pressable>
+      <View style={{ width: 92, alignItems: "flex-start" }}><Pressable onPress={open} hitSlop={10}><Avatar name={user?.name ?? ""} id={user?.avatarId ?? null} size={40} /></Pressable></View>
       <Logo markOnly />
-      <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6 }}><Text style={{ fontSize: 16 }}>🇧🇷 <Text style={{ color: C.muted, fontSize: 9 }}>▾</Text></Text></View>
+      <View style={{ width: 92, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+        <MentionsBell />
+        <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6 }}><Text style={{ fontSize: 16 }}>🇧🇷 <Text style={{ color: C.muted, fontSize: 9 }}>▾</Text></Text></View>
+      </View>
     </View>
   );
 }
