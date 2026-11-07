@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#070d1c",
+    "backgroundColor": "#0b1a4a",
     "plugins": [
       "expo-router",
       [
