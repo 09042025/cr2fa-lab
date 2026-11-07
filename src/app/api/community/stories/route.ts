@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getUser, rateLimit } from "@/lib/auth";
 import { isBanned } from "@/lib/community";
 import { fail, json, sameOrigin } from "@/lib/http";
-import { createStory, sharePostToStory, shareStoryToFeed, deleteStory, listStoryGroups, markViewed, toggleStoryLike, MAX_CAPTION } from "@/lib/stories";
+import { createStory, sharePostToStory, shareStoryToFeed, deleteStory, listStoryGroups, markViewed, toggleStoryLike, storyViewers, MAX_CAPTION } from "@/lib/stories";
 
 const schema = z.object({
   imageId: z.number().int().positive().optional(),
@@ -15,9 +15,14 @@ const schema = z.object({
 });
 
 /** GET: stories ativos (últimas 24 h). POST: publicar ({imageId, caption}) ou marcar como visto ({view}). DELETE ?id=N: apagar. */
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getUser();
   if (!user) return fail("Faça login.", 401);
+  const vid = Number(new URL(req.url).searchParams.get("viewers"));
+  if (vid > 0) {
+    const viewers = storyViewers(vid, user);
+    return viewers ? json({ viewers }) : fail("Story não encontrado.", 404);
+  }
   return json({ groups: listStoryGroups(user.id) });
 }
 
