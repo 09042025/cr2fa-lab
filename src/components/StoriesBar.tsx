@@ -200,6 +200,13 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   const [reply, setReply] = useState("");
   const [focused, setFocused] = useState(false);
   const [share, setShare] = useState(false);
+  const [viewers, setViewers] = useState<{ id: number; name: string; avatarId: number | null; liked: boolean }[] | null>(null);
+  const [showViewers, setShowViewers] = useState(false);
+  async function openViewers() {
+    setShowViewers(true); setViewers(null);
+    const r = await fetch(`/api/community/stories?viewers=${story!.id}`).then((x) => x.json()).catch(() => null);
+    setViewers(r?.viewers ?? []);
+  }
   const [likedMap, setLikedMap] = useState<Record<number, boolean>>({});
   const g = groups[pos.g];
   const story = g?.stories[pos.s];
@@ -229,7 +236,7 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   }, [story, g]);
 
   useEffect(() => {
-    if (paused || focused || share || msg || story?.videoId) return;
+    if (paused || focused || share || showViewers || msg || story?.videoId) return;
     const t0 = Date.now() - progress * DURATION;
     const iv = setInterval(() => {
       const p = (Date.now() - t0) / DURATION;
@@ -237,13 +244,13 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
     }, 60);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pos, paused, focused, share, msg]);
+  }, [pos, paused, focused, share, showViewers, msg]);
 
   useEffect(() => {
     const v = vid.current;
     if (!v) return;
-    if (paused || focused || share || msg) v.pause(); else void v.play().catch(() => { v.muted = true; void v.play().catch(() => {}); });
-  }, [paused, focused, share, msg, pos]);
+    if (paused || focused || share || showViewers || msg) v.pause(); else void v.play().catch(() => { v.muted = true; void v.play().catch(() => {}); });
+  }, [paused, focused, share, showViewers, msg, pos]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); if (e.key === "ArrowRight") next(); if (e.key === "ArrowLeft") prev(); };
@@ -324,7 +331,7 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
           {msg && <p className="text-center text-xs text-gold-soft">{msg}</p>}
           {g.mine && (
             <div className="flex items-center justify-between gap-2 text-xs" onPointerDown={(e) => e.stopPropagation()}>
-              <span className="text-white/70">👁 {story.views ?? 0} {story.views === 1 ? "visualização" : "visualizações"} · ♥ {story.likes ?? 0}</span>
+              <button type="button" onClick={openViewers} className="text-left text-white/80 underline-offset-2 hover:underline">👁 {story.views ?? 0} {story.views === 1 ? "visualização" : "visualizações"} · ♥ {story.likes ?? 0}</button>
               <span className="flex gap-2">
                 {!story.videoId && <button type="button" onClick={toFeed} className="rounded-full bg-gold px-3 py-1 font-semibold text-ink">Publicar no Feed</button>}
                 <button type="button" onClick={remove} className="rounded-full border border-white/40 px-3 py-1 text-white">Apagar</button>
@@ -349,6 +356,20 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
             </form>
           )}
         </div>
+        {showViewers && (
+          <div className="absolute inset-0 z-30 flex items-end bg-black/60" onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowViewers(false)}>
+            <div className="max-h-[70%] w-full overflow-y-auto rounded-t-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="mb-3 flex items-center justify-between"><h3 className="font-bold text-white">Visualizações e curtidas</h3><button type="button" aria-label="Fechar" onClick={() => setShowViewers(false)} className="text-2xl text-muted">✕</button></div>
+              {viewers === null && <p className="text-sm text-muted">Carregando…</p>}
+              {viewers?.length === 0 && <p className="text-sm text-muted">Ninguém viu ainda.</p>}
+              <ul className="space-y-3">
+                {(viewers ?? []).map((v) => (
+                  <li key={v.id} className="flex items-center gap-3"><Avatar name={v.name} id={v.avatarId} size={40} /><span className="flex-1 text-sm text-white">{v.name}</span>{v.liked && <span className="text-pink-400" aria-label="Curtiu">♥</span>}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
         {share && <ShareSheet id={story.id} author={g.name} body="" imageId={null} videoId={null} url={`${location.origin}/painel/feed/membro/${g.userId}`} text={`Story de ${g.name} no NIZA INVEST`} onClose={() => setShare(false)} />}
       </div>
     </div>

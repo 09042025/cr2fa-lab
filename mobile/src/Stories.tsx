@@ -65,6 +65,8 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   const [reply, setReply] = useState("");
   const [sent, setSent] = useState("");
   const [sharing, setSharing] = useState(false);
+  const [viewers, setViewers] = useState<{ id: number; name: string; avatarId: number | null; liked: boolean }[] | null>(null);
+  const [showViewers, setShowViewers] = useState(false);
   const g = groups[gi];
   const story = g?.stories[si];
 
@@ -116,6 +118,12 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   }
   const onFocus = () => { hold(); };
   const onBlur = () => { if (!sharing) release(); };
+  const openViewers = async () => {
+    hold(); setShowViewers(true); setViewers(null);
+    const r = await get<{ viewers: { id: number; name: string; avatarId: number | null; liked: boolean }[] }>(`/api/community/stories?viewers=${story.id}`);
+    setViewers("data" in r ? r.data.viewers : []);
+  };
+  const closeViewers = () => { setShowViewers(false); release(); };
   const openShare = () => { setSharing(true); hold(); };
   const closeShare = () => { setSharing(false); release(); };
 
@@ -153,9 +161,9 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
             <Pressable style={{ flex: 2 }} onPress={next} onLongPress={hold} onPressOut={release} delayLongPress={200} />
           </View>
         </View>
-        <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 6 }} pointerEvents="none">
+        <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 6 }} pointerEvents="box-none">
           {story.caption ? <Text style={{ color: "#fff", fontSize: 16, textAlign: "center" }}>{story.caption}</Text> : null}
-          {g.mine && typeof story.views === "number" ? <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" }}>👁 {story.views} visualizações{typeof story.likes === "number" ? `  ·  ♥ ${story.likes}` : ""}</Text> : null}
+          {g.mine && typeof story.views === "number" ? <Pressable onPress={openViewers} hitSlop={10}><Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, textAlign: "center", textDecorationLine: "underline" }}>👁 {story.views} {story.views === 1 ? "visualização" : "visualizações"}{typeof story.likes === "number" ? `  ·  ♥ ${story.likes}` : ""}</Text></Pressable> : null}
           {sent ? <Text style={{ color: C.goldSoft, fontSize: 12, textAlign: "center" }}>{sent}</Text> : null}
         </View>
         {!g.mine && (
@@ -175,6 +183,29 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
           <View style={{ flexDirection: "row", justifyContent: "flex-end", padding: 12 }}>
             <Pressable onPress={openShare} hitSlop={10}><Icon name="plane" size={26} color="#fff" /></Pressable>
           </View>
+        )}
+        {showViewers && (
+          <Modal visible transparent animationType="slide" onRequestClose={closeViewers}>
+            <Pressable onPress={closeViewers} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" }}>
+              <Pressable onPress={() => {}} style={{ backgroundColor: C.panel, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "70%", borderWidth: 1, borderColor: C.line, padding: 16 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <Text style={{ color: C.white, fontSize: 18, fontWeight: "800" }}>Visualizações e curtidas</Text>
+                  <Pressable onPress={closeViewers} hitSlop={12}><Text style={{ color: C.muted, fontSize: 26 }}>✕</Text></Pressable>
+                </View>
+                <ScrollView>
+                  {viewers === null && <Text style={{ color: C.muted }}>Carregando…</Text>}
+                  {viewers?.length === 0 && <Text style={{ color: C.muted }}>Ninguém viu ainda.</Text>}
+                  {(viewers ?? []).map((v) => (
+                    <View key={v.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8 }}>
+                      <Avatar name={v.name} id={v.avatarId} size={40} />
+                      <Text style={{ color: C.white, flex: 1 }}>{v.name}</Text>
+                      {v.liked && <Icon name="heart" size={20} color="#ff3b6b" fill />}
+                    </View>
+                  ))}
+                </ScrollView>
+              </Pressable>
+            </Pressable>
+          </Modal>
         )}
         {sharing && <ShareSheet id={story.id} author={g.name} body="" imageId={null} url={`${API}/painel/feed/membro/${g.userId}`} text={`Story de ${g.name} no NIZA INVEST`} onClose={closeShare} />}
       </View>

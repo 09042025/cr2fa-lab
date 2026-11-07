@@ -104,6 +104,20 @@ export function toggleStoryLike(storyId: number, userId: number): boolean | null
   return true;
 }
 
+export interface StoryViewer { id: number; name: string; avatarId: number | null; liked: boolean; at: number }
+
+/** Quem viu e quem curtiu um story. Só o dono (ou admin) pode ver. Quem curtiu aparece primeiro. */
+export function storyViewers(storyId: number, user: { id: number; role: string }): StoryViewer[] | null {
+  const s = db().prepare("SELECT user_id userId FROM stories WHERE id = ?").get(storyId) as { userId: number } | undefined;
+  if (!s || (s.userId !== user.id && user.role !== "admin")) return null;
+  return db().prepare(`
+    SELECT u.id, u.name, u.avatar_id avatarId, 1 liked, l.created_at at FROM story_likes l JOIN users u ON u.id = l.user_id WHERE l.story_id = ?
+    UNION ALL
+    SELECT u.id, u.name, u.avatar_id avatarId, 0 liked, v.viewed_at at FROM story_views v JOIN users u ON u.id = v.viewer_id
+      WHERE v.story_id = ? AND v.viewer_id <> ? AND v.viewer_id NOT IN (SELECT user_id FROM story_likes WHERE story_id = ?)
+    ORDER BY liked DESC, at DESC`).all(storyId, storyId, s.userId, storyId).map((r) => { const x = r as { id: number; name: string; avatarId: number | null; liked: number; at: number }; return { ...x, liked: !!x.liked }; });
+}
+
 export function deleteStory(storyId: number, user: { id: number; role: string }): boolean {
   const s = db().prepare("SELECT user_id userId, image_id imageId, video_id videoId FROM stories WHERE id = ?").get(storyId) as { userId: number; imageId: number; videoId: number | null } | undefined;
   if (!s || (s.userId !== user.id && user.role !== "admin")) return false;
