@@ -4,7 +4,7 @@ import { ADDRESS, PROTOS } from "@/lib/lppositions";
 import { graphEnabled, envProbe } from "@/lib/graph";
 import { filterBoard, getTopPositions, parsePair, KINDS, type BoardFilter, type BoardPosition, type PoolKind, type TopPosition } from "@/lib/toppositions";
 import { loadMulti, parseSelection, type MultiBoard } from "@/lib/boards";
-import { EXCHANGES, NETWORKS, dexLabel, netLabel, readySources, sourceReady } from "@/lib/sources";
+import { EXCHANGES, NETWORKS, dexLabel, netLabel, readySources, sourceReady, sourceShort } from "@/lib/sources";
 import { BoardTable, type BoardRow } from "@/components/BoardTable";
 import { GraphSourcesForm } from "@/components/GraphSourcesForm";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
@@ -101,7 +101,7 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
         <section className="card p-4">
           <h2 className="mb-1 font-semibold">{board.length} posições <span className="text-xs font-normal text-muted">· {boardPools} pools analisadas</span></h2>
           <div className="mt-3"><BoardTable rows={board.map((p): BoardRow => ({
-            key: `${p.chain}-${p.dex}-${p.tokenId}`, pair: p.pair, fee: p.fee, source: `${netLabel(p.chain)} · ${dexLabel(p.dex)}`, owner: p.owner, chain: p.chain, dex: p.dex, tokenId: p.tokenId,
+            key: `${p.chain}-${p.dex}-${p.tokenId}`, pair: p.pair, fee: p.fee, source: sourceShort(p.chain, p.dex), sourceFull: `${netLabel(p.chain)} · ${dexLabel(p.dex)}`, owner: p.owner, chain: p.chain, dex: p.dex, tokenId: p.tokenId,
             canAnalyze: PROTO_OK.has(`${p.chain}:${p.dex}`), range: `${sig(p.priceLower)} ↔ ${sig(p.priceUpper)}`, inRange: p.inRange,
             valueUsd: p.valueUsd, feesUsd: p.feesCollectedUsd, pnlUsd: p.pnlUsd, roi: p.roi, apr: p.apr, ageDays: p.ageDays,
           }))} /></div>
