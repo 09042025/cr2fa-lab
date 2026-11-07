@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { router } from "expo-router";
 import { ActivityIndicator, Linking, Text, TextInput, View } from "react-native";
 import { useAuth } from "../src/auth";
 import { API } from "../src/api";
@@ -42,7 +43,7 @@ export default function Entrar() {
       <Card>
         <Muted>Ainda não tem conta? Crie no site e depois volte aqui.</Muted>
         <GoldButton label="Criar conta no site" ghost onPress={() => Linking.openURL(`${API}/cadastrar`)} />
-        <GoldButton label="Política de privacidade" ghost onPress={() => Linking.openURL(`${API}/privacidade`)} />
+        <GoldButton label="Política de privacidade" ghost onPress={() => router.push("/privacidade")} />
         <GoldButton label="Esqueci minha senha" ghost onPress={() => Linking.openURL(`${API}/esqueci-senha`)} />
       </Card>
       {__DEV__ && (
