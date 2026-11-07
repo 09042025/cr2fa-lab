@@ -82,7 +82,7 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
                   <td className={`text-right ${tone(p.roi)}`}>{pct(p.roi * 100)}</td>
                   <td className={`text-right ${p.apr === null ? "" : tone(p.apr)}`}>{p.apr === null ? "—" : pct(p.apr * 100)}</td>
                   <td className="text-right text-muted">{Math.round(p.ageDays)} d</td>
-                  <td className="pl-3"><Link className="rounded border border-gold/50 px-2 py-1 text-xs font-semibold text-gold-soft hover:bg-gold/10" href={`/painel/cripto/defi/saude/posicao?carteira=${p.owner}&rede=${p.chain}&id=${p.tokenId}&proto=uniswap-v3`}>Analisar</Link></td>
+                  <td className="pl-3"><Link className="rounded border border-gold/50 px-2 py-1 text-xs font-semibold text-gold-soft hover:bg-gold/10" href={`/painel/cripto/defi/saude/posicao?carteira=${p.owner}&rede=${p.chain}&id=${p.tokenId}&proto=uniswap-v3&de=posicoes`}>Analisar</Link></td>
                 </tr>
               ))}
             </tbody>
