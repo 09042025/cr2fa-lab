@@ -166,7 +166,7 @@ export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; on
             </Pressable>
           </View>
           <View style={{ flex: 1, flexDirection: "row", gap: 12, paddingHorizontal: 16 }}>
-            <Avatar name={user?.name ?? ""} id={null} size={40} />
+            <Avatar name={user?.name ?? ""} id={user?.avatarId ?? null} size={40} />
             <View style={{ flex: 1, gap: 8 }}>
               <Select compact title="Assunto" value={draftTopic} onChange={setDraftTopic} options={topics.map((t) => ({ id: t.id, label: t.label }))} />
               <TextInput style={{ color: C.white, fontSize: 18, lineHeight: 26, minHeight: 120, flexShrink: 1, textAlignVertical: "top", padding: 0 }} placeholder="Compartilhe uma análise, dúvida ou ideia de investimento…" placeholderTextColor={C.muted} value={draft} onChangeText={setDraft} maxLength={1500} multiline autoFocus />

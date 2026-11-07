@@ -342,3 +342,8 @@ export function listLikers(postId: number, viewer: { id: number; role: string })
     ORDER BY u.name`).all(viewer.id, postId, viewer.id) as (Omit<Liker, "handle" | "isAdmin" | "iFollow" | "isMe"> & { handle: string | null; isAdmin: number; iFollow: number })[];
   return rows.map((r) => ({ ...r, handle: r.handle ?? defaultHandle(r.name, r.id), isAdmin: !!r.isAdmin, iFollow: !!r.iFollow, isMe: r.id === viewer.id }));
 }
+
+/** Foto de perfil (id da imagem) do membro, ou null. */
+export function userAvatarId(userId: number): number | null {
+  return (db().prepare("SELECT avatar_id a FROM users WHERE id = ?").get(userId) as { a: number | null } | undefined)?.a ?? null;
+}
