@@ -331,6 +331,13 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
   }, []);
+  // iPhone (Safari): ignora user-scalable=no; o evento "gesturestart" é o que dá zoom na página, então é bloqueado aqui.
+  useEffect(() => {
+    const stop = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", stop);
+    document.addEventListener("gesturechange", stop);
+    return () => { document.removeEventListener("gesturestart", stop); document.removeEventListener("gesturechange", stop); };
+  }, []);
   const logPriceRef = useRef(logPrice);
   logPriceRef.current = logPrice;
 

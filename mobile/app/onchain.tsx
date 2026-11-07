@@ -36,9 +36,12 @@ export default function Onchain() {
       {data?.pro && token && WebViewC && (
         <WebViewC
           source={{ uri: base, headers: { Authorization: `Bearer ${token}` } }}
-          injectedJavaScriptBeforeContentLoaded={`document.cookie = "cr2fa_session=${token}; path=/; max-age=86400"; true;`}
+          injectedJavaScriptBeforeContentLoaded={`(function(){var m=document.querySelector('meta[name=viewport]');var c="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";if(m){m.setAttribute("content",c);}else{document.addEventListener("DOMContentLoaded",function(){var n=document.createElement("meta");n.name="viewport";n.content=c;document.head.appendChild(n);});}})();document.cookie = "cr2fa_session=${token}; path=/; max-age=86400"; true;`}
           originWhitelist={["*"]}
           javaScriptEnabled
+          scalesPageToFit={false}
+          setBuiltInZoomControls={false}
+          setDisplayZoomControls={false}
           domStorageEnabled
           nestedScrollEnabled
           setSupportMultipleWindows={false}
