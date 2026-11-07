@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { Diamond } from "./Diamond";
 
 const TABS = [
@@ -21,9 +22,12 @@ const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/
 /** Abas da área Premium (White Flame Society): aparecem em todas as páginas dela. */
 export function CommunityTabs(_props: { pro?: boolean }) {
   const path = usePathname() || "";
+  const nav = useRef<HTMLElement>(null);
+  // No celular, a aba ativa fica centralizada na barra.
+  useEffect(() => { nav.current?.querySelector<HTMLElement>("[aria-current=page]")?.scrollIntoView({ inline: "center", block: "nearest" }); }, [path]);
   if (!AREA.some((a) => path === a || path.startsWith(a + "/"))) return null;
   return (
-    <nav className="mb-6 flex gap-1 overflow-x-auto border-b border-line" aria-label="Seções da White Flame Society">
+    <nav ref={nav} className="mb-6 flex gap-1 overflow-x-auto border-b border-line" aria-label="Seções da White Flame Society">
       {TABS.map((t) => {
         const active = t.href === "/painel/comunidade" ? path === t.href : path === t.href || path.startsWith(t.href + "/");
         return (

@@ -9,7 +9,7 @@ import { Card, Muted, ProGate, Screen, Status } from "../src/ui";
 interface Pool { id: string; symbol: string; project: string; chain: string; poolMeta: string | null; stablecoin: boolean; rwa: boolean; tvlUsd: number; volumeUsd1d: number | null; turnover: number | null; apyBase: number | null; apyReward: number | null; apy: number | null; apyMean30d: number | null; il7d: number | null; link?: { kind: "direct" | "home" | "llama"; name: string; url: string }; llama?: string }
 interface Data { dexes?: string[]; tipo: "liquidez" | "rendimento"; total: number; chains: string[]; pools: Pool[]; fetchedAt: number | null; stale: boolean }
 
-const chip = (on: boolean) => ({ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 });
+const chip = (on: boolean) => ({ flexGrow: 1, flexBasis: "46%" as const, alignItems: "center" as const, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 });
 const Chip = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => <Pressable onPress={onPress} style={chip(on)}><Text style={{ color: on ? C.ink : C.white, fontWeight: "700" }}>{label}</Text></Pressable>;
 const Stat = ({ l, v, gold }: { l: string; v: string; gold?: boolean }) => <View style={{ minWidth: "30%" }}><Text style={{ color: C.muted, fontSize: 11 }}>{l}</Text><Text style={{ color: gold ? C.goldSoft : C.white, fontWeight: "700" }}>{v}</Text></View>;
 

@@ -23,7 +23,7 @@ export default async function EmbedOnchain({ searchParams }: { searchParams: Pro
   const tab = (active: boolean) => `btn ${active ? "btn-gold" : "btn-ghost"}`;
   return (
     <div className="mx-auto max-w-5xl px-4 py-4">
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 grid grid-cols-2 gap-2 [&>a]:text-center">
         <Link href="/embed/onchain?v=tv" className={tab(view === "tv")}>Análise técnica (TradingView)</Link>
         <Link href="/embed/onchain?v=onchain" className={tab(view === "onchain")}>Indicadores on-chain</Link>
       </div>
