@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getEtfFlows } from "@/lib/etf";
+import { GROUPS, PERIODS, groupFlows, periodRows, type Group } from "@/lib/etfgroup";
 import { FlowBars } from "@/components/Bars";
 import { DataStatus, Disclaimer, Locked, PageTitle, ProBadge } from "@/components/ui";
 
@@ -8,17 +9,19 @@ export const dynamic = "force-dynamic";
 
 const m = (v: number | null) => (v === null ? "—" : `${v < 0 ? "−" : ""}US$ ${Math.abs(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi`);
 const br = (iso: string) => iso.split("-").reverse().join("/");
-const short = (iso: string) => iso.split("-").reverse().slice(0, 2).join("/");
 
-export default async function EtfPage({ searchParams }: { searchParams: Promise<{ a?: string }> }) {
+export default async function EtfPage({ searchParams }: { searchParams: Promise<{ a?: string; p?: string; g?: string }> }) {
   const user = await requireUser();
   const isPro = user.plan === "pro";
   const sp = await searchParams;
   const asset = sp.a === "eth" ? "eth" : "btc";
   const res = await getEtfFlows(asset);
   const rows = res.data?.rows ?? [];
-  const days = isPro ? 90 : 10;
-  const recent = rows.slice(-days);
+  // Premium escolhe período e agrupamento; o Free vê os últimos 10 pregões por dia
+  const per = PERIODS.find(([k]) => k === sp.p) ?? PERIODS[1];
+  const grp = (GROUPS.some(([k]) => k === sp.g) ? sp.g : "dia") as Group;
+  const recent = isPro ? periodRows(rows, per[2]) : rows.slice(-10);
+  const bars = groupFlows(recent, isPro ? grp : "dia");
   const lastRow = rows[rows.length - 1];
   const sum = (n: number) => rows.slice(-n).reduce((a, r) => a + (r.total ?? 0), 0);
   const cum = rows.reduce((a, r) => a + (r.total ?? 0), 0);
@@ -31,8 +34,8 @@ export default async function EtfPage({ searchParams }: { searchParams: Promise<
         <strong className="text-gold-soft">ETFs de cripto, não de ações:</strong> são fundos negociados na bolsa americana que compram Bitcoin ou Ethereum de verdade (IBIT da BlackRock, FBTC da Fidelity, ETHA e outros). Entrada de dinheiro indica demanda institucional; saída indica venda.
       </p>
       <div className="mb-4 flex gap-2">
-        <Link href="/painel/cripto/etf?a=btc" className={tab("btc")}>ETFs de Bitcoin (BTC)</Link>
-        <Link href="/painel/cripto/etf?a=eth" className={tab("eth")}>ETFs de Ethereum (ETH)</Link>
+        <Link href={`/painel/cripto/etf?a=btc&p=${per[0]}&g=${grp}`} className={tab("btc")}>ETFs de Bitcoin (BTC)</Link>
+        <Link href={`/painel/cripto/etf?a=eth&p=${per[0]}&g=${grp}`} className={tab("eth")}>ETFs de Ethereum (ETH)</Link>
       </div>
       <DataStatus result={res} source="Farside Investors" />
       {res.data && lastRow && (
@@ -46,9 +49,17 @@ export default async function EtfPage({ searchParams }: { searchParams: Promise<
             ))}
           </section>
           <section className="card mb-5 p-4">
-            <h2 className="mb-2 font-semibold">Fluxo líquido diário dos ETFs de {asset === "eth" ? "Ethereum" : "Bitcoin"} {!isPro && <span className="text-xs font-normal text-muted">(10 pregões)</span>}</h2>
-            <FlowBars items={recent.map((r) => ({ label: short(r.date), value: r.total ?? 0 }))} format={(v) => `${Math.abs(v).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mi`} />
-            {!isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> Histórico de 90 pregões no plano Premium.</p>}
+            <h2 className="mb-2 font-semibold">Fluxo líquido {grp === "mes" ? "mensal" : grp === "ano" ? "anual" : "diário"} dos ETFs de {asset === "eth" ? "Ethereum" : "Bitcoin"} {!isPro && <span className="text-xs font-normal text-muted">(10 pregões)</span>}</h2>
+            {isPro ? (
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-xs text-muted">Agrupar:</span>
+                {GROUPS.map(([k, l]) => <Link key={k} href={`/painel/cripto/etf?a=${asset}&p=${per[0]}&g=${k}`} className={`btn ${grp === k ? "btn-gold" : "btn-ghost"} !px-3 !py-1`}>{l}</Link>)}
+                <span className="mx-1 text-line">|</span><span className="text-xs text-muted">Período:</span>
+                {PERIODS.map(([k, l]) => <Link key={k} href={`/painel/cripto/etf?a=${asset}&p=${k}&g=${grp}`} className={`btn ${per[0] === k ? "btn-gold" : "btn-ghost"} !px-3 !py-1`}>{l}</Link>)}
+              </div>
+            ) : <p className="mb-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> Filtros de período (dias, meses e anos) no plano Premium.</p>}
+            <FlowBars items={bars.map((b) => ({ label: b.label, value: b.total }))} format={(v) => `${Math.abs(v).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mi`} />
+            {!isPro && <p className="mt-2 flex items-center gap-2 text-xs text-muted"><ProBadge /> Histórico completo no plano Premium.</p>}
           </section>
           <h2 className="mb-3 flex items-center gap-2 font-display text-xl font-bold text-gold-soft">Fluxo por fundo {!isPro && <ProBadge />}</h2>
           {isPro ? (

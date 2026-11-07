@@ -128,3 +128,13 @@ test("tipo de pool, aliases e par de tokens", () => {
   const f = { minValue: 0, minAgeDays: 0, onlyInRange: false, sort: "apr" as const, limit: 10 };
   assert.equal(filterBoard([mk({ tokenId: "a" }), mk({ tokenId: "b", kind: "stable" })], { ...f, kind: "stable" }).length, 1);
 });
+
+import { groupFlows, periodRows } from "../src/lib/etfgroup";
+test("ETF: período e agrupamento por dia, mês e ano", () => {
+  const rows = [{ date: "2025-12-30", total: 10 }, { date: "2026-01-02", total: 5 }, { date: "2026-01-03", total: -2 }, { date: "2026-02-01", total: null }];
+  assert.equal(periodRows(rows, 30).length, 2); // janela de 30 dias até 01/02/2026 começa em 03/01
+  assert.equal(periodRows(rows, null).length, 4);
+  assert.deepEqual(groupFlows(rows, "mes"), [{ label: "12/25", total: 10 }, { label: "01/26", total: 3 }, { label: "02/26", total: 0 }]);
+  assert.deepEqual(groupFlows(rows, "ano"), [{ label: "2025", total: 10 }, { label: "2026", total: 3 }]);
+  assert.equal(groupFlows(rows, "dia")[1].label, "02/01");
+});
