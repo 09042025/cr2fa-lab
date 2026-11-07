@@ -37,3 +37,7 @@ export function sourceReady(chain: string, dex: string): boolean {
 export function readySources(): { chain: string; dex: string }[] {
   return EXCHANGES.flatMap((e) => e.chains.map((c) => ({ chain: c, dex: e.id }))).filter((s) => sourceReady(s.chain, s.dex));
 }
+
+const NET_SHORT: Record<string, string> = { Ethereum: "ETH", Arbitrum: "ARB", Base: "Base", Robinhood: "HOOD", Polygon: "POL", Optimism: "OP", BSC: "BNB", Unichain: "UNI", Solana: "SOL" };
+const DEX_SHORT: Record<string, string> = { "uniswap-v3": "Uni v3", "uniswap-v4": "Uni v4", "pancakeswap-v3": "Cake v3", "aerodrome-cl": "Aero", "aerodrome-legacy": "Aero L", ekubo: "Ekubo", orca: "Orca", raydium: "Raydium" };
+export const sourceShort = (chain: string, dex: string) => `${NET_SHORT[chain] ?? chain} · ${DEX_SHORT[dex] ?? dex}`;

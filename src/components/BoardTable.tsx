@@ -3,13 +3,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 export interface BoardRow {
-  key: string; pair: string; fee: number; source: string; owner: string; chain: string; dex: string; tokenId: string; canAnalyze: boolean;
+  key: string; pair: string; fee: number; source: string; sourceFull: string; owner: string; chain: string; dex: string; tokenId: string; canAnalyze: boolean;
   range: string; inRange: boolean; valueUsd: number; feesUsd: number; pnlUsd: number; roi: number; apr: number | null; ageDays: number;
 }
 type NumKey = "valueUsd" | "feesUsd" | "pnlUsd" | "roi" | "apr" | "ageDays";
 const COLS: { k: NumKey; label: string; w: number; pct?: boolean }[] = [
-  { k: "valueUsd", label: "Valor", w: 92 }, { k: "feesUsd", label: "Taxas coletadas", w: 96 }, { k: "pnlUsd", label: "PnL", w: 96 },
-  { k: "roi", label: "ROI", w: 66, pct: true }, { k: "apr", label: "APR", w: 76, pct: true }, { k: "ageDays", label: "Idade", w: 56 },
+  { k: "valueUsd", label: "Valor", w: 74 }, { k: "feesUsd", label: "Taxas", w: 74 }, { k: "pnlUsd", label: "PnL", w: 74 },
+  { k: "roi", label: "ROI", w: 48, pct: true }, { k: "apr", label: "APR", w: 58, pct: true }, { k: "ageDays", label: "Idade", w: 44 },
 ];
 const int = (v: number) => Math.round(v).toLocaleString("pt-BR");
 const money = (v: number) => `${v < 0 ? "-" : ""}$${Math.abs(Math.round(v)).toLocaleString("pt-BR")}`;
@@ -36,14 +36,14 @@ export function BoardTable({ rows }: { rows: BoardRow[] }) {
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed text-xs tabular-nums" style={{ minWidth: 1010 }}>
-          <colgroup><col style={{ width: 30 }} /><col style={{ width: 128 }} /><col style={{ width: 136 }} /><col style={{ width: 104 }} /><col style={{ width: 150 }} />{COLS.map((c) => <col key={c.k} style={{ width: c.w }} />)}<col style={{ width: 70 }} /></colgroup>
+        <table className="w-full table-fixed text-[11px] tabular-nums" style={{ minWidth: 810 }}>
+          <colgroup><col style={{ width: 24 }} /><col style={{ width: 118 }} /><col style={{ width: 80 }} /><col style={{ width: 92 }} /><col style={{ width: 128 }} />{COLS.map((c) => <col key={c.k} style={{ width: c.w }} />)}<col style={{ width: 58 }} /></colgroup>
           <thead>
             <tr className="text-muted">
-              <th className="px-1 py-1 text-left">#</th><th className="px-1 py-1 text-left">Pool</th><th className="px-1 py-1 text-left">Rede · Exchange</th><th className="px-1 py-1 text-left">Carteira</th><th className="px-1 py-1 text-left">Faixa</th>
+              <th className="px-1 py-1 text-left">#</th><th className="px-1 py-1 text-left">Pool</th><th className="px-1 py-1 text-left">Rede</th><th className="px-1 py-1 text-left">Carteira</th><th className="px-1 py-1 text-left">Faixa</th>
               {COLS.map((c) => (
                 <th key={c.k} className={th}><button type="button" onClick={() => setSort((s) => ({ k: c.k, dir: s.k === c.k ? (s.dir === 1 ? -1 : 1) : -1 }))} className="whitespace-nowrap hover:text-gold-soft">
-                  {c.label}{sort.k === c.k ? (sort.dir === -1 ? " ▼" : " ▲") : ""}</button></th>
+                  <span title={c.k === "feesUsd" ? "Taxas já coletadas" : undefined}>{c.label}</span>{sort.k === c.k ? (sort.dir === -1 ? " ▼" : " ▲") : ""}</button></th>
               ))}
               <th />
             </tr>
@@ -63,7 +63,7 @@ export function BoardTable({ rows }: { rows: BoardRow[] }) {
               <tr key={r.key} className="border-t border-line align-middle">
                 <td className="px-1 py-1.5 text-muted">{i + 1}</td>
                 <td className="whitespace-nowrap px-1 font-medium">{r.pair} <span className="rounded border border-line px-1 font-normal text-muted">{r.fee / 10000}%</span></td>
-                <td className="truncate px-1 text-muted">{r.source}</td>
+                <td className="truncate px-1 text-muted" title={r.sourceFull}>{r.source}</td>
                 <td className="whitespace-nowrap px-1"><Link className="text-gold-soft hover:underline" href={`/painel/cripto/defi/saude?carteira=${r.owner}`}>{r.owner.slice(0, 6)}…{r.owner.slice(-4)}</Link></td>
                 <td className="whitespace-nowrap px-1"><span className={r.inRange ? "text-up" : "text-down"}>{r.inRange ? "●" : "○"}</span> {r.range}</td>
                 <td className="whitespace-nowrap px-1 text-right font-medium">{money(r.valueUsd)}</td>
@@ -72,7 +72,7 @@ export function BoardTable({ rows }: { rows: BoardRow[] }) {
                 <td className={`whitespace-nowrap px-1 text-right ${tone(r.roi)}`}>{int(r.roi * 100)}%</td>
                 <td className={`whitespace-nowrap px-1 text-right ${r.apr === null ? "" : tone(r.apr)}`}>{r.apr === null ? "—" : `${int(r.apr * 100)}%`}</td>
                 <td className="whitespace-nowrap px-1 text-right text-muted">{int(r.ageDays)} d</td>
-                <td className="px-1 text-right">{r.canAnalyze && <Link className="whitespace-nowrap rounded border border-gold/50 px-1.5 py-0.5 font-semibold text-gold-soft hover:bg-gold/10" href={`/painel/cripto/defi/saude/posicao?carteira=${r.owner}&rede=${r.chain}&id=${r.tokenId}&proto=${r.dex}&de=posicoes`}>Analisar</Link>}</td>
+                <td className="px-1 text-right">{r.canAnalyze && <Link className="whitespace-nowrap rounded border border-gold/50 px-1 py-0.5 font-semibold text-gold-soft hover:bg-gold/10" href={`/painel/cripto/defi/saude/posicao?carteira=${r.owner}&rede=${r.chain}&id=${r.tokenId}&proto=${r.dex}&de=posicoes`}>Analisar</Link>}</td>
               </tr>
             ))}
           </tbody>
