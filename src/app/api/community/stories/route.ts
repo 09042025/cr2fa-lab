@@ -2,12 +2,13 @@ import { z } from "zod";
 import { getUser, rateLimit } from "@/lib/auth";
 import { isBanned } from "@/lib/community";
 import { fail, json, sameOrigin } from "@/lib/http";
-import { createStory, sharePostToStory, shareStoryToFeed, deleteStory, listStoryGroups, markViewed, MAX_CAPTION } from "@/lib/stories";
+import { createStory, sharePostToStory, shareStoryToFeed, deleteStory, listStoryGroups, markViewed, toggleStoryLike, MAX_CAPTION } from "@/lib/stories";
 
 const schema = z.object({
   imageId: z.number().int().positive().optional(),
   caption: z.string().max(MAX_CAPTION * 2).default(""),
   view: z.number().int().positive().optional(),
+  like: z.number().int().positive().optional(),
   videoId: z.number().int().positive().optional(),
   share: z.number().int().positive().optional(),
   fromPost: z.number().int().positive().optional(),
@@ -27,6 +28,11 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return fail("Confira o story.");
   if (parsed.data.view) return markViewed(parsed.data.view, user.id) ? json({ ok: true }) : fail("Story não encontrado.", 404);
+  if (parsed.data.like) {
+    if (user.role !== "admin" && isBanned(user.id)) return fail("Você foi suspenso da comunidade pela moderação.", 403);
+    const liked = toggleStoryLike(parsed.data.like, user.id);
+    return liked === null ? fail("Não foi possível curtir este story.", 404) : json({ liked });
+  }
   if (parsed.data.share) {
     if (user.role !== "admin" && isBanned(user.id)) return fail("Você foi suspenso da comunidade pela moderação.", 403);
     return shareStoryToFeed(parsed.data.share, user.id) ? json({ ok: true }, 201) : fail("Não foi possível publicar (já está no Feed ou o story expirou).");

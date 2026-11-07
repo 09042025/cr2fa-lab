@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Avatar } from "./Avatar";
 import { useImageUpload } from "./imageUpload";
 import { StoryCamera, MAX_STORY_SECONDS, type Captured } from "./StoryCamera";
+import { ShareSheet } from "./PostActions";
 
-interface Story { id: number; imageId: number; videoId: number | null; caption: string; createdAt: number; seen: boolean; views?: number }
+interface Story { id: number; imageId: number; videoId: number | null; caption: string; createdAt: number; seen: boolean; views?: number; liked?: boolean; likes?: number }
 interface Group { userId: number; name: string; avatarId: number | null; isAdmin: boolean; mine: boolean; allSeen: boolean; stories: Story[] }
 
 const DURATION = 6000;
@@ -196,6 +197,10 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [msg, setMsg] = useState("");
+  const [reply, setReply] = useState("");
+  const [focused, setFocused] = useState(false);
+  const [share, setShare] = useState(false);
+  const [likedMap, setLikedMap] = useState<Record<number, boolean>>({});
   const g = groups[pos.g];
   const story = g?.stories[pos.s];
   const viewed = useRef(new Set<number>());
@@ -224,7 +229,7 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   }, [story, g]);
 
   useEffect(() => {
-    if (paused || msg || story?.videoId) return;
+    if (paused || focused || share || msg || story?.videoId) return;
     const t0 = Date.now() - progress * DURATION;
     const iv = setInterval(() => {
       const p = (Date.now() - t0) / DURATION;
@@ -232,13 +237,13 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
     }, 60);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pos, paused, msg]);
+  }, [pos, paused, focused, share, msg]);
 
   useEffect(() => {
     const v = vid.current;
     if (!v) return;
-    if (paused || msg) v.pause(); else void v.play().catch(() => { v.muted = true; void v.play().catch(() => {}); });
-  }, [paused, msg, pos]);
+    if (paused || focused || share || msg) v.pause(); else void v.play().catch(() => { v.muted = true; void v.play().catch(() => {}); });
+  }, [paused, focused, share, msg, pos]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); if (e.key === "ArrowRight") next(); if (e.key === "ArrowLeft") prev(); };
@@ -252,6 +257,23 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
     if (!window.confirm("Apagar este story?")) return;
     const r = await fetch(`/api/community/stories?id=${story!.id}`, { method: "DELETE" });
     if (r.ok) onChanged(); else setMsg("Não foi possível apagar.");
+  }
+  const liked = likedMap[story.id] ?? story.liked ?? false;
+  async function like() {
+    setLikedMap((m) => ({ ...m, [story!.id]: !liked }));
+    const r = await api({ like: story!.id });
+    const d = (await r.json().catch(() => null)) as { liked?: boolean } | null;
+    if (r.ok && typeof d?.liked === "boolean") setLikedMap((m) => ({ ...m, [story!.id]: d.liked! })); else setLikedMap((m) => ({ ...m, [story!.id]: liked }));
+  }
+  async function sendReply(e: React.FormEvent) {
+    e.preventDefault();
+    const text = reply.trim();
+    if (!text) return;
+    const r = await fetch("/api/community/dm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ to: g!.userId, body: `↩ Respondeu ao seu story: ${text}` }) }).catch(() => null);
+    const d = (await r?.json().catch(() => null)) as { error?: string } | null;
+    setReply("");
+    setMsg(r?.ok ? "Mensagem enviada!" : d?.error ?? "Não foi possível enviar.");
+    setTimeout(() => setMsg(""), 1500);
   }
   async function toFeed() {
     setPaused(true);
@@ -302,14 +324,32 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
           {msg && <p className="text-center text-xs text-gold-soft">{msg}</p>}
           {g.mine && (
             <div className="flex items-center justify-between gap-2 text-xs" onPointerDown={(e) => e.stopPropagation()}>
-              <span className="text-white/70">👁 {story.views ?? 0} {story.views === 1 ? "visualização" : "visualizações"}</span>
+              <span className="text-white/70">👁 {story.views ?? 0} {story.views === 1 ? "visualização" : "visualizações"} · ♥ {story.likes ?? 0}</span>
               <span className="flex gap-2">
                 {!story.videoId && <button type="button" onClick={toFeed} className="rounded-full bg-gold px-3 py-1 font-semibold text-ink">Publicar no Feed</button>}
                 <button type="button" onClick={remove} className="rounded-full border border-white/40 px-3 py-1 text-white">Apagar</button>
               </span>
             </div>
           )}
+          {!g.mine && (
+            <form onSubmit={sendReply} className="flex items-center gap-2" onPointerDown={(e) => e.stopPropagation()}>
+              <input value={reply} onChange={(e) => setReply(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} maxLength={500} placeholder="Enviar mensagem…" aria-label="Enviar mensagem" className="h-11 min-w-0 flex-1 rounded-full border border-white/50 bg-transparent px-4 text-sm text-white outline-none placeholder:text-white/70 focus:border-white" />
+              {reply.trim() ? (
+                <button type="submit" className="px-2 text-sm font-semibold text-gold-soft">Enviar</button>
+              ) : (
+                <>
+                  <button type="button" onClick={like} aria-pressed={liked} aria-label={liked ? "Descurtir" : "Curtir"} className="px-1">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill={liked ? "#f472b6" : "none"} stroke={liked ? "#f472b6" : "#fff"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21.7l8.8-8.7a5.2 5.2 0 0 0 0-7.4Z" /></svg>
+                  </button>
+                  <button type="button" onClick={() => setShare(true)} aria-label="Compartilhar" className="px-1">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m22 2-11 11" /><path d="m22 2-7 20-4-9-9-4 20-7Z" /></svg>
+                  </button>
+                </>
+              )}
+            </form>
+          )}
         </div>
+        {share && <ShareSheet id={story.id} author={g.name} body="" imageId={null} videoId={null} url={`${location.origin}/painel/feed/membro/${g.userId}`} text={`Story de ${g.name} no NIZA INVEST`} onClose={() => setShare(false)} />}
       </div>
     </div>
   );

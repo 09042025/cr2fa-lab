@@ -8,6 +8,7 @@ const P = {
   views: ["M4 20V10", "M10 20V4", "M16 20v-8", "M22 20H2"],
   bookmark: ["M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z"],
   share: ["M12 15V3", "m7 8 5-5 5 5", "M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"],
+  plane: ["m22 2-11 11", "M22 2 15 22l-4-9-9-4 20-7Z"],
 } as const;
 
 export type IconName = keyof typeof P;
