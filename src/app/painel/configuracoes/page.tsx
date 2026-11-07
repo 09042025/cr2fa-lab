@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { PageTitle } from "@/components/ui";
-import { PasswordForm, ProfileForm } from "@/components/AccountForms";
+import { DeleteAccountForm, PasswordForm, ProfileForm } from "@/components/AccountForms";
 import { LogoutButton } from "@/components/LogoutButton";
 import { date } from "@/lib/format";
 import { getMember, MAX_BIO } from "@/lib/feed";
@@ -57,6 +57,14 @@ export default async function SettingsPage() {
         <h2 className="mb-4 font-semibold">Sessão</h2>
         <div className="sm:max-w-xs"><LogoutButton /></div>
       </section>
+
+      {user.role !== "admin" && (
+        <section className="card mb-6 p-5">
+          <h2 className="mb-2 font-semibold">Excluir minha conta</h2>
+          <p className="mb-4 text-sm text-muted">Apaga sua conta e tudo ligado a ela (publicações, mensagens, portfólio). Não dá para desfazer. Se você assina o Premium, cancele a assinatura antes.</p>
+          <DeleteAccountForm />
+        </section>
+      )}
     </div>
   );
 }
