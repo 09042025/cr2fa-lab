@@ -36,7 +36,7 @@ export function GoldButton({ label, onPress, ghost }: { label: string; onPress: 
 }
 
 export function ProBadge() {
-  return <View style={s.badge}><Text style={s.badgeText}>PRÓ</Text></View>;
+  return <View style={s.badge}><Text style={s.badgeText}>PREMIUM</Text></View>;
 }
 
 /** Tela/trecho exclusivo do plano Premium: quem é Grátis vê o cadeado e o botão para os planos. */
