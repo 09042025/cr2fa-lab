@@ -246,7 +246,8 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     if (ts.length < 2) return;
     const b = tpos(ts[1]);
     if (g.mode === "pan") {
-      // dois dedos dentro do gráfico: um segura um canto e o outro marca o canto oposto
+      // dois dedos dentro do gráfico: um segura um canto e o outro marca o canto oposto; o gráfico fica parado onde estava
+      if (g.moved && (i0 !== g.i0 || i1 !== g.i1)) onZoom(g.i0!, g.i1!);
       const d = { kind: "box" as const, x0: a.x, y0: a.y, x1: b.x, y1: b.y };
       tg.current = { mode: "box", d };
       setDrag(d);
@@ -274,10 +275,10 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     const a = tpos(ts[0]);
     if (g.mode === "pan" && ts.length === 1) {
       const dx = a.x - g.x!;
-      if (Math.abs(dx) > 6 || Math.abs(a.y - g.y!) > 6) g.moved = true;
+      if (!g.moved && Math.hypot(dx, a.y - g.y!) > 12) g.moved = true; // só começa a arrastar depois de um movimento claro
       const span = g.i1! - g.i0!;
       const n0 = Math.max(0, Math.min(price.length - 1 - span, Math.round(g.i0! - (dx / geo.plotW) * span)));
-      if (n0 !== i0) onZoom(n0, n0 + span);
+      if (g.moved && n0 !== i0) onZoom(n0, n0 + span);
       if (a.x >= padL && a.x <= padL + geo.plotW) setHover(idxFromPx(a.x));
     } else if (g.mode === "box" && g.d) {
       if (ts.length > 1) {
