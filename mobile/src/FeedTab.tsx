@@ -15,6 +15,7 @@ import type { Picked } from "./upload";
 import { Card, GoldButton, Muted, Status } from "./ui";
 import { Icon } from "./icons";
 import { ShareSheet } from "./ShareSheet";
+import { useMention } from "./Mention";
 import { compact } from "./share";
 
 interface Comment { id: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; body: string; createdAt: number }
@@ -36,6 +37,7 @@ const counted = new Set<number>();
 function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLabel: string; onChanged: () => void; me: { id: number; admin: boolean }; reasons: string[] }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const cm = useMention(text, setText);
   const [msg, setMsg] = useState<string | null>(null);
   const [liked, setLiked] = useState(p.liked);
   const [likes, setLikes] = useState(p.likes);
@@ -139,7 +141,8 @@ function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLab
               </View>
             </View>
           ))}
-          <TextInput style={input} placeholder="Escreva um comentário…" placeholderTextColor={C.muted} value={text} onChangeText={setText} maxLength={500} multiline />
+          <TextInput style={input} placeholder="Escreva um comentário…" placeholderTextColor={C.muted} value={text} onChangeText={cm.onChangeText} onSelectionChange={cm.onSelectionChange} maxLength={500} multiline />
+          {cm.picker}
           <GoldButton label="Comentar" ghost onPress={comment} />
         </View>
       )}
@@ -161,6 +164,7 @@ export function FeedTab({ composing, onCloseCompose, only }: { composing?: boole
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const mention = useMention(draft, setDraft);
   const [draftTopic, setDraftTopic] = useState("geral");
   const [posting, setPosting] = useState(false);
   const [postErr, setPostErr] = useState<string | null>(null);
@@ -215,7 +219,8 @@ export function FeedTab({ composing, onCloseCompose, only }: { composing?: boole
             <Avatar name={user?.name ?? ""} id={user?.avatarId ?? null} size={40} />
             <View style={{ flex: 1, gap: 8 }}>
               <Select compact title="Assunto" value={draftTopic} onChange={setDraftTopic} options={topics.map((t) => ({ id: t.id, label: t.label }))} />
-              <TextInput style={{ color: C.white, fontSize: 18, lineHeight: 26, minHeight: 120, flexShrink: 1, textAlignVertical: "top", padding: 0 }} placeholder="Compartilhe uma análise, dúvida ou ideia de investimento…" placeholderTextColor={C.muted} value={draft} onChangeText={setDraft} maxLength={1500} multiline autoFocus />
+              <TextInput style={{ color: C.white, fontSize: 18, lineHeight: 26, minHeight: 120, flexShrink: 1, textAlignVertical: "top", padding: 0 }} placeholder="Compartilhe uma análise, dúvida ou ideia de investimento…" placeholderTextColor={C.muted} value={draft} onChangeText={mention.onChangeText} onSelectionChange={mention.onSelectionChange} maxLength={1500} multiline autoFocus />
+              {mention.picker}
               {photo ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.panel2, borderRadius: 10, padding: 8 }}>
                   <Image source={{ uri: photo.uri }} style={{ width: 56, height: 56, borderRadius: 8 }} />

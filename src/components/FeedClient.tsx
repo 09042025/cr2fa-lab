@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useImageUpload } from "./imageUpload";
 import { CashpillButton } from "./Cashpills";
 import { Avatar } from "./Avatar";
+import { useMention } from "./MentionPicker";
 
 const link = "text-xs text-muted underline hover:text-white";
 const post = (body: unknown) => fetch("/api/community/feed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -19,6 +20,7 @@ export function PostForm({ topics, max, current, me }: { topics: readonly { id: 
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
+  const mention = useMention(body, setBody);
   const [topic, setTopic] = useState(topics.some((t) => t.id === current) ? current! : "geral");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -77,7 +79,9 @@ export function PostForm({ topics, max, current, me }: { topics: readonly { id: 
                   value={body}
                   maxLength={max}
                   rows={8}
-                  onChange={(e) => setBody(e.target.value)}
+                  onChange={(e) => { setBody(e.target.value); mention.track(e.target); }}
+                  onKeyUp={(e) => mention.track(e.currentTarget)}
+                  onClick={(e) => mention.track(e.currentTarget)}
                   onPaste={(e) => {
                     const f = Array.from(e.clipboardData.files).find((x) => x.type.startsWith("image/"));
                     if (f) { e.preventDefault(); void img.upload(f); }
@@ -85,6 +89,7 @@ export function PostForm({ topics, max, current, me }: { topics: readonly { id: 
                   placeholder="Compartilhe uma análise, uma dúvida ou uma ideia de investimento… (cole prints com Ctrl+V)"
                   className="w-full resize-none bg-transparent text-lg leading-7 outline-none placeholder:text-muted focus:outline-none"
                 />
+                {mention.picker}
                 {img.image && (
                   <div className="mt-2 flex items-center gap-3 rounded-lg bg-panel-2 p-2 text-xs text-muted">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
