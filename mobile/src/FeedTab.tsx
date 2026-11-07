@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "./auth";
 import { get, send } from "./api";
 import { Avatar, PostImage } from "./Avatar";
 import { ago } from "./format";
@@ -97,7 +99,9 @@ function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLab
   );
 }
 
-export function FeedTab() {
+export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; onCloseCompose?: () => void }) {
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [topic, setTopic] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
   const [topics, setTopics] = useState<{ id: string; label: string }[]>([]);
@@ -132,21 +136,36 @@ export function FeedTab() {
     const e = await send("/api/community/feed", { action: "post", topic: draftTopic, body: draft.trim(), imageId: photo?.id ?? null });
     setPosting(false);
     if (e) return setPostErr(e);
-    setDraft(""); setPhoto(null); void load();
+    setDraft(""); setPhoto(null); onCloseCompose?.(); void load();
   }
 
   const label = (id: string) => topics.find((t) => t.id === id)?.label ?? "Geral";
   return (
     <>
-      <Card style={{ gap: 10 }}>
-        <TextInput style={[input, { minHeight: 80, textAlignVertical: "top" }]} placeholder="Compartilhe uma análise, dúvida ou ideia…" placeholderTextColor={C.muted} value={draft} onChangeText={setDraft} maxLength={1500} multiline />
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {topics.map((t) => <Chip key={t.id} label={t.label} on={draftTopic === t.id} onPress={() => setDraftTopic(t.id)} />)}
-        </View>
-        <PhotoPicker value={photo} onChange={setPhoto} onError={setPostErr} />
-        {postErr ? <Text style={{ color: C.down }}>{postErr}</Text> : null}
-        <GoldButton label={posting ? "Publicando…" : "Publicar"} onPress={publish} />
-      </Card>
+      <Modal visible={!!composing} animationType="slide" onRequestClose={onCloseCompose}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: C.ink, paddingTop: insets.top + 8, paddingBottom: insets.bottom }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 10 }}>
+            <Pressable onPress={onCloseCompose} hitSlop={10}><Text style={{ color: C.white, fontSize: 16 }}>Cancelar</Text></Pressable>
+            <Pressable onPress={publish} disabled={posting || (!draft.trim() && !photo)} style={{ backgroundColor: C.gold, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 8, opacity: posting || (!draft.trim() && !photo) ? 0.5 : 1 }}>
+              <Text style={{ color: C.ink, fontWeight: "800" }}>{posting ? "…" : "Postar"}</Text>
+            </Pressable>
+          </View>
+          <View style={{ flex: 1, flexDirection: "row", gap: 10, paddingHorizontal: 16 }}>
+            <Avatar name={user?.name ?? ""} id={null} size={40} />
+            <View style={{ flex: 1, gap: 8 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                {topics.map((t) => <Chip key={t.id} label={t.label} on={draftTopic === t.id} onPress={() => setDraftTopic(t.id)} />)}
+              </View>
+              <TextInput style={{ color: C.white, fontSize: 18, flex: 1, textAlignVertical: "top" }} placeholder="Compartilhe uma análise, dúvida ou ideia…" placeholderTextColor={C.muted} value={draft} onChangeText={setDraft} maxLength={1500} multiline autoFocus />
+              {postErr ? <Text style={{ color: C.down }}>{postErr}</Text> : null}
+            </View>
+          </View>
+          <View style={{ borderTopWidth: 1, borderTopColor: C.line, padding: 12, gap: 6 }}>
+            <PhotoPicker value={photo} onChange={setPhoto} onError={setPostErr} />
+            <Text style={{ color: C.muted, fontSize: 11 }}>{draft.length}/1500 · Conteúdo da comunidade é opinião dos membros, não recomendação de investimento.</Text>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         <Chip label="Tudo" on={topic === ""} onPress={() => setTopic("")} />

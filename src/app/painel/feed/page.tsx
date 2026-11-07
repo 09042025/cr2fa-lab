@@ -30,7 +30,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
       {banned ? (
         <p className="card mb-5 p-4 text-sm text-muted">Você foi suspenso da comunidade pela moderação e não pode publicar. Fale com o suporte se achar que foi um engano.</p>
       ) : (
-        <PostForm topics={TOPICS} max={MAX_POST} current={topic} />
+        <PostForm topics={TOPICS} max={MAX_POST} current={topic} me={{ name: user.name, avatarId }} />
       )}
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">{chip("todos", "Tudo")}{chip("seguindo", "Seguindo")}{chip("salvos", "Salvos")}{TOPICS.map((t) => chip(t.id, t.label))}</div>
       <div className="space-y-4">
