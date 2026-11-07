@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "./auth";
 import { Select } from "./Select";
@@ -196,11 +196,11 @@ export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; on
         {rec && <Recorder mode="cashpill" onClose={() => setRec(false)} onReady={async (r, c) => { const e = await publishCashpill(r, c); if (!e) { onCloseCompose?.(); setMsg("Cashpill publicado no seu perfil!"); } return e; }} />}
       </Modal>
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} style={{ flexGrow: 0 }}>
         <Chip label="Tudo" on={topic === ""} onPress={() => setTopic("")} />
         <Chip label="Seguindo" on={topic === "seguindo"} onPress={() => setTopic("seguindo")} />
         {topics.map((t) => <Chip key={t.id} label={t.label} on={topic === t.id} onPress={() => setTopic(t.id)} />)}
-      </View>
+      </ScrollView>
 
       {msg ? <Text style={{ color: C.goldSoft, fontWeight: "700" }}>{msg}</Text> : null}
       <Status loading={loading && posts.length === 0} error={error} onRetry={() => load()} />

@@ -12,7 +12,7 @@ export default function Feed() {
   const [composing, setComposing] = useState(false);
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <Screen title="Feed" subtitle="Publicações dos membros sobre investimentos: análises, dúvidas e ideias.">
+      <Screen>
         <StoriesBar me={{ name: user?.name ?? "" }} />
         <FeedTab composing={composing} onCloseCompose={() => setComposing(false)} />
       </Screen>
