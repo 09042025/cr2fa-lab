@@ -9,6 +9,7 @@ export function GraphSourcesForm({ networks, exchanges, saved = [] }: { networks
   const [id, setId] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ask, setAsk] = useState<string | null>(null); // fonte esperando confirmação de remoção
   async function save() {
     setBusy(true); setMsg(null);
     try {
@@ -20,7 +21,6 @@ export function GraphSourcesForm({ networks, exchanges, saved = [] }: { networks
     setBusy(false);
   }
   async function remove(c: string, d: string) {
-    if (!window.confirm(`Remover a fonte ${c} · ${d}?`)) return;
     setBusy(true); setMsg(null);
     try {
       const r = await fetch("/api/admin/graph-source", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ chain: c, dex: d }) });
@@ -38,7 +38,9 @@ export function GraphSourcesForm({ networks, exchanges, saved = [] }: { networks
             {saved.map((x) => (
               <li key={`${x.chain}-${x.dex}`} className="flex flex-wrap items-center justify-between gap-2 rounded border border-line px-2 py-1">
                 <span>{label(networks, x.chain)} · {label(exchanges, x.dex)} <span className="text-xs text-muted">· {x.id.slice(0, 8)}…{x.id.slice(-4)}</span></span>
-                <button type="button" disabled={busy} onClick={() => remove(x.chain, x.dex)} className="rounded border border-down/60 px-2 py-0.5 text-xs text-down hover:bg-down/10">Remover</button>
+                {ask === `${x.chain}:${x.dex}`
+                  ? <span className="flex gap-1"><button type="button" disabled={busy} onClick={() => remove(x.chain, x.dex)} className="rounded border border-down bg-down/20 px-2 py-0.5 text-xs font-semibold text-down">Confirmar remoção</button><button type="button" onClick={() => setAsk(null)} className="rounded border border-line px-2 py-0.5 text-xs text-muted">Cancelar</button></span>
+                  : <button type="button" disabled={busy} onClick={() => setAsk(`${x.chain}:${x.dex}`)} className="rounded border border-down/60 px-2 py-0.5 text-xs text-down hover:bg-down/10">Remover</button>}
               </li>
             ))}
           </ul>
