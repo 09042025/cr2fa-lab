@@ -13,6 +13,7 @@ export async function GET(req: Request) {
     viewerId: user.id,
     topic: TOPICS.some((x) => x.id === t) ? t : undefined,
     following: t === "seguindo",
+    saved: t === "salvos",
     before: Number(q.get("antes")) || undefined,
   });
   return json({
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
     me: { id: user.id, admin: user.role === "admin" },
     posts: posts.map((p) => ({
       id: p.id, userId: p.userId, author: p.author, authorAvatar: p.authorAvatar, authorIsAdmin: p.authorIsAdmin, topic: p.topic, body: p.body, imageId: p.imageId,
-      createdAt: p.createdAt, likes: p.likes, liked: p.liked, pinned: p.pinned,
+      createdAt: p.createdAt, likes: p.likes, liked: p.liked, pinned: p.pinned, bookmarked: p.bookmarked,
       comments: p.comments.map((c) => ({ id: c.id, userId: c.userId, author: c.author, authorAvatar: c.authorAvatar, authorIsAdmin: c.authorIsAdmin, body: c.body, createdAt: c.createdAt })),
     })),
     more,

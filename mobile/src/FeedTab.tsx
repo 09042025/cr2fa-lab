@@ -15,7 +15,7 @@ import type { Picked } from "./upload";
 import { Card, GoldButton, Muted, Status } from "./ui";
 
 interface Comment { id: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; body: string; createdAt: number }
-interface Post { id: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; topic: string; body: string; imageId: number | null; createdAt: number; likes: number; liked: boolean; pinned: boolean; comments: Comment[] }
+interface Post { id: number; userId: number; author: string; authorAvatar: number | null; authorIsAdmin: boolean; topic: string; body: string; imageId: number | null; createdAt: number; likes: number; liked: boolean; pinned: boolean; bookmarked?: boolean; comments: Comment[] }
 interface FeedData { topics: { id: string; label: string }[]; reportReasons: string[]; me: { id: number; admin: boolean }; posts: Post[]; more: boolean }
 
 const input = { backgroundColor: C.ink, borderColor: C.line, borderWidth: 1, borderRadius: 10, color: C.white, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 } as const;
@@ -34,12 +34,19 @@ function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLab
   const [msg, setMsg] = useState<string | null>(null);
   const [liked, setLiked] = useState(p.liked);
   const [likes, setLikes] = useState(p.likes);
+  const [saved, setSaved] = useState(!!p.bookmarked);
 
   async function like() {
     const was = liked;
     setLiked(!was); setLikes(likes + (was ? -1 : 1));
     const e = await send("/api/community/feed", { action: "like", postId: p.id });
     if (e) { setLiked(was); setLikes(likes); setMsg(e); }
+  }
+  async function bookmark() {
+    const was = saved;
+    setSaved(!was);
+    const e = await send("/api/community/feed", { action: "bookmark", postId: p.id });
+    if (e) { setSaved(was); setMsg(e); } else if (was) onChanged();
   }
   async function remove() {
     const e = await send("/api/community/feed?id=" + p.id + "&kind=post", undefined, "DELETE");
@@ -76,6 +83,7 @@ function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLab
       <View style={{ flexDirection: "row", gap: 18, alignItems: "center" }}>
         <Pressable onPress={like}><Text style={{ color: liked ? C.down : C.muted, fontWeight: "700" }}>{liked ? "♥" : "♡"} {likes}</Text></Pressable>
         <Pressable onPress={() => setOpen(!open)}><Text style={{ color: C.muted, fontWeight: "600" }}>💬 {p.comments.length}</Text></Pressable>
+        <Pressable onPress={bookmark}><Text style={{ color: saved ? C.goldSoft : C.muted, fontWeight: "700" }}>{saved ? "🔖 Salvo" : "🔖 Salvar"}</Text></Pressable>
       </View>
       <Row>
         {p.userId === me.id && <Act label={p.pinned ? "Desafixar" : "Fixar no perfil"} onPress={pin} />}
@@ -102,10 +110,10 @@ function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLab
   );
 }
 
-export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; onCloseCompose?: () => void }) {
+export function FeedTab({ composing, onCloseCompose, only }: { composing?: boolean; onCloseCompose?: () => void; only?: string }) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(only ?? "");
   const [posts, setPosts] = useState<Post[]>([]);
   const [topics, setTopics] = useState<{ id: string; label: string }[]>([]);
   const [more, setMore] = useState(false);
@@ -196,15 +204,15 @@ export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; on
         {rec && <Recorder mode="cashpill" onClose={() => setRec(false)} onReady={async (r, c) => { const e = await publishCashpill(r, c); if (!e) { onCloseCompose?.(); setMsg("Cashpill publicado no seu perfil!"); } return e; }} />}
       </Modal>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} style={{ flexGrow: 0 }}>
+      {!only && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} style={{ flexGrow: 0 }}>
         <Chip label="Tudo" on={topic === ""} onPress={() => setTopic("")} />
         <Chip label="Seguindo" on={topic === "seguindo"} onPress={() => setTopic("seguindo")} />
         {topics.map((t) => <Chip key={t.id} label={t.label} on={topic === t.id} onPress={() => setTopic(t.id)} />)}
-      </ScrollView>
+      </ScrollView>}
 
       {msg ? <Text style={{ color: C.goldSoft, fontWeight: "700" }}>{msg}</Text> : null}
       <Status loading={loading && posts.length === 0} error={error} onRetry={() => load()} />
-      {!loading && !error && posts.length === 0 && <Muted>Ainda não há publicações aqui. Seja o primeiro!</Muted>}
+      {!loading && !error && posts.length === 0 && <Muted>{only === "salvos" ? "Você ainda não salvou nenhuma publicação. Toque em Salvar em uma publicação para guardá-la aqui." : "Ainda não há publicações aqui. Seja o primeiro!"}</Muted>}
       {posts.map((p) => <PostCard key={p.id} p={p} topicLabel={label(p.topic)} onChanged={() => load()} me={me} reasons={reasons} />)}
       {more && <GoldButton label={loading ? "Carregando…" : "Ver mais"} ghost onPress={() => load(true)} />}
       {!loading && <GoldButton label="Atualizar" ghost onPress={() => load()} />}
