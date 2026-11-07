@@ -101,3 +101,14 @@ test("Pools Position: descarta taxas absurdas do indexador", () => {
   const bad = { id: "9", owner: "0xabc", liquidity: "1" + "0".repeat(21), tickLower: { tickIdx: "-1000" }, tickUpper: { tickIdx: "1000" }, depositedToken0: "10", depositedToken1: "10", withdrawnToken0: "0", withdrawnToken1: "0", collectedFeesToken0: "1" + "0".repeat(15), collectedFeesToken1: "1", transaction: { timestamp: "1000" } };
   assert.equal(rankPositions(pool, [bad], 100, 100, 1000 + 100 * 86400).length, 0);
 });
+
+import { perfFromTotals } from "../src/lib/graphperf";
+test("desempenho pelo indexador: idade, PnL e taxas absurdas", () => {
+  const g = { depositedToken0: "10", depositedToken1: "10", withdrawnToken0: "0", withdrawnToken1: "0", collectedFeesToken0: "1", collectedFeesToken1: "1", transaction: { timestamp: "0" } };
+  const now = { amount0: 10, amount1: 10, fees0: 0.5, fees1: 0.5, u0: 100, u1: 100 };
+  const p = perfFromTotals({ ...g, transaction: { timestamp: String(1000) } }, now, 1000 + 10 * 86400)!;
+  assert.equal(Math.round(p.ageDays), 10);
+  assert.equal(Math.round(p.pnlUsd), 300);
+  const bad = perfFromTotals({ ...g, collectedFeesToken0: "1" + "0".repeat(15), transaction: { timestamp: String(1000) } }, now, 1000 + 10 * 86400)!;
+  assert.equal(Math.round(bad.pnlUsd), 100);
+});

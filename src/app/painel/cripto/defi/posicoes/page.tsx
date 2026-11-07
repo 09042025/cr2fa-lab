@@ -32,7 +32,7 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
   }
   let board: BoardPosition[] = [], boardPools = 0;
   const minValue = [0, 1000, 10000, 100000].includes(Number(sp.min)) ? Number(sp.min) : 1000;
-  const minAge = [0, 7, 30, 90].includes(Number(sp.idade)) ? Number(sp.idade) : 7;
+  const minAge = [0, 7, 30, 90, 180, 365].includes(Number(sp.idade)) ? Number(sp.idade) : 7;
   const onlyIn = sp.faixa === "1";
   const sortKey = (["apr", "roi", "pnl", "valor"].includes(sp.ordem ?? "") ? sp.ordem : "apr") as BoardFilter["sort"];
   if (!pool) {
@@ -55,7 +55,7 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
             <div><label className="label" htmlFor="rede">Rede</label><select id="rede" name="rede" defaultValue={chain} className="input">{chains.map((c) => <option key={c}>{c}</option>)}</select></div>
             <div><label className="label" htmlFor="ordem">Ordenar por</label><select id="ordem" name="ordem" defaultValue={sortKey} className="input">{Object.entries(SORTS).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select></div>
             <div><label className="label" htmlFor="min">Valor mínimo</label><select id="min" name="min" defaultValue={String(minValue)} className="input"><option value="0">Qualquer</option><option value="1000">US$ 1 mil</option><option value="10000">US$ 10 mil</option><option value="100000">US$ 100 mil</option></select></div>
-            <div><label className="label" htmlFor="idade">Idade mínima</label><select id="idade" name="idade" defaultValue={String(minAge)} className="input"><option value="0">Qualquer</option><option value="7">7 dias</option><option value="30">30 dias</option><option value="90">90 dias</option></select></div>
+            <div><label className="label" htmlFor="idade">Idade mínima</label><select id="idade" name="idade" defaultValue={String(minAge)} className="input"><option value="0">Qualquer</option><option value="7">7 dias</option><option value="30">30 dias</option><option value="90">90 dias</option><option value="180">180 dias</option><option value="365">1 ano ou mais</option></select></div>
             <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="faixa" value="1" defaultChecked={onlyIn} /> Só dentro da faixa</label>
             <button className="btn btn-gold" type="submit">Filtrar</button>
           </form>
