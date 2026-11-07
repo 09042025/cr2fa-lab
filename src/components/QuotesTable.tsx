@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Quote } from "@/lib/market";
+import { TickerLogo } from "@/components/TickerLogo";
 import { Change } from "@/components/ui";
 import { brl, brlCompact } from "@/lib/format";
 import { shortName } from "@/lib/names";
@@ -12,7 +13,7 @@ export function QuotesTable({ rows, origem }: { rows: Quote[]; origem: "acoes" |
         <tbody>
           {rows.map((q) => (
             <tr key={q.symbol}>
-              <td className="font-semibold"><Link href={`/painel/ativo/${q.symbol}?de=${origem}`} title="Ver gráfico e informações" className="text-gold-soft underline-offset-2 hover:underline">{q.symbol} <span aria-hidden>📈</span></Link></td>
+              <td className="font-semibold"><Link href={`/painel/ativo/${q.symbol}?de=${origem}`} title="Ver gráfico e informações" className="text-gold-soft underline-offset-2 hover:underline"><span className="inline-flex items-center gap-2"><TickerLogo src={q.logo} symbol={q.symbol} />{q.symbol} <span aria-hidden>📈</span></span></Link></td>
               <td className="max-w-[260px] truncate text-muted" title={q.name}>{shortName(q.name)}</td>
               <td>{q.sector}</td>
               <td className="num">{brl(q.price)}</td>

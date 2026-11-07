@@ -276,9 +276,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     if (g.mode === "pan" && ts.length === 1) {
       const dx = a.x - g.x!;
       if (!g.moved && Math.hypot(dx, a.y - g.y!) > 12) g.moved = true; // só começa a arrastar depois de um movimento claro
-      const span = g.i1! - g.i0!;
-      const n0 = Math.max(0, Math.min(price.length - 1 - span, Math.round(g.i0! - (dx / geo.plotW) * span)));
-      if (g.moved && n0 !== i0) onZoom(n0, n0 + span);
+      // um dedo só percorre os valores (cursor); o gráfico fica parado
       if (a.x >= padL && a.x <= padL + geo.plotW) setHover(idxFromPx(a.x));
     } else if (g.mode === "box" && g.d) {
       if (ts.length > 1) {
