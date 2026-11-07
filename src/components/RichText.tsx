@@ -8,7 +8,7 @@ export function RichText({ body, first }: { body: string; first?: string }) {
         t.type === "link" ? (
           <a key={i} href={t.href} target="_blank" rel="noopener noreferrer nofollow ugc" title={t.href} className="break-all text-gold-soft underline hover:text-white">{shortUrl(t.text)}</a>
         ) : t.type === "mention" ? (
-          <span key={i} className={`rounded px-0.5 font-medium ${first && t.text.slice(1).toLowerCase() === first ? "bg-gold/25 text-gold-soft" : "text-gold-soft"}`}>{t.text}</span>
+          <a key={i} href={`/painel/feed/mencao?nome=${encodeURIComponent(t.text.slice(1))}`} className={`rounded px-0.5 font-medium hover:underline ${first && t.text.slice(1).toLowerCase() === first ? "bg-gold/25 text-gold-soft" : "text-gold-soft"}`}>{t.text}</a>
         ) : (
           <span key={i}>{t.text}</span>
         ),
