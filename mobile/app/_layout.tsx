@@ -12,6 +12,7 @@ function Routes() {
       {/* Só quem entrou vê o app */}
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="visao-geral" options={{ title: "Visão geral" }} />
         <Stack.Screen name="cursos" options={{ title: "Cursos" }} />
         <Stack.Screen name="defi" options={{ title: "HUB DEFI" }} />
         <Stack.Screen name="pool" options={{ title: "Pool" }} />

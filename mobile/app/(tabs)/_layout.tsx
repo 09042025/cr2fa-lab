@@ -13,7 +13,7 @@ export default function TabsLayout() {
       tabBarInactiveTintColor: C.muted,
       tabBarStyle: { backgroundColor: C.panel, borderTopColor: C.line },
     }}>
-      <Tabs.Screen name="index" options={{ title: "Início", tabBarIcon: icon("◆") }} />
+      <Tabs.Screen name="index" options={{ title: "Feed", tabBarIcon: icon("◆") }} />
       <Tabs.Screen name="mercado" options={{ title: "Mercado", tabBarIcon: icon("↗") }} />
       <Tabs.Screen name="comunidade" options={{ title: "White Flame Society", tabBarIcon: icon("☰") }} />
       <Tabs.Screen name="portfolio" options={{ title: "Portfólio", tabBarIcon: icon("▣") }} />
