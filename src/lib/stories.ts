@@ -13,6 +13,10 @@ export interface Story {
   createdAt: number;
   seen: boolean;
   views?: number;
+  /** Você curtiu este story. */
+  liked: boolean;
+  /** Só no seu próprio story: quantas curtidas recebeu. */
+  likes?: number;
 }
 export interface StoryGroup {
   userId: number;
@@ -43,11 +47,13 @@ export function listStoryGroups(viewerId: number, now = Math.floor(Date.now() / 
     SELECT s.id, s.user_id userId, s.image_id imageId, s.video_id videoId, s.caption, s.created_at createdAt,
            u.name, u.avatar_id avatarId, u.role,
            EXISTS (SELECT 1 FROM story_views v WHERE v.story_id = s.id AND v.viewer_id = ?) seen,
-           (SELECT COUNT(*) FROM story_views v WHERE v.story_id = s.id AND v.viewer_id <> s.user_id) views
+           (SELECT COUNT(*) FROM story_views v WHERE v.story_id = s.id AND v.viewer_id <> s.user_id) views,
+           EXISTS (SELECT 1 FROM story_likes l WHERE l.story_id = s.id AND l.user_id = ?) liked,
+           (SELECT COUNT(*) FROM story_likes l WHERE l.story_id = s.id) likes
     FROM stories s JOIN users u ON u.id = s.user_id
     WHERE s.created_at > ?
       AND (s.user_id = ? OR s.user_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id = ?))
-    ORDER BY s.created_at ASC`).all(viewerId, now - STORY_TTL, viewerId, viewerId) as { id: number; userId: number; imageId: number; videoId: number | null; caption: string; createdAt: number; name: string; avatarId: number | null; role: string; seen: number; views: number }[];
+    ORDER BY s.created_at ASC`).all(viewerId, viewerId, now - STORY_TTL, viewerId, viewerId) as { id: number; userId: number; imageId: number; videoId: number | null; caption: string; createdAt: number; name: string; avatarId: number | null; role: string; seen: number; views: number; liked: number; likes: number }[];
   const map = new Map<number, StoryGroup>();
   for (const r of rows) {
     let g = map.get(r.userId);
@@ -56,7 +62,7 @@ export function listStoryGroups(viewerId: number, now = Math.floor(Date.now() / 
       map.set(r.userId, g);
     }
     const mine = r.userId === viewerId;
-    g.stories.push({ id: r.id, imageId: r.imageId, videoId: r.videoId, caption: r.caption, createdAt: r.createdAt, seen: !!r.seen || mine, ...(mine ? { views: r.views } : {}) });
+    g.stories.push({ id: r.id, imageId: r.imageId, videoId: r.videoId, caption: r.caption, createdAt: r.createdAt, seen: !!r.seen || mine, liked: !!r.liked, ...(mine ? { views: r.views, likes: r.likes } : {}) });
     if (!r.seen && !mine) g.allSeen = false;
   }
   const rank = (g: StoryGroup) => (g.mine ? 0 : g.allSeen ? 2 : 1);
@@ -85,6 +91,16 @@ export function markViewed(storyId: number, viewerId: number): boolean {
   const s = db().prepare("SELECT user_id userId FROM stories WHERE id = ? AND created_at > unixepoch() - ?").get(storyId, STORY_TTL) as { userId: number } | undefined;
   if (!s) return false;
   if (s.userId !== viewerId) db().prepare("INSERT OR IGNORE INTO story_views (story_id, viewer_id) VALUES (?, ?)").run(storyId, viewerId);
+  return true;
+}
+
+/** Curtir / descurtir o story de outro membro. Devolve o novo estado (curtido ou não), ou null se não der. */
+export function toggleStoryLike(storyId: number, userId: number): boolean | null {
+  const s = db().prepare("SELECT user_id userId FROM stories WHERE id = ? AND created_at > unixepoch() - ?").get(storyId, STORY_TTL) as { userId: number } | undefined;
+  if (!s || s.userId === userId) return null;
+  const had = db().prepare("DELETE FROM story_likes WHERE story_id = ? AND user_id = ?").run(storyId, userId).changes > 0;
+  if (had) return false;
+  db().prepare("INSERT OR IGNORE INTO story_likes (story_id, user_id) VALUES (?, ?)").run(storyId, userId);
   return true;
 }
 

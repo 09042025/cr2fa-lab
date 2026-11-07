@@ -389,6 +389,12 @@ function migrate(db: Database.Database) {
       viewed_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (story_id, viewer_id)
     );
+    CREATE TABLE IF NOT EXISTS story_likes (
+      story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (story_id, user_id)
+    );
   `);
   // Curtidas na própria publicação deixaram de existir: remove as antigas.
   db.exec("DELETE FROM community_post_likes WHERE rowid IN (SELECT l.rowid FROM community_post_likes l JOIN community_posts p ON p.id = l.post_id WHERE p.user_id = l.user_id)");

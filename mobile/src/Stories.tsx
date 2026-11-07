@@ -6,12 +6,14 @@ import { get, send } from "./api";
 import { Avatar, useImage } from "./Avatar";
 import { ago } from "./format";
 import { C } from "./theme";
+import { Icon } from "./icons";
+import { ShareSheet } from "./ShareSheet";
 import { pickAndUpload, type Picked } from "./upload";
 import { API, getToken } from "./api";
 import { Recorder, publishVideoStory } from "./Recorder";
 import { useVideoPlayer, VideoView } from "expo-video";
 
-interface Story { id: number; imageId: number; videoId: number | null; caption: string; createdAt: number; seen: boolean; views?: number }
+interface Story { id: number; imageId: number; videoId: number | null; caption: string; createdAt: number; seen: boolean; views?: number; liked?: boolean; likes?: number }
 interface Group { userId: number; name: string; avatarId: number | null; isAdmin: boolean; mine: boolean; allSeen: boolean; stories: Story[] }
 
 const STORY_MS = 5000;
@@ -59,6 +61,10 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   const paused = useRef(false);
   const [isPaused, setIsPaused] = useState(false);
   const dur = useRef(STORY_MS);
+  const [likes, setLikes] = useState<Record<number, boolean>>({});
+  const [reply, setReply] = useState("");
+  const [sent, setSent] = useState("");
+  const [sharing, setSharing] = useState(false);
   const g = groups[gi];
   const story = g?.stories[si];
 
@@ -92,6 +98,26 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   const hold = () => { paused.current = true; setIsPaused(true); prog.stopAnimation(); };
   const release = () => { if (!paused.current) return; paused.current = false; setIsPaused(false); prog.stopAnimation((v) => run(v)); };
   const gotDuration = (ms: number) => { dur.current = Math.min(ms, 61_000); run(0); };
+
+  const isLiked = (st: Story) => likes[st.id] ?? !!st.liked;
+  async function like() {
+    const was = isLiked(story);
+    setLikes((m) => ({ ...m, [story.id]: !was }));
+    const e = await send("/api/community/stories", { like: story.id });
+    if (e) setLikes((m) => ({ ...m, [story.id]: was }));
+  }
+  async function sendReply() {
+    const t = reply.trim();
+    if (!t) return;
+    setReply("");
+    const e = await send("/api/community/dm", { to: g.userId, body: `↩ Respondeu ao seu story: ${t}` });
+    setSent(e ? e : "Mensagem enviada!");
+    setTimeout(() => setSent(""), 2000);
+  }
+  const onFocus = () => { hold(); };
+  const onBlur = () => { if (!sharing) release(); };
+  const openShare = () => { setSharing(true); hold(); };
+  const closeShare = () => { setSharing(false); release(); };
 
   const remove = () => {
     hold();
@@ -127,10 +153,30 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
             <Pressable style={{ flex: 2 }} onPress={next} onLongPress={hold} onPressOut={release} delayLongPress={200} />
           </View>
         </View>
-        <View style={{ padding: 16, gap: 6 }} pointerEvents="none">
+        <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 6 }} pointerEvents="none">
           {story.caption ? <Text style={{ color: "#fff", fontSize: 16, textAlign: "center" }}>{story.caption}</Text> : null}
-          {g.mine && typeof story.views === "number" ? <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" }}>👁 {story.views} visualizações</Text> : null}
+          {g.mine && typeof story.views === "number" ? <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" }}>👁 {story.views} visualizações{typeof story.likes === "number" ? `  ·  ♥ ${story.likes}` : ""}</Text> : null}
+          {sent ? <Text style={{ color: C.goldSoft, fontSize: 12, textAlign: "center" }}>{sent}</Text> : null}
         </View>
+        {!g.mine && (
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12 }}>
+              <TextInput value={reply} onChangeText={setReply} onFocus={onFocus} onBlur={onBlur} onSubmitEditing={sendReply} returnKeyType="send" maxLength={300} placeholder="Enviar mensagem…" placeholderTextColor="rgba(255,255,255,0.7)" style={{ flex: 1, height: 44, borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.6)", color: "#fff", paddingHorizontal: 16 }} />
+              {reply.trim() ? (
+                <Pressable onPress={sendReply} hitSlop={8}><Text style={{ color: C.gold, fontWeight: "800" }}>Enviar</Text></Pressable>
+              ) : (
+                <Pressable onPress={like} hitSlop={10}><Icon name="heart" size={28} color={isLiked(story) ? "#ff3b6b" : "#fff"} fill={isLiked(story)} /></Pressable>
+              )}
+              <Pressable onPress={openShare} hitSlop={10}><Icon name="plane" size={26} color="#fff" /></Pressable>
+            </View>
+          </KeyboardAvoidingView>
+        )}
+        {g.mine && (
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", padding: 12 }}>
+            <Pressable onPress={openShare} hitSlop={10}><Icon name="plane" size={26} color="#fff" /></Pressable>
+          </View>
+        )}
+        {sharing && <ShareSheet id={story.id} author={g.name} body="" imageId={null} url={`${API}/painel/feed/membro/${g.userId}`} text={`Story de ${g.name} no NIZA INVEST`} onClose={closeShare} />}
       </View>
     </Modal>
   );

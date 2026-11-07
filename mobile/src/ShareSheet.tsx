@@ -9,15 +9,15 @@ import { C } from "./theme";
 interface Person { id: number; name: string; avatarId: number | null }
 
 /** Compartilhar, igual ao do site: membros (mensagem direta), copiar link, compartilhar no..., WhatsApp e demais redes. */
-export function ShareSheet({ id, author, body, imageId, onClose }: { id: number; author: string; body: string; imageId: number | null; onClose: () => void }) {
+export function ShareSheet({ id, author, body, imageId, onClose, url: urlOverride, text: textOverride }: { id: number; author: string; body: string; imageId: number | null; onClose: () => void; url?: string; text?: string }) {
   const [q, setQ] = useState("");
   const [people, setPeople] = useState<Person[] | null>(null);
   const [sel, setSel] = useState<Person[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const url = `${API}/painel/feed/post/${id}`;
-  const text = shareText(body, author);
+  const url = urlOverride ?? `${API}/painel/feed/post/${id}`;
+  const text = textOverride ?? shareText(body, author);
   const targets = shareTargets(url, text);
 
   useEffect(() => {

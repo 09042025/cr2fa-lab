@@ -99,7 +99,7 @@ export function PostActions(props: {
 
 interface Person { id: number; name: string; avatarId: number | null }
 
-function ShareSheet({ id, author, body, imageId, videoId, onClose }: { id: number; author: string; body: string; imageId: number | null; videoId: number | null; onClose: () => void }) {
+export function ShareSheet({ id, author, body, imageId, videoId, onClose, url: urlOverride, text: textOverride }: { id: number; author: string; body: string; imageId: number | null; videoId: number | null; onClose: () => void; url?: string; text?: string }) {
   const [copied, setCopied] = useState(false);
   const [q, setQ] = useState("");
   const [people, setPeople] = useState<Person[] | null>(null);
@@ -107,8 +107,8 @@ function ShareSheet({ id, author, body, imageId, videoId, onClose }: { id: numbe
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const url = postUrl(location.origin, id);
-  const text = shareText(body, author);
+  const url = urlOverride ?? postUrl(location.origin, id);
+  const text = textOverride ?? shareText(body, author);
   const canNative = typeof navigator !== "undefined" && typeof navigator.share === "function";
   const media = videoId ? { href: `/api/community/video?id=${videoId}`, name: "cashpill.mp4" } : imageId ? { href: `/api/community/image?id=${imageId}`, name: "foto.jpg" } : null;
 
