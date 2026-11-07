@@ -5,6 +5,7 @@ import { graphEnabled, envProbe } from "@/lib/graph";
 import { filterBoard, getTopPositions, parsePair, KINDS, type BoardFilter, type BoardPosition, type PoolKind, type TopPosition } from "@/lib/toppositions";
 import { loadMulti, parseSelection, type MultiBoard } from "@/lib/boards";
 import { EXCHANGES, NETWORKS, dexLabel, netLabel, readySources, sourceReady } from "@/lib/sources";
+import { BoardTable, type BoardRow } from "@/components/BoardTable";
 import { GraphSourcesForm } from "@/components/GraphSourcesForm";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { GraphKeyForm } from "@/components/GraphKeyForm";
@@ -49,7 +50,7 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
       try {
         multi = await loadMulti(sel.chains, sel.dexes, tokenA, tokenB);
         boardPools = multi.pools;
-        board = filterBoard(multi.positions, { minValue, minAgeDays: minAge, onlyInRange: onlyIn, sort: sortKey, limit: 100, kind });
+        board = filterBoard(multi.positions, { minValue, minAgeDays: minAge, onlyInRange: onlyIn, sort: sortKey, limit: 300, kind });
         if (!multi.loaded && multi.errors.length) error = multi.errors.map((e) => `${netLabel(e.chain)} · ${dexLabel(e.dex)}: ${e.error}`).join(" | ");
       } catch (e) { error = e instanceof Error ? e.message : "erro"; }
     }
@@ -97,29 +98,13 @@ export default async function PosicoesPage({ searchParams }: { searchParams: Pro
         </section>
       )}
       {!pool && !error && (
-        <section className="card overflow-x-auto p-4">
+        <section className="card p-4">
           <h2 className="mb-1 font-semibold">{board.length} posições <span className="text-xs font-normal text-muted">· {boardPools} pools analisadas</span></h2>
-          <table className="mt-3 w-full min-w-[1100px] text-sm">
-            <thead><tr className="text-left text-xs text-muted"><th className="py-2">#</th><th>Pool</th><th>Rede · Exchange</th><th>Carteira</th><th>Faixa</th><th className="text-right">Valor</th><th className="text-right">Taxas coletadas</th><th className="text-right">PnL</th><th className="text-right">ROI</th><th className="text-right">APR</th><th className="text-right">Idade</th><th></th></tr></thead>
-            <tbody>
-              {board.map((p, i) => (
-                <tr key={`${p.pool}-${p.tokenId}`} className="border-t border-line">
-                  <td className="py-2 text-muted">{i + 1}</td>
-                  <td className="whitespace-nowrap font-medium">{p.pair} <span className="rounded border border-line px-1 text-xs font-normal text-muted">{p.fee / 10000}%</span></td>
-                  <td className="whitespace-nowrap text-xs text-muted">{netLabel(p.chain)} · {dexLabel(p.dex)}</td>
-                  <td className="whitespace-nowrap"><Link className="text-gold-soft hover:underline" href={`/painel/cripto/defi/saude?carteira=${p.owner}`}>{p.owner.slice(0, 6)}…{p.owner.slice(-4)}</Link></td>
-                  <td className="whitespace-nowrap"><span className={p.inRange ? "text-up" : "text-down"}>{p.inRange ? "●" : "○"}</span> {sig(p.priceLower)} ↔ {sig(p.priceUpper)}</td>
-                  <td className="whitespace-nowrap text-right font-medium">{usd(p.valueUsd)}</td>
-                  <td className="whitespace-nowrap text-right">{usd(p.feesCollectedUsd)}</td>
-                  <td className={`whitespace-nowrap text-right ${tone(p.pnlUsd)}`}>{usd(p.pnlUsd)}</td>
-                  <td className={`whitespace-nowrap text-right ${tone(p.roi)}`}>{pct(p.roi * 100)}</td>
-                  <td className={`whitespace-nowrap text-right ${p.apr === null ? "" : tone(p.apr)}`}>{p.apr === null ? "—" : pct(p.apr * 100)}</td>
-                  <td className="whitespace-nowrap text-right text-muted">{Math.round(p.ageDays)} d</td>
-                  <td className="pl-3">{PROTO_OK.has(`${p.chain}:${p.dex}`) && <Link className="whitespace-nowrap rounded border border-gold/50 px-2 py-1 text-xs font-semibold text-gold-soft hover:bg-gold/10" href={`/painel/cripto/defi/saude/posicao?carteira=${p.owner}&rede=${p.chain}&id=${p.tokenId}&proto=${p.dex}&de=posicoes`}>Analisar</Link>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="mt-3"><BoardTable rows={board.map((p): BoardRow => ({
+            key: `${p.chain}-${p.dex}-${p.tokenId}`, pair: p.pair, fee: p.fee, source: `${netLabel(p.chain)} · ${dexLabel(p.dex)}`, owner: p.owner, chain: p.chain, dex: p.dex, tokenId: p.tokenId,
+            canAnalyze: PROTO_OK.has(`${p.chain}:${p.dex}`), range: `${sig(p.priceLower)} ↔ ${sig(p.priceUpper)}`, inRange: p.inRange,
+            valueUsd: p.valueUsd, feesUsd: p.feesCollectedUsd, pnlUsd: p.pnlUsd, roi: p.roi, apr: p.apr, ageDays: p.ageDays,
+          }))} /></div>
           {board.length === 0 && <p className="mt-3 text-sm text-muted">Nenhuma posição com esses filtros. Tente baixar o valor ou a idade mínima.</p>}
           <p className="mt-3 text-xs text-muted">● dentro da faixa, ○ fora. Valores a preços de hoje, referência HOLD; taxas ainda não coletadas não entram no PnL desta tabela (a análise completa inclui). Posições dentro de contratos de staking aparecem com o endereço do contrato e podem não abrir em “Analisar”.</p>
         </section>
