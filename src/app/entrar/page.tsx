@@ -28,6 +28,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <p className="mt-4 text-center text-sm text-muted">
             Ainda não tem conta? <Link href={after ? `/cadastrar?convite=${convite}` : "/cadastrar"} className="text-gold-soft underline">Criar conta grátis</Link>
           </p>
+          <p className="mt-3 text-center text-xs text-muted"><Link href="/privacidade" className="underline">Política de privacidade</Link></p>
         </div>
       </div>
     </main>

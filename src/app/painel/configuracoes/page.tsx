@@ -54,6 +54,12 @@ export default async function SettingsPage() {
       )}
 
       <section className="card mb-6 p-5">
+        <h2 className="mb-2 font-semibold">Privacidade</h2>
+        <p className="mb-4 text-sm text-muted">Como tratamos os seus dados e como excluir a sua conta.</p>
+        <Link href="/privacidade" className="btn btn-ghost">Política de privacidade</Link>
+      </section>
+
+      <section className="card mb-6 p-5">
         <h2 className="mb-4 font-semibold">Sessão</h2>
         <div className="sm:max-w-xs"><LogoutButton /></div>
       </section>
