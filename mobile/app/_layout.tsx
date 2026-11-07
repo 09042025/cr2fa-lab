@@ -1,13 +1,17 @@
 import { Stack } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "../src/auth";
 import { DrawerProvider } from "../src/drawer";
 import { C } from "../src/theme";
+import { Splash } from "../src/Splash";
 
 function Routes() {
   const { user, loading } = useAuth();
-  if (loading) return <View style={{ flex: 1, backgroundColor: C.ink, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.gold} size="large" /></View>;
+  // A abertura fica na tela por pelo menos 2,2 s, para o zoom do logo aparecer mesmo com o app carregando rápido.
+  const [min, setMin] = useState(true);
+  useEffect(() => { const t = setTimeout(() => setMin(false), 2200); return () => clearTimeout(t); }, []);
+  if (loading || min) return <Splash />;
   return (
     <Stack screenOptions={{ headerStyle: { backgroundColor: C.panel }, headerTintColor: C.goldSoft, contentStyle: { backgroundColor: C.ink } }}>
       {/* Só quem entrou vê o app */}
