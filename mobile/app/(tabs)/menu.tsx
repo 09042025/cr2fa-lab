@@ -44,7 +44,7 @@ export default function Menu() {
   return (
     <Screen>
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar name={user?.name ?? ""} id={null} size={52} />
+        <Avatar name={user?.name ?? ""} id={user?.avatarId ?? null} size={52} />
         <View style={{ flex: 1 }}>
           <H2>{user?.name}</H2>
           <Text style={{ color: isPro ? C.goldSoft : C.muted, fontWeight: "700" }}>Plano {isPro ? "Premium" : "Grátis"}</Text>

@@ -6,7 +6,7 @@ export const API = process.env.EXPO_PUBLIC_API || "https://nizainvest.com.br";
 const KEY = "niza_token";
 
 export type Plan = "free" | "pro";
-export interface User { id: number; name: string; email: string; role: "user" | "admin"; plan: Plan; planExpiresAt: number | null; onTrial: boolean }
+export interface User { id: number; name: string; email: string; role: "user" | "admin"; plan: Plan; planExpiresAt: number | null; onTrial: boolean; avatarId?: number | null }
 
 // No celular o token fica no cofre do aparelho. O cofre não existe no navegador (só usado para testes no computador).
 const web = Platform.OS === "web";

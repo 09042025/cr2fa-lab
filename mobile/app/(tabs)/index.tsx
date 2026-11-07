@@ -13,7 +13,7 @@ export default function Feed() {
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <Screen>
-        <StoriesBar me={{ name: user?.name ?? "" }} />
+        <StoriesBar me={{ name: user?.name ?? "", avatarId: user?.avatarId }} />
         <FeedTab composing={composing} onCloseCompose={() => setComposing(false)} />
       </Screen>
       <Pressable onPress={() => setComposing(true)} accessibilityLabel="Nova publicação" style={{ position: "absolute", right: 20, bottom: 24, width: 58, height: 58, borderRadius: 29, backgroundColor: C.gold, alignItems: "center", justifyContent: "center", elevation: 6 }}>

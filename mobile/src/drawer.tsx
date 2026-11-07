@@ -69,7 +69,7 @@ function Panel({ onClose }: { onClose: () => void }) {
         <Pressable onPress={onClose} hitSlop={12}><Text style={{ color: C.muted, fontSize: 26 }}>✕</Text></Pressable>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: C.line }}>
-        <Avatar name={user?.name ?? ""} id={null} size={52} />
+        <Avatar name={user?.name ?? ""} id={user?.avatarId ?? null} size={52} />
         <View style={{ flex: 1 }}>
           <Text style={{ color: C.white, fontSize: 18, fontWeight: "800" }} numberOfLines={1}>{(user?.name ?? "").toUpperCase()}</Text>
           <Text style={{ color: C.muted }} numberOfLines={1}>{user?.email}</Text>
@@ -122,7 +122,7 @@ export function AppHeader() {
   const insets = useSafeAreaInsets();
   return (
     <View style={{ paddingTop: insets.top + 6, paddingBottom: 10, paddingHorizontal: 14, backgroundColor: C.ink, borderBottomWidth: 1, borderBottomColor: C.line, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-      <Pressable onPress={open} hitSlop={10}><Avatar name={user?.name ?? ""} id={null} size={40} /></Pressable>
+      <Pressable onPress={open} hitSlop={10}><Avatar name={user?.name ?? ""} id={user?.avatarId ?? null} size={40} /></Pressable>
       <Logo />
       <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6 }}><Text style={{ fontSize: 16 }}>🇧🇷 <Text style={{ color: C.muted, fontSize: 9 }}>▾</Text></Text></View>
     </View>

@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { userAvatarId } from "@/lib/feed";
 import { rateLimit, rateLimitReset, signToken, userFromToken, verifyPassword } from "@/lib/auth";
 import { db, type UserRow } from "@/lib/db";
 import { clientIp, fail, json } from "@/lib/http";
@@ -25,5 +26,5 @@ export async function POST(req: Request) {
   rateLimitReset(key);
   const token = await signToken(row.id, APP_TOKEN_SECONDS);
   const user = await userFromToken(token);
-  return json({ token, user: user && { id: user.id, name: user.name, email: user.email, role: user.role, plan: user.plan, planExpiresAt: user.planExpiresAt, onTrial: user.onTrial } });
+  return json({ token, user: user && { id: user.id, name: user.name, email: user.email, role: user.role, plan: user.plan, planExpiresAt: user.planExpiresAt, onTrial: user.onTrial, avatarId: userAvatarId(user.id) } });
 }

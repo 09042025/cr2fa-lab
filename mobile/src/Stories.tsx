@@ -169,7 +169,7 @@ function Composer({ photo, onClose, onDone }: { photo: Picked; onClose: () => vo
 }
 
 /** Stories no estilo Instagram: bolinhas no topo do Feed, visualizador em tela cheia e publicar com foto. */
-export function StoriesBar({ me }: { me: { name: string } }) {
+export function StoriesBar({ me }: { me: { name: string; avatarId?: number | null } }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [photo, setPhoto] = useState<Picked | null>(null);
@@ -205,7 +205,7 @@ export function StoriesBar({ me }: { me: { name: string } }) {
           {mine ? <Ring g={mine} onPress={() => setOpen(groups.indexOf(mine))} /> : (
             <Pressable onPress={add} style={{ alignItems: "center" }}>
               <View style={{ width: 66, height: 66, borderRadius: 33, borderWidth: 2.5, borderColor: C.line, borderStyle: "dashed", alignItems: "center", justifyContent: "center" }}>
-                <Avatar name={me.name} id={null} size={56} />
+                <Avatar name={me.name} id={me.avatarId ?? null} size={56} />
               </View>
               <Text style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>Seu story</Text>
             </Pressable>
