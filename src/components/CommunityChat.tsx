@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChannelIcon } from "./ChannelIcon";
+import { useMention } from "./MentionPicker";
 
 /** Reduz prints grandes (telas retina passam de 2 MB) para no máximo 1600 px, em JPEG. GIFs e imagens já pequenas seguem como estão. */
 async function shrink(f: File): Promise<File> {
@@ -28,6 +29,7 @@ async function shrink(f: File): Promise<File> {
 export function ChatForm({ channel, max, replyTo }: { channel: string; max: number; replyTo?: { id: number; author: string; body: string } | null }) {
   const router = useRouter();
   const [body, setBody] = useState("");
+  const mention = useMention(body, setBody);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [image, setImage] = useState<{ id: number; name: string; preview: string } | null>(null);
@@ -160,7 +162,8 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
           <button className="text-xs text-muted underline hover:text-white" onClick={() => { URL.revokeObjectURL(audio.url); setAudio(null); }}>remover</button>
         </div>
       )}
-      <div className="flex items-end gap-2">
+      <div className="relative flex items-end gap-2">
+        {mention.picker && <div className="absolute bottom-full left-0 right-0 z-20 pb-1">{mention.picker}</div>}
         <input ref={file} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
         <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-line outline-none focus:outline-none focus-visible:outline-none hover:bg-panel-2 disabled:opacity-50" title="Anexar imagem ou print (você também pode colar com Ctrl+V)" aria-label="Anexar imagem" onClick={() => file.current?.click()} disabled={busy}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden className="text-gold">
@@ -179,7 +182,9 @@ export function ChatForm({ channel, max, replyTo }: { channel: string; max: numb
           value={body}
           maxLength={max}
           rows={1}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => { setBody(e.target.value); mention.track(e.target); }}
+          onKeyUp={(e) => mention.track(e.currentTarget)}
+          onClick={(e) => mention.track(e.currentTarget)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
           data-chat-input
           ref={area}
