@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Text, TextInput } from "react-native";
-import { send } from "../src/api";
+import { Linking, Text, TextInput } from "react-native";
+import { API, send } from "../src/api";
 import { useAuth } from "../src/auth";
 import { C } from "../src/theme";
 import { Card, GoldButton, H2, Muted, Screen } from "../src/ui";
@@ -33,6 +33,7 @@ export default function Configuracoes() {
           <GoldButton label={isPro ? "Ver como plano Grátis" : "Ver como plano Premium"} ghost onPress={() => setPlan(isPro ? "free" : "pro")} />
         </Card>
       )}
+      <GoldButton label="Política de privacidade" ghost onPress={() => void Linking.openURL(`${API}/privacidade`)} />
       <GoldButton label="Sair" ghost onPress={signOut} />
       {user?.role !== "admin" && (
         <Card style={{ gap: 10 }}>
