@@ -84,7 +84,7 @@ export default function PoolsPosition() {
               <Group title="Rede">{chains.map((c) => <Chip key={c} label={c} on={c === chain} onPress={() => setRede(c)} />)}</Group>
               <Group title="Ordenar por">{[["apr", "APR"], ["roi", "ROI"], ["pnl", "PnL"], ["valor", "Valor"]].map(([k, l]) => <Chip key={k} label={l} on={ordem === k} onPress={() => setOrdem(k)} />)}</Group>
               <Group title="Valor mínimo">{[["0", "Qualquer"], ["1000", "1 mil"], ["10000", "10 mil"], ["100000", "100 mil"]].map(([k, l]) => <Chip key={k} label={l} on={min === k} onPress={() => setMin(k)} />)}</Group>
-              <Group title="Idade mínima">{[["0", "Qualquer"], ["7", "7 dias"], ["30", "30 dias"], ["90", "90 dias"]].map(([k, l]) => <Chip key={k} label={l} on={idade === k} onPress={() => setIdade(k)} />)}</Group>
+              <Group title="Idade mínima">{[["0", "Qualquer"], ["7", "7 dias"], ["30", "30 dias"], ["90", "90 dias"], ["180", "180 dias"], ["365", "1 ano ou mais"]].map(([k, l]) => <Chip key={k} label={l} on={idade === k} onPress={() => setIdade(k)} />)}</Group>
               <Chip label={faixa ? "✓ Só dentro da faixa" : "Só dentro da faixa"} on={faixa} onPress={() => setFaixa(!faixa)} />
             </Card>
             {chain ? <BoardView key={`${chain}-${ordem}-${min}-${idade}-${faixa}`} rede={chain} ordem={ordem} min={min} idade={idade} faixa={faixa} /> : <Status loading={meta.loading} error={meta.error} onRetry={meta.reload} />}

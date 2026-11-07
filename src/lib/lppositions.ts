@@ -101,13 +101,17 @@ export interface LpPosition {
 }
 export interface LpResult { address: string; chains: { chain: string; positions: LpPosition[]; error?: string }[]; fetchedAt: number }
 
-async function loadProto(proto: Proto, owner: string): Promise<LpPosition[]> {
+async function loadProto(proto: Proto, owner: string, onlyIds?: bigint[]): Promise<LpPosition[]> {
   const chain = proto.chain, url = RPC[chain], npm = proto.npm;
-  const [bal] = await rpc(url, [{ to: npm, data: S.balanceOf + addrWord(owner) }]);
-  const n = Math.min(Number(bal ? decUnsigned(bal, 0) : 0n), MAX_PER_CHAIN);
-  if (!n) return [];
-  const ids = await rpc(url, Array.from({ length: n }, (_, i) => ({ to: npm, data: S.byIndex + addrWord(owner) + w(i) })));
-  const tokenIds = ids.filter((x): x is string => !!x).map((x) => decUnsigned(x, 0));
+  let tokenIds: bigint[];
+  if (onlyIds) tokenIds = onlyIds; // posição pedida pelo número do NFT (qualquer dono, inclusive contratos de staking)
+  else {
+    const [bal] = await rpc(url, [{ to: npm, data: S.balanceOf + addrWord(owner) }]);
+    const n = Math.min(Number(bal ? decUnsigned(bal, 0) : 0n), MAX_PER_CHAIN);
+    if (!n) return [];
+    const ids = await rpc(url, Array.from({ length: n }, (_, i) => ({ to: npm, data: S.byIndex + addrWord(owner) + w(i) })));
+    tokenIds = ids.filter((x): x is string => !!x).map((x) => decUnsigned(x, 0));
+  }
   const infos = await rpc(url, tokenIds.map((id) => ({ to: npm, data: S.positions + w(id) })));
   type Raw = { id: bigint; t0: string; t1: string; fee: number; sp: number; lo: number; hi: number; L: bigint; in0: bigint; in1: bigint; ow0: bigint; ow1: bigint; pool: string };
   const raws: Raw[] = [];
@@ -191,6 +195,14 @@ async function loadChain(chain: string, owner: string): Promise<LpPosition[]> {
   const ok = parts.filter((x): x is PromiseFulfilledResult<LpPosition[]> => x.status === "fulfilled");
   if (!ok.length) throw new Error("rede indisponível");
   return ok.flatMap((x) => x.value).sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
+}
+
+/** Carrega uma posição direto pelo número do NFT, sem depender de quem é o dono hoje. */
+export async function getLpPositionById(chain: string, protocol: string, tokenId: string): Promise<LpPosition | null> {
+  const proto = PROTOS.find((x) => x.chain === chain && x.id === protocol);
+  if (!proto || !/^\d{1,12}$/.test(tokenId)) return null;
+  const r = await cached<LpPosition[]>(`lp1:${chain}:${protocol}:${tokenId}`, 120, () => loadProto(proto, "", [BigInt(tokenId)]));
+  return r.data?.[0] ?? null;
 }
 
 /** Consulta as posições do endereço em todas as redes e protocolos suportados. Cada rede falha sozinha, sem derrubar as outras. */

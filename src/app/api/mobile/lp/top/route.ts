@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     const sort = (["apr", "roi", "pnl", "valor"].includes(q.get("ordem") ?? "") ? q.get("ordem") : "apr") as BoardFilter["sort"];
     try {
       const b = await getBoard(chain);
-      return json({ chains, enabled: true, data: null, board: { chain, pools: b.pools, positions: filterBoard(b.positions, { minValue: num("min", [0, 1000, 10000, 100000], 1000), minAgeDays: num("idade", [0, 7, 30, 90], 7), onlyInRange: q.get("faixa") === "1", sort, limit: 60 }) } });
+      return json({ chains, enabled: true, data: null, board: { chain, pools: b.pools, positions: filterBoard(b.positions, { minValue: num("min", [0, 1000, 10000, 100000], 1000), minAgeDays: num("idade", [0, 7, 30, 90, 180, 365], 7), onlyInRange: q.get("faixa") === "1", sort, limit: 60 }) } });
     } catch (e) {
       return fail(e instanceof Error ? e.message : "erro ao consultar", 502);
     }

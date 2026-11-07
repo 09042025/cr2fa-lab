@@ -1,5 +1,6 @@
 import { cached } from "./market";
-import { getLpPositions, type LpPosition } from "./lppositions";
+import { getLpPositionById, getLpPositions, type LpPosition } from "./lppositions";
+import { positionFromGraph } from "./graphperf";
 import { loadDistribution, type Distribution } from "./liquidity";
 import { DEXS_CHAIN, getPoolHistory, type HistPoint } from "./pooldetail";
 import { dailyPrices, loadEvents, summarize, valueSeries, type Perf, type SeriesPoint } from "./lpperf";
@@ -12,7 +13,7 @@ export interface LpDetail {
 /** Tudo de uma posição: desempenho, séries, distribuição de liquidez e histórico do pool. Somente leitura. */
 export async function getLpDetail(address: string, chain: string, tokenId: string, protocol = "uniswap-v3"): Promise<LpDetail | null> {
   const res = await getLpPositions(address);
-  const position = res.chains.find((c) => c.chain === chain)?.positions.find((p) => p.tokenId === tokenId && p.protocol === protocol);
+  const position = res.chains.find((c) => c.chain === chain)?.positions.find((p) => p.tokenId === tokenId && p.protocol === protocol) ?? (await getLpPositionById(chain, protocol, tokenId).catch(() => null));
   if (!position) return null;
   const p = position;
   const [evRes, distRes, history] = await Promise.all([
@@ -32,7 +33,11 @@ export async function getLpDetail(address: string, chain: string, tokenId: strin
       series = valueSeries(events, p.lower, p.upper, p.dec0, p.dec1, a, b);
     }
   }
+  if (!perf && p.usd0 && p.usd1 && protocol === "uniswap-v3") {
+    // sem o histórico do nó, usa o indexador (The Graph): depósitos, retiradas e taxas já coletadas
+    perf = await positionFromGraph(chain, tokenId, { amount0: p.amount0, amount1: p.amount1, fees0: p.fees0, fees1: p.fees1, u0: p.usd0, u1: p.usd1 }).catch(() => null);
+  }
   const ds = DEXS_CHAIN[chain];
   const chart = ds ? { embed: `https://dexscreener.com/${ds}/${p.pool}?embed=1&theme=dark&trades=0&info=0&loadChartSettings=0`, page: `https://dexscreener.com/${ds}/${p.pool}` } : null;
-  return { position, perf, series, dist, history, chart, eventsOk: events !== null, eventsError: events === null ? (evRes.error ?? null) : null, distError: dist === null ? (distRes.error ?? null) : null };
+  return { position, perf, series, dist, history, chart, eventsOk: events !== null || perf !== null, eventsError: events === null ? (evRes.error ?? null) : null, distError: dist === null ? (distRes.error ?? null) : null };
 }
