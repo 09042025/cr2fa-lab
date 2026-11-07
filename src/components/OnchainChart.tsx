@@ -208,7 +208,9 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   // Toque (celular/app): um dedo na área do gráfico arrasta a janela de zoom; um segundo dedo define o outro canto.
   // Pinça sobre um eixo mexe só naquele eixo: preço (esquerda), cada indicador (direita) ou o tempo (embaixo).
   type Pinch = { mode: "x" | "y"; axis: string; dist: number; lo: number; hi: number; log: boolean; f: number; i0: number; i1: number; c: number };
-  const tg = useRef<{ mode: "box" | "axis" | "pinch" | "dead"; d?: NonNullable<typeof drag>; pinch?: Pinch; axis?: string } | null>(null);
+  const tg = useRef<{ mode: "box" | "axis" | "pinch" | "pan" | "dead"; d?: NonNullable<typeof drag>; pinch?: Pinch; axis?: string; x?: number; y?: number; t?: number; i0?: number; i1?: number; moved?: boolean } | null>(null);
+  /** Último toque rápido: o segundo toque seguido (e arrastar) é que abre a janela de zoom. */
+  const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
   const tpos = (t: { clientX: number; clientY: number }) => ({ x: localX(t), y: localY(t) });
   const regionAt = (x: number, y: number): { kind: "box" } | { kind: "axis"; id: string } | { kind: "time" } => {
     if (y > padT + geo.plotH) return { kind: "time" };
@@ -223,10 +225,19 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
       if (ts.length > 1) { tg.current = { mode: "dead" }; return; }
       const r = regionAt(a.x, a.y);
       if (r.kind === "box") {
-        const d = { kind: "box" as const, x0: a.x, x1: a.x, y0: a.y, y1: a.y };
-        tg.current = { mode: "box", d };
-        setDrag(d);
         if (a.x >= padL && a.x <= padL + geo.plotW) setHover(idxFromPx(a.x));
+        const lt = lastTap.current;
+        const now = Date.now();
+        if (lt && now - lt.t < 350 && Math.hypot(a.x - lt.x, a.y - lt.y) < 40) {
+          // segundo toque rápido: começa a janela de zoom
+          lastTap.current = null;
+          const d = { kind: "box" as const, x0: a.x, x1: a.x, y0: a.y, y1: a.y };
+          tg.current = { mode: "box", d };
+          setDrag(d);
+        } else {
+          // primeiro toque: só arrasta o gráfico para os lados
+          tg.current = { mode: "pan", x: a.x, y: a.y, t: now, i0, i1 };
+        }
       } else {
         tg.current = { mode: "axis", axis: r.kind === "axis" ? r.id : "time" };
       }
@@ -234,7 +245,12 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     }
     if (ts.length < 2) return;
     const b = tpos(ts[1]);
-    if (g.mode === "box" && g.d) {
+    if (g.mode === "pan") {
+      // dois dedos dentro do gráfico: um segura um canto e o outro marca o canto oposto
+      const d = { kind: "box" as const, x0: a.x, y0: a.y, x1: b.x, y1: b.y };
+      tg.current = { mode: "box", d };
+      setDrag(d);
+    } else if (g.mode === "box" && g.d) {
       g.d = { ...g.d, x1: b.x, y1: b.y };
       setDrag(g.d);
     } else if (g.mode === "axis") {
@@ -256,7 +272,14 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     if (!g || g.mode === "dead") return;
     const ts = Array.from(e.touches);
     const a = tpos(ts[0]);
-    if (g.mode === "box" && g.d) {
+    if (g.mode === "pan" && ts.length === 1) {
+      const dx = a.x - g.x!;
+      if (Math.abs(dx) > 6 || Math.abs(a.y - g.y!) > 6) g.moved = true;
+      const span = g.i1! - g.i0!;
+      const n0 = Math.max(0, Math.min(price.length - 1 - span, Math.round(g.i0! - (dx / geo.plotW) * span)));
+      if (n0 !== i0) onZoom(n0, n0 + span);
+      if (a.x >= padL && a.x <= padL + geo.plotW) setHover(idxFromPx(a.x));
+    } else if (g.mode === "box" && g.d) {
       if (ts.length > 1) {
         const b = tpos(ts[1]);
         g.d = { ...g.d, x0: a.x, y0: a.y, x1: b.x, y1: b.y };
@@ -288,6 +311,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
       if (g && g.mode === "pinch") tg.current = { mode: "dead" };
       return;
     }
+    if (g?.mode === "pan" && !g.moved && Date.now() - g.t! < 300) lastTap.current = { t: Date.now(), x: g.x!, y: g.y! };
     if (g?.mode === "box" && g.d) {
       const d = g.d;
       const tap = Math.abs(d.x1 - d.x0) < 6 && Math.abs(d.y1 - d.y0) < 6;
@@ -502,7 +526,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         </svg>
       </div>
       <p className="mt-1 text-[11px] text-muted">
-        Arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início. No celular: arraste com um dedo e use o segundo dedo no outro canto da janela; pinça nos números à esquerda (preço), à direita (indicador) ou embaixo (tempo) muda só aquela escala.
+        Arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início. No celular: um toque e arrastar move o gráfico; para zoom, dê um toque rápido e, no segundo toque, arraste a janela (ou segure um canto com um dedo e marque o outro com o segundo dedo); pinça nos números à esquerda (preço), à direita (indicador) ou embaixo (tempo) muda só aquela escala.
         {Object.keys(yz).length > 0 && <> <button type="button" className="text-gold-soft underline" onClick={() => setYz({})}>Desfazer zoom vertical</button></>}
       </p>
     </div>
