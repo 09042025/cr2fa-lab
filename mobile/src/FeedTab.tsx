@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "./auth";
 import { Select } from "./Select";
 import { pickAndUpload } from "./upload";
+import { Recorder, publishCashpill } from "./Recorder";
 import { get, send } from "./api";
 import { Avatar, PostImage } from "./Avatar";
 import { ago } from "./format";
@@ -132,7 +133,9 @@ export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; on
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void load(); }, [topic]);
 
+  const [msg, setMsg] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [rec, setRec] = useState(false);
   async function addPhoto() {
     setPicking(true); setPostErr(null);
     const r = await pickAndUpload();
@@ -183,9 +186,14 @@ export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; on
               <Text style={{ color: C.gold, fontSize: 18, fontWeight: "700" }}>+</Text>
               <Text style={{ color: C.white, fontWeight: "700" }}>{picking ? "Enviando…" : "Foto"}</Text>
             </Pressable>
+            <Pressable onPress={() => setRec(true)} style={{ flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}>
+              <Text style={{ color: C.gold, fontSize: 16 }}>▶</Text>
+              <Text style={{ color: C.white, fontWeight: "700" }}>Cashpill</Text>
+            </Pressable>
             <Text style={{ color: C.muted, fontSize: 11, marginLeft: "auto" }}>{draft.length}/1500</Text>
           </View>
         </KeyboardAvoidingView>
+        {rec && <Recorder mode="cashpill" onClose={() => setRec(false)} onReady={async (r, c) => { const e = await publishCashpill(r, c); if (!e) { onCloseCompose?.(); setMsg("Cashpill publicado no seu perfil!"); } return e; }} />}
       </Modal>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -194,6 +202,7 @@ export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; on
         {topics.map((t) => <Chip key={t.id} label={t.label} on={topic === t.id} onPress={() => setTopic(t.id)} />)}
       </View>
 
+      {msg ? <Text style={{ color: C.goldSoft, fontWeight: "700" }}>{msg}</Text> : null}
       <Status loading={loading && posts.length === 0} error={error} onRetry={() => load()} />
       {!loading && !error && posts.length === 0 && <Muted>Ainda não há publicações aqui. Seja o primeiro!</Muted>}
       {posts.map((p) => <PostCard key={p.id} p={p} topicLabel={label(p.topic)} onChanged={() => load()} me={me} reasons={reasons} />)}

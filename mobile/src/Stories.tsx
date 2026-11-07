@@ -7,6 +7,9 @@ import { Avatar, useImage } from "./Avatar";
 import { ago } from "./format";
 import { C } from "./theme";
 import { pickAndUpload, type Picked } from "./upload";
+import { API, getToken } from "./api";
+import { Recorder, publishVideoStory } from "./Recorder";
+import { useVideoPlayer, VideoView } from "expo-video";
 
 interface Story { id: number; imageId: number; videoId: number | null; caption: string; createdAt: number; seen: boolean; views?: number }
 interface Group { userId: number; name: string; avatarId: number | null; isAdmin: boolean; mine: boolean; allSeen: boolean; stories: Story[] }
@@ -32,12 +35,30 @@ function StoryImage({ id }: { id: number }) {
   return <Image source={{ uri }} resizeMode="contain" style={{ width: "100%", height: "100%" }} />;
 }
 
+function StoryVideo({ id, paused, onDuration }: { id: number; paused: boolean; onDuration: (ms: number) => void }) {
+  const [src, setSrc] = useState<{ uri: string; headers: Record<string, string> } | null>(null);
+  useEffect(() => { void getToken().then((t) => setSrc({ uri: `${API}/api/community/video?id=${id}`, headers: t ? { authorization: `Bearer ${t}` } : {} })); }, [id]);
+  if (!src) return null;
+  return <VideoInner src={src} paused={paused} onDuration={onDuration} />;
+}
+function VideoInner({ src, paused, onDuration }: { src: { uri: string; headers: Record<string, string> }; paused: boolean; onDuration: (ms: number) => void }) {
+  const player = useVideoPlayer(src, (p) => { p.loop = false; p.play(); });
+  useEffect(() => { if (paused) player.pause(); else player.play(); }, [paused, player]);
+  useEffect(() => {
+    const iv = setInterval(() => { if (player.duration > 0) { onDuration(player.duration * 1000); clearInterval(iv); } }, 200);
+    return () => clearInterval(iv);
+  }, [player, onDuration]);
+  return <VideoView player={player} style={{ width: "100%", height: "100%" }} contentFit="contain" nativeControls={false} />;
+}
+
 function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start: number; onClose: () => void; onChanged: () => void }) {
   const insets = useSafeAreaInsets();
   const [gi, setGi] = useState(start);
   const [si, setSi] = useState(() => { const g = groups[start]; const n = g.stories.findIndex((s) => !s.seen); return n < 0 ? 0 : n; });
   const prog = useRef(new Animated.Value(0)).current;
   const paused = useRef(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const dur = useRef(STORY_MS);
   const g = groups[gi];
   const story = g?.stories[si];
 
@@ -55,11 +76,12 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
 
   const run = useCallback((from: number) => {
     prog.setValue(from);
-    Animated.timing(prog, { toValue: 1, duration: STORY_MS * (1 - from), easing: Easing.linear, useNativeDriver: false }).start(({ finished }) => { if (finished) next(); });
+    Animated.timing(prog, { toValue: 1, duration: dur.current * (1 - from), easing: Easing.linear, useNativeDriver: false }).start(({ finished }) => { if (finished) next(); });
   }, [prog, next]);
 
   useEffect(() => {
     if (!story) return;
+    dur.current = STORY_MS;
     if (!story.seen && !g.mine) void send("/api/community/stories", { view: story.id });
     run(0);
     return () => prog.stopAnimation();
@@ -67,8 +89,9 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
   }, [gi, si]);
 
   if (!g || !story) return null;
-  const hold = () => { paused.current = true; prog.stopAnimation(); };
-  const release = () => { if (!paused.current) return; paused.current = false; prog.stopAnimation((v) => run(v)); };
+  const hold = () => { paused.current = true; setIsPaused(true); prog.stopAnimation(); };
+  const release = () => { if (!paused.current) return; paused.current = false; setIsPaused(false); prog.stopAnimation((v) => run(v)); };
+  const gotDuration = (ms: number) => { dur.current = Math.min(ms, 61_000); run(0); };
 
   const remove = () => {
     hold();
@@ -98,14 +121,13 @@ function Viewer({ groups, start, onClose, onChanged }: { groups: Group[]; start:
           <Pressable onPress={onClose} hitSlop={12}><Text style={{ color: "#fff", fontSize: 26 }}>✕</Text></Pressable>
         </View>
         <View style={{ flex: 1 }}>
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><StoryImage id={story.imageId} /></View>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>{story.videoId ? <StoryVideo key={story.id} id={story.videoId} paused={isPaused} onDuration={gotDuration} /> : <StoryImage id={story.imageId} />}</View>
           <View style={{ ...{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }, flexDirection: "row" }}>
             <Pressable style={{ flex: 1 }} onPress={prev} onLongPress={hold} onPressOut={release} delayLongPress={200} />
             <Pressable style={{ flex: 2 }} onPress={next} onLongPress={hold} onPressOut={release} delayLongPress={200} />
           </View>
         </View>
         <View style={{ padding: 16, gap: 6 }} pointerEvents="none">
-          {story.videoId ? <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" }}>▶ Story em vídeo: o vídeo toca no site. Aqui aparece a capa.</Text> : null}
           {story.caption ? <Text style={{ color: "#fff", fontSize: 16, textAlign: "center" }}>{story.caption}</Text> : null}
           {g.mine && typeof story.views === "number" ? <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, textAlign: "center" }}>👁 {story.views} visualizações</Text> : null}
         </View>
@@ -151,6 +173,7 @@ export function StoriesBar({ me }: { me: { name: string } }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [photo, setPhoto] = useState<Picked | null>(null);
+  const [rec, setRec] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const load = useCallback(async () => {
     const r = await get<{ groups: Group[] }>("/api/community/stories");
@@ -158,7 +181,14 @@ export function StoriesBar({ me }: { me: { name: string } }) {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  async function add() {
+  function add() {
+    Alert.alert("Novo story", undefined, [
+      { text: "Foto da galeria", onPress: () => void addPhoto() },
+      { text: "Gravar vídeo", onPress: () => setRec(true) },
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  }
+  async function addPhoto() {
     setMsg(null);
     const r = await pickAndUpload();
     if (!r) return;
@@ -188,6 +218,7 @@ export function StoriesBar({ me }: { me: { name: string } }) {
       </ScrollView>
       {msg ? <Text style={{ color: C.down }}>{msg}</Text> : null}
       {open !== null && <Viewer groups={groups} start={open} onClose={() => { setOpen(null); void load(); }} onChanged={load} />}
+      {rec && <Recorder mode="story" onClose={() => { setRec(false); void load(); }} onReady={publishVideoStory} />}
       {photo && <Composer photo={photo} onClose={() => setPhoto(null)} onDone={() => { setPhoto(null); void load(); }} />}
     </View>
   );
