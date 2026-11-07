@@ -119,3 +119,43 @@ export function PasswordForm() {
     </form>
   );
 }
+
+/** Exclusão da própria conta (exigida pela Google Play): pede a senha e apaga a conta e tudo ligado a ela. */
+export function DeleteAccountForm() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    const password = String(new FormData(e.currentTarget).get("password") || "");
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return setError(data.error || "Não foi possível excluir a conta.");
+      router.replace("/entrar");
+    } catch {
+      setError("Sem conexão com o servidor. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!open) return <button type="button" className="btn btn-ghost" onClick={() => setOpen(true)}>Excluir minha conta</button>;
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <div>
+        <label className="label" htmlFor="del-password">Digite sua senha para confirmar</label>
+        <input id="del-password" name="password" type="password" className="input" required autoComplete="current-password" />
+      </div>
+      <Msg error={error} ok={null} />
+      <div className="flex flex-wrap gap-2">
+        <button className="btn btn-gold" disabled={loading}>{loading ? "Excluindo..." : "Confirmar exclusão"}</button>
+        <button type="button" className="btn btn-ghost" onClick={() => { setOpen(false); setError(null); }}>Cancelar</button>
+      </div>
+    </form>
+  );
+}
