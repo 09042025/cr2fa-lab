@@ -112,3 +112,19 @@ test("desempenho pelo indexador: idade, PnL e taxas absurdas", () => {
   const bad = perfFromTotals({ ...g, collectedFeesToken0: "1" + "0".repeat(15), transaction: { timestamp: String(1000) } }, now, 1000 + 10 * 86400)!;
   assert.equal(Math.round(bad.pnlUsd), 100);
 });
+
+import { poolKind, symbolVariants, parsePair } from "../src/lib/toppositions";
+test("tipo de pool, aliases e par de tokens", () => {
+  assert.equal(poolKind("USDC", "USDT"), "stable");
+  assert.equal(poolKind("WETH", "USDC"), "cripto");
+  assert.equal(poolKind("BUIDL", "USDC"), "rwa");
+  assert.equal(poolKind("XYZ", "ABC"), "outros");
+  assert.ok(symbolVariants("eth")!.includes("WETH"));
+  assert.equal(symbolVariants("  "), null);
+  assert.deepEqual(parsePair("ETH-USDC"), ["ETH", "USDC"]);
+  assert.deepEqual(parsePair("ETH / USDC"), ["ETH", "USDC"]);
+  assert.deepEqual(parsePair("ETH", "DAI"), ["ETH", "DAI"]);
+  const mk = (o: Partial<BoardPosition>) => ({ valueUsd: 5000, ageDays: 30, inRange: true, apr: 0.1, roi: 0.01, pnlUsd: 10, kind: "cripto", ...o } as BoardPosition);
+  const f = { minValue: 0, minAgeDays: 0, onlyInRange: false, sort: "apr" as const, limit: 10 };
+  assert.equal(filterBoard([mk({ tokenId: "a" }), mk({ tokenId: "b", kind: "stable" })], { ...f, kind: "stable" }).length, 1);
+});

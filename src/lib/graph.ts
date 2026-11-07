@@ -4,17 +4,21 @@ import { getSetting } from "./settings";
  * A chave nunca vai para o navegador nem para o app.
  */
 
-export type GraphVersion = "v3" | "v4";
+export type GraphVersion = string; // "v3"/"v4" (Uniswap) ou o id da exchange, ex.: "pancakeswap-v3"
 /** IDs oficiais dos subgraphs da Uniswap. Outras redes entram aqui (ou por variável de ambiente GRAPH_ID_<REDE>_<VERSÃO>) quando confirmadas. */
-const IDS: Record<string, Partial<Record<GraphVersion, string>>> = {
+const IDS: Record<string, { v3?: string; v4?: string }> = {
   Ethereum: { v3: "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV", v4: "DiYPVdygkfjDWhbxGSqAQxwBKmfKnkWQojqeM2rkLb3G" },
   // Arbitrum: o subgraph FQ6JYsz… tem outro esquema (sem o campo "pools"). Entra por GRAPH_ID_ARBITRUM_V3 quando houver um compatível.
 };
 
+const dexKey = (v: string) => (v === "v3" ? "uniswap-v3" : v === "v4" ? "uniswap-v4" : v);
+/** Ordem: variável de ambiente, depois o ID cadastrado pelo admin (banco), depois os IDs embutidos. */
 export function subgraphId(chain: string, v: GraphVersion): string | null {
-  return process.env[`GRAPH_ID_${chain.toUpperCase()}_${v.toUpperCase()}`] ?? IDS[chain]?.[v] ?? null;
+  const d = dexKey(v);
+  const legacy = d === "uniswap-v3" ? "V3" : d === "uniswap-v4" ? "V4" : d.toUpperCase().replace(/-/g, "_");
+  return process.env[`GRAPH_ID_${chain.toUpperCase()}_${legacy}`] ?? getSetting(`graph_id:${chain}:${d}`) ?? (d === "uniswap-v3" ? IDS[chain]?.v3 : d === "uniswap-v4" ? IDS[chain]?.v4 : undefined) ?? null;
 }
-export const graphChains = (v: GraphVersion = "v3") => ["Ethereum", "Arbitrum", "Base", "Optimism", "Polygon", "BSC", "Avalanche", "Unichain"].filter((c) => subgraphId(c, v));
+export const graphChains = (v: GraphVersion = "v3") => ["Ethereum", "Arbitrum", "Base", "Optimism", "Polygon", "BSC", "Avalanche", "Unichain", "Robinhood"].filter((c) => subgraphId(c, v));
 /** Lê a chave tolerando espaços acidentais no nome ou no valor da variável (comum ao colar no Railway). */
 export function graphKey(): string | null {
   const direct = process.env.GRAPH_API_KEY?.trim();
@@ -33,6 +37,13 @@ export async function graphQuery<T>(chain: string, v: GraphVersion, query: strin
   const key = graphKey(), id = subgraphId(chain, v);
   if (!key) throw new Error("chave do The Graph não configurada no servidor");
   if (!id) throw new Error(`sem banco de dados ${v} para ${chain} ainda`);
+  return graphFetch<T>(id, query, variables);
+}
+
+/** Consulta direta a um subgraph pelo ID (usado também para testar um ID antes de salvar). */
+export async function graphFetch<T>(id: string, query: string, variables: Record<string, unknown> = {}): Promise<T> {
+  const key = graphKey();
+  if (!key) throw new Error("chave do The Graph não configurada no servidor");
   const res = await fetch(`https://gateway.thegraph.com/api/${key}/subgraphs/id/${id}`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, variables }), signal: AbortSignal.timeout(20000),
   });
