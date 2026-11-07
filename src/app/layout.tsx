@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TranslateLoader } from "@/components/TranslateLoader";
 
 const name = process.env.APP_NAME || "NIZA INVEST";
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false };
 
 export const metadata: Metadata = {
   title: { default: `${name} | Organize sua carteira em cinco blocos`, template: `%s | ${name}` },
