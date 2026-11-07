@@ -83,7 +83,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   const h = compact ? 400 : 510;
   const padL = compact ? 56 : 66;
   const padT = 12;
-  const padB = 26;
+  const padB = compact ? 34 : 26;
   const axisW = compact ? 56 : 66;
   const fs = compact ? 10 : 11;
 
@@ -164,37 +164,136 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   };
 
   const onMove = (e: React.PointerEvent) => {
+    if (e.pointerType === "touch") return;
     const px = localX(e);
     if (!drag) { if (px >= padL && px <= padL + geo.plotW) setHover(idxFromPx(px)); return; }
     setHover(drag.kind === "box" ? idxFromPx(px) : null);
     setDrag({ ...drag, x1: px, y1: localY(e) });
   };
   const onDown = (e: React.PointerEvent<SVGRectElement>) => {
+    if (e.pointerType === "touch") return;
     e.currentTarget.setPointerCapture(e.pointerId);
     setDrag({ kind: "box", x0: localX(e), x1: localX(e), y0: localY(e), y1: localY(e) });
   };
   const onAxisDown = (id: string) => (e: React.PointerEvent<SVGRectElement>) => {
+    if (e.pointerType === "touch") return;
     e.currentTarget.setPointerCapture(e.pointerId);
     setDrag({ kind: "axis", axis: id, x0: localX(e), x1: localX(e), y0: localY(e), y1: localY(e) });
   };
-  const onUp = () => {
-    if (drag?.kind === "axis" && Math.abs(drag.y1 - drag.y0) >= 10 && drag.axis) {
-      setYz((z) => ({ ...z, [drag.axis!]: winFromPx(drag.axis!, drag.y0, drag.y1) }));
-    } else if (drag?.kind === "box") {
-      const dx = Math.abs(drag.x1 - drag.x0);
-      const dy = Math.abs(drag.y1 - drag.y0);
+  const applyDrag = (d: NonNullable<typeof drag>) => {
+    if (d.kind === "axis" && Math.abs(d.y1 - d.y0) >= 10 && d.axis) {
+      setYz((z) => ({ ...z, [d.axis!]: winFromPx(d.axis!, d.y0, d.y1) }));
+    } else if (d.kind === "box") {
+      const dx = Math.abs(d.x1 - d.x0);
+      const dy = Math.abs(d.y1 - d.y0);
       if (dx >= 14) {
-        const a = idxFromPx(Math.min(drag.x0, drag.x1));
-        const b = idxFromPx(Math.max(drag.x0, drag.x1));
+        const a = idxFromPx(Math.min(d.x0, d.x1));
+        const b = idxFromPx(Math.max(d.x0, d.x1));
         if (b - a >= 14) onZoom(a, b);
       }
       // caixa que não cobre a altura toda também aproxima na vertical, em todos os eixos
       if (dy >= 14 && dy < geo.plotH * 0.9) {
         const next: Record<string, YWin> = {};
-        for (const id of axisIds) next[id] = winFromPx(id, drag.y0, drag.y1);
+        for (const id of axisIds) next[id] = winFromPx(id, d.y0, d.y1);
         setYz(next);
       }
     }
+  };
+  const onUp = (e?: React.PointerEvent) => {
+    if (e?.pointerType === "touch") return;
+    if (drag) applyDrag(drag);
+    setDrag(null);
+  };
+
+  // Toque (celular/app): um dedo na área do gráfico arrasta a janela de zoom; um segundo dedo define o outro canto.
+  // Pinça sobre um eixo mexe só naquele eixo: preço (esquerda), cada indicador (direita) ou o tempo (embaixo).
+  type Pinch = { mode: "x" | "y"; axis: string; dist: number; lo: number; hi: number; log: boolean; f: number; i0: number; i1: number; c: number };
+  const tg = useRef<{ mode: "box" | "axis" | "pinch" | "dead"; d?: NonNullable<typeof drag>; pinch?: Pinch; axis?: string } | null>(null);
+  const tpos = (t: { clientX: number; clientY: number }) => ({ x: localX(t), y: localY(t) });
+  const regionAt = (x: number, y: number): { kind: "box" } | { kind: "axis"; id: string } | { kind: "time" } => {
+    if (y > padT + geo.plotH) return { kind: "time" };
+    const id = axisAtX(x);
+    return id ? { kind: "axis", id } : { kind: "box" };
+  };
+  const onTouchStart = (e: React.TouchEvent) => {
+    const ts = Array.from(e.touches);
+    const a = tpos(ts[0]);
+    const g = tg.current;
+    if (!g || g.mode === "dead") {
+      if (ts.length > 1) { tg.current = { mode: "dead" }; return; }
+      const r = regionAt(a.x, a.y);
+      if (r.kind === "box") {
+        const d = { kind: "box" as const, x0: a.x, x1: a.x, y0: a.y, y1: a.y };
+        tg.current = { mode: "box", d };
+        setDrag(d);
+        if (a.x >= padL && a.x <= padL + geo.plotW) setHover(idxFromPx(a.x));
+      } else {
+        tg.current = { mode: "axis", axis: r.kind === "axis" ? r.id : "time" };
+      }
+      return;
+    }
+    if (ts.length < 2) return;
+    const b = tpos(ts[1]);
+    if (g.mode === "box" && g.d) {
+      g.d = { ...g.d, x1: b.x, y1: b.y };
+      setDrag(g.d);
+    } else if (g.mode === "axis") {
+      const axis = g.axis!;
+      if (axis === "time") {
+        const dist = Math.max(14, Math.abs(a.x - b.x));
+        const span = i1 - i0;
+        const c = i0 + (((a.x + b.x) / 2 - padL) / geo.plotW) * span;
+        tg.current = { mode: "pinch", pinch: { mode: "x", axis, dist, lo: 0, hi: 0, log: false, f: 0, i0, i1, c } };
+      } else {
+        const info = axisInfo(axis);
+        const dist = Math.max(14, Math.abs(a.y - b.y));
+        tg.current = { mode: "pinch", pinch: { mode: "y", axis, dist, lo: info.lo, hi: info.hi, log: info.log, f: fracFromY((a.y + b.y) / 2), i0, i1, c: 0 } };
+      }
+    }
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const g = tg.current;
+    if (!g || g.mode === "dead") return;
+    const ts = Array.from(e.touches);
+    const a = tpos(ts[0]);
+    if (g.mode === "box" && g.d) {
+      if (ts.length > 1) {
+        const b = tpos(ts[1]);
+        g.d = { ...g.d, x0: a.x, y0: a.y, x1: b.x, y1: b.y };
+      } else g.d = { ...g.d, x1: a.x, y1: a.y };
+      setDrag(g.d);
+      if (ts.length === 1 && a.x >= padL && a.x <= padL + geo.plotW) setHover(idxFromPx(a.x));
+    } else if (g.mode === "pinch" && g.pinch && ts.length > 1) {
+      const b = tpos(ts[1]);
+      const p = g.pinch;
+      if (p.mode === "y") {
+        const d = Math.max(14, Math.abs(a.y - b.y));
+        const k = Math.min(50, Math.max(0.02, p.dist / d)); // dedos se afastando = k < 1 = aproxima
+        const lo = valueAt(p.lo, p.hi, p.log, p.f * (1 - k));
+        const hi = valueAt(p.lo, p.hi, p.log, p.f + (1 - p.f) * k);
+        if (isFinite(lo) && isFinite(hi) && hi > lo) setYz((z) => ({ ...z, [p.axis]: { lo, hi } }));
+      } else {
+        const d = Math.max(14, Math.abs(a.x - b.x));
+        const span0 = p.i1 - p.i0;
+        const span = Math.min(price.length - 1, Math.max(14, span0 * (p.dist / d)));
+        const r = (p.c - p.i0) / span0;
+        const n0 = Math.max(0, Math.min(price.length - 1 - span, p.c - r * span));
+        onZoom(Math.round(n0), Math.round(n0 + span));
+      }
+    }
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const g = tg.current;
+    if (e.touches.length > 0) {
+      if (g && g.mode === "pinch") tg.current = { mode: "dead" };
+      return;
+    }
+    if (g?.mode === "box" && g.d) {
+      const d = g.d;
+      const tap = Math.abs(d.x1 - d.x0) < 6 && Math.abs(d.y1 - d.y0) < 6;
+      if (!tap) applyDrag(d);
+    }
+    tg.current = null;
     setDrag(null);
   };
   const resetAll = () => { setYz({}); onReset(); };
@@ -273,7 +372,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
       </div>
 
       <div ref={wrap} className="w-full select-none">
-        <svg ref={svgRef} width={w} height={h} role="img" aria-label="Gráfico do preço do Bitcoin com indicadores on-chain" className="block" style={{ fontSize: fs }}>
+        <svg ref={svgRef} width={w} height={h} role="img" aria-label="Gráfico do preço do Bitcoin com indicadores on-chain" className="block" style={{ fontSize: fs, touchAction: "none" }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}>
           <defs>
             <clipPath id={`clip-${uid}`}><rect x={padL} y={padT} width={geo.plotW} height={geo.plotH} /></clipPath>
           </defs>
@@ -376,24 +475,27 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
           {/* eixos: arraste na vertical para aproximar só aquele eixo; roda do mouse estica; duplo clique desfaz */}
           {[{ id: "price", x: 0, w: padL }, ...geo.axes.filter((a) => !a.hidden).map((a) => ({ id: a.id, x: a.x0, w: axisW }))].map((a) => (
             <rect key={`z${a.id}`} x={a.x} y={padT} width={a.w} height={geo.plotH} fill="transparent"
-              style={{ touchAction: "pan-y", cursor: "ns-resize" }}
-              onPointerDown={onAxisDown(a.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}
+              style={{ cursor: "ns-resize" }}
+              onPointerDown={onAxisDown(a.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={(e) => { if (e.pointerType !== "touch") setDrag(null); }}
               onDoubleClick={() => setYz((z) => { const n = { ...z }; delete n[a.id]; return n; })} />
           ))}
+
+          {/* eixo do tempo (embaixo): pinça aqui mexe só no zoom do tempo */}
+          <rect x={0} y={padT + geo.plotH} width={w} height={padB} fill="transparent" onDoubleClick={() => onReset()} />
 
           {/* área de interação */}
           <rect
             x={padL} y={padT} width={geo.plotW} height={geo.plotH} fill="transparent"
-            style={{ touchAction: "pan-y", cursor: "crosshair" }}
+            style={{ cursor: "crosshair" }}
             onPointerMove={onMove} onPointerDown={onDown} onPointerUp={onUp}
             onPointerLeave={() => { if (!drag) setHover(null); }}
-            onPointerCancel={() => setDrag(null)}
+            onPointerCancel={(e) => { if (e.pointerType !== "touch") setDrag(null); }}
             onDoubleClick={resetAll}
           />
         </svg>
       </div>
       <p className="mt-1 text-[11px] text-muted">
-        Arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início.
+        Arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início. No celular: arraste com um dedo e use o segundo dedo no outro canto da janela; pinça nos números à esquerda (preço), à direita (indicador) ou embaixo (tempo) muda só aquela escala.
         {Object.keys(yz).length > 0 && <> <button type="button" className="text-gold-soft underline" onClick={() => setYz({})}>Desfazer zoom vertical</button></>}
       </p>
     </div>
