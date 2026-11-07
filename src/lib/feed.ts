@@ -1,3 +1,4 @@
+import { recordMentions } from "./mentions";
 import { db } from "./db";
 import { removeCashpillRows, type Cashpill } from "./cashpills";
 
@@ -116,7 +117,9 @@ export function addPost(userId: number, topic: string, body: string, imageId?: n
   const img = ownImage(userId, imageId);
   if ((!text && !img) || text.length > MAX_POST) return null;
   const t = TOPICS.some((x) => x.id === topic) ? topic : "geral";
-  return Number(db().prepare("INSERT INTO community_posts (user_id, topic, body, image_id) VALUES (?, ?, ?, ?)").run(userId, t, text, img).lastInsertRowid);
+  const id = Number(db().prepare("INSERT INTO community_posts (user_id, topic, body, image_id) VALUES (?, ?, ?, ?)").run(userId, t, text, img).lastInsertRowid);
+  recordMentions(text, userId, "post", id);
+  return id;
 }
 
 export function deletePost(id: number, user: { id: number; role: string }): boolean {
@@ -166,6 +169,7 @@ export function addComment(postId: number, userId: number, body: string): boolea
   if (!text || text.length > MAX_COMMENT) return false;
   if (!db().prepare("SELECT 1 FROM community_posts WHERE id = ?").get(postId)) return false;
   db().prepare("INSERT INTO community_comments (post_id, user_id, body) VALUES (?, ?, ?)").run(postId, userId, text);
+  recordMentions(text, userId, "comment", postId);
   return true;
 }
 

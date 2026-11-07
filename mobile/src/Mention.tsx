@@ -4,7 +4,7 @@ import { get } from "./api";
 import { Avatar } from "./Avatar";
 import { C } from "./theme";
 
-interface Member { id: number; name: string; avatarId: number | null }
+interface Member { id: number; name: string; avatarId: number | null; handle?: string | null }
 
 /** Ao digitar @ num campo, busca membros da plataforma e insere @PrimeiroNome. */
 export function useMention(value: string, setValue: (v: string) => void) {
@@ -40,7 +40,7 @@ export function useMention(value: string, setValue: (v: string) => void) {
   const onSelectionChange = (e: { nativeEvent: { selection: { start: number } } }) => { caret.current = e.nativeEvent.selection.start; scan(latest.current, caret.current); };
 
   function pick(m: Member) {
-    const first = m.name.trim().split(/\s+/)[0].replace(/[^\p{L}\p{N}_.-]/gu, "");
+    const first = m.handle || m.name.trim().split(/\s+/)[0].replace(/[^\p{L}\p{N}_.-]/gu, "");
     setValue(`${value.slice(0, start.current)}@${first} ${value.slice(caret.current)}`);
     setQ(null);
   }

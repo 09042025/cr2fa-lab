@@ -389,6 +389,17 @@ function migrate(db: Database.Database) {
       viewed_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (story_id, viewer_id)
     );
+    CREATE TABLE IF NOT EXISTS mentions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      by_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      post_id INTEGER NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+      snippet TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      read_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_mentions_user ON mentions(user_id, id);
     CREATE TABLE IF NOT EXISTS story_likes (
       story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
