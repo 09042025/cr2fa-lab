@@ -4,6 +4,7 @@ import { futuresEnabled, getLiquidations } from "@/lib/futures";
 import { StackedBars } from "@/components/Bars";
 import { DataStatus, Disclaimer, PageTitle, ProBadge } from "@/components/ui";
 import { usdCompact } from "@/lib/format";
+import { SecretKeyForm } from "@/components/SecretKeyForm";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function FuturesPage({ searchParams }: { searchParams: Prom
           <p className="mt-2 text-sm text-muted">
             Os gráficos de liquidação usam a API gratuita da Coinalyze. No site <a className="underline" href="https://coinalyze.net" target="_blank" rel="noopener noreferrer">coinalyze.net</a> crie uma conta, gere a chave em &quot;API&quot; e cadastre na Railway a variável <code className="rounded bg-panel-2 px-1">COINALYZE_API_KEY</code>. Nunca cole a chave em conversas ou prints.
           </p>
+          {user.role === "admin" && <SecretKeyForm name="coinalyze" title="Cadastrar a chave da Coinalyze aqui" />}
         </section>
       ) : (
         <>

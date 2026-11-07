@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { CriptoNav } from "../src/criptoNav";
 import { usdCompact } from "../src/format";
 import { C } from "../src/theme";
@@ -13,6 +13,12 @@ const Chip = ({ label, on, locked, onPress }: { label: string; on: boolean; lock
     <Text style={{ color: on ? C.ink : C.white, fontWeight: "700" }}>{label}{locked ? " 🔒" : ""}</Text>
   </Pressable>
 );
+
+const EXTERNAL = [
+  { label: "Mapa de calor de liquidações", url: "https://www.coinglass.com/pt/pro/futures/LiquidationHeatMap?coin=BTC", desc: "Onde estão concentradas as ordens de liquidação por faixa de preço, ao longo do tempo." },
+  { label: "Mapa de liquidação", url: "https://www.coinglass.com/pt/pro/futures/LiquidationMap", desc: "Quanto seria liquidado se o preço chegasse a cada nível." },
+  { label: "Liquidações", url: "https://www.coinglass.com/pt/pro/futures/Liquidations", desc: "Painel completo de liquidações por corretora." },
+];
 
 export default function Futuros() {
   const [a, setA] = useState("btc");
@@ -59,6 +65,15 @@ export default function Futuros() {
           <Muted>Fonte: Coinalyze. Conteúdo educativo, não é recomendação de investimento.</Muted>
         </>
       )}
+      <H2>Mapas de liquidação e mapa de calor</H2>
+      <Muted>Esses gráficos dependem de dados pagos que não exibimos aqui. Abra direto na Coinglass:</Muted>
+      {EXTERNAL.map((e) => (
+        <Card key={e.url} style={{ gap: 4 }} onPress={() => Linking.openURL(e.url)}>
+          <Text style={{ color: C.gold, fontWeight: "800" }}>{e.label} ↗</Text>
+          <Muted>{e.desc}</Muted>
+        </Card>
+      ))}
+      <Muted>Liquidação acontece quando a margem de uma posição alavancada acaba e a corretora fecha a posição à força. Grandes liquidações em sequência costumam acompanhar movimentos bruscos de preço.</Muted>
     </Screen>
   );
 }

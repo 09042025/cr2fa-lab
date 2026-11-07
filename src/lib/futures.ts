@@ -1,3 +1,4 @@
+import { getSetting } from "./settings";
 import { cached, fetchJson } from "./market";
 
 export interface LiqPoint { t: number; longUsd: number; shortUsd: number }
@@ -5,9 +6,11 @@ export type LiqInterval = "daily" | "1hour";
 
 const BASE = "https://api.coinalyze.net/v1";
 
-export const futuresEnabled = () => Boolean(process.env.COINALYZE_API_KEY);
+/** Chave da Coinalyze: variável de ambiente ou, se ela não chegar ao servidor, a cadastrada pelo admin no banco. */
+const coinalyzeKey = () => process.env.COINALYZE_API_KEY?.trim() || getSetting("coinalyze_api_key") || "";
+export const futuresEnabled = () => Boolean(coinalyzeKey());
 
-const authHeaders = (): Record<string, string> => ({ api_key: process.env.COINALYZE_API_KEY || "" });
+const authHeaders = (): Record<string, string> => ({ api_key: coinalyzeKey() });
 
 interface Market { symbol: string; exchange?: string; base_asset?: string; quote_asset?: string; is_perpetual?: boolean }
 
