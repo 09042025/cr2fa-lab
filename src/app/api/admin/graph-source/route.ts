@@ -1,7 +1,7 @@
 import { getUser } from "@/lib/auth";
 import { graphFetch } from "@/lib/graph";
 import { fail, json, sameOrigin } from "@/lib/http";
-import { setSetting } from "@/lib/settings";
+import { listGraphSources, setSetting } from "@/lib/settings";
 import { NETWORKS, exchangeOf } from "@/lib/sources";
 
 async function admin(req: Request) {
@@ -19,8 +19,16 @@ export async function POST(req: Request) {
   if (!NETWORKS.some((n) => n.id === chain) || !ex || !ex.chains.includes(chain)) return fail("Rede ou exchange inválida.");
   if (ex.schema !== "uni3") return fail("Esta exchange ainda não tem leitor. Por enquanto só as do formato Uniswap v3.");
   if (!/^[A-Za-z0-9]{40,50}$/.test(id)) return fail("O ID do subgraph tem cerca de 44 letras e números (ex.: 5zvR82Qo…).");
+  const dup = listGraphSources().find((x) => x.id === id && !(x.chain === chain && x.dex === dex));
+  if (dup) return fail(`Esse ID já está cadastrado em ${dup.chain} · ${dup.dex}. Cada rede precisa do seu próprio subgraph. Remova o outro cadastro se foi engano.`);
   try {
-    await graphFetch(id, "{ pools(first:1){ id } positions(first:1){ id } }");
+    // mesma forma da consulta real do ranking, mais a saúde da indexação
+    const r = await graphFetch<{ _meta?: { hasIndexingErrors?: boolean } }>(id, `{
+      _meta { hasIndexingErrors }
+      pools(first:1, orderBy: totalValueLockedUSD, orderDirection: desc){ id feeTier sqrtPrice tick totalValueLockedUSD token0{id symbol decimals} token1{id symbol decimals} }
+      positions(first:1, orderBy: liquidity, orderDirection: desc){ id owner liquidity tickLower{tickIdx} tickUpper{tickIdx} depositedToken0 depositedToken1 withdrawnToken0 withdrawnToken1 collectedFeesToken0 collectedFeesToken1 transaction{timestamp} }
+    }`);
+    if (r._meta?.hasIndexingErrors) return fail("Esse subgraph está com erro de indexação no The Graph (os dados dele não são confiáveis). Procure outro para essa rede.");
   } catch (e) {
     return fail(`Esse subgraph não serve: ${e instanceof Error ? e.message : "erro"}. Procure um com as entidades "pools" e "positions".`);
   }
