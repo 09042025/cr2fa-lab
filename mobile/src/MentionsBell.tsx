@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { get, send } from "./api";
 import { Avatar } from "./Avatar";
 import { ago } from "./format";
-import { Icon } from "./icons";
+import { GoldBell } from "./GoldBell";
 import { C } from "./theme";
 
 interface Item { id: number; byId: number; by: string; avatarId: number | null; kind: string; postId: number; snippet: string; createdAt: number; read: boolean }
@@ -35,8 +35,8 @@ export function MentionsBell() {
 
   return (
     <>
-      <Pressable onPress={show} hitSlop={10} accessibilityLabel="Marcações" style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
-        <Icon name="bell" size={20} color={C.gold} fill={unread > 0} />
+      <Pressable onPress={show} hitSlop={10} accessibilityLabel="Marcações" style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: "rgba(217,165,32,0.6)", backgroundColor: "#111c42", alignItems: "center", justifyContent: "center", shadowColor: "#d9a520", shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 6 }}>
+        <GoldBell size={26} />
         {unread > 0 && (
           <View style={{ position: "absolute", top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.gold, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
             <Text style={{ color: C.ink, fontSize: 11, fontWeight: "800" }}>{unread > 9 ? "9+" : unread}</Text>

@@ -16,6 +16,25 @@ function ago(t: number): string {
 
 interface Item { id: number; byId: number; by: string; avatarId: number | null; kind: string; postId: number; snippet: string; createdAt: number; read: boolean }
 
+/** Sino dourado cheio, com relevo (luz no alto, sombra embaixo) e sombra projetada. */
+function GoldBell() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden style={{ filter: "drop-shadow(0 2px 1.5px rgba(0,0,0,0.65))" }}>
+      <defs>
+        <linearGradient id="bell-g" x1="0.15" y1="0" x2="0.85" y2="1">
+          <stop offset="0" stopColor="#fff3b8" /><stop offset="0.35" stopColor="#f0c24a" /><stop offset="0.7" stopColor="#c8901a" /><stop offset="1" stopColor="#8a5a08" />
+        </linearGradient>
+        <linearGradient id="bell-h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity="0.85" /><stop offset="1" stopColor="#fff" stopOpacity="0" /></linearGradient>
+      </defs>
+      <path d="M9.4 19.4a2.6 2.6 0 0 0 5.2 0Z" fill="url(#bell-g)" stroke="#7a4f06" strokeWidth="0.5" />
+      <path d="M12 2.5c-.9 0-1.6.7-1.6 1.5v.5C7.5 5.2 5.7 7.6 5.7 10.5v3.2c0 .9-.4 1.7-1 2.3l-.8.9c-.5.6-.1 1.6.7 1.6h14.8c.8 0 1.2-1 .7-1.6l-.8-.9c-.6-.6-1-1.4-1-2.3v-3.2c0-2.9-1.8-5.3-4.7-6V4c0-.8-.7-1.5-1.6-1.5Z" fill="url(#bell-g)" stroke="#7a4f06" strokeWidth="0.55" strokeLinejoin="round" />
+      <path d="M8 10.2c0-1.9 1.1-3.5 2.9-4.2" fill="none" stroke="url(#bell-h)" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M6.4 16.9h11.2" stroke="#7a4f06" strokeOpacity="0.45" strokeWidth="0.6" />
+      <path d="M6.2 16.2h11.6" stroke="#fff3b8" strokeOpacity="0.5" strokeWidth="0.4" />
+    </svg>
+  );
+}
+
 /** Sininho amarelo: avisa quando alguém marca você com @ num post ou comentário. */
 export function MentionsBell({ className = "" }: { className?: string }) {
   const [unread, setUnread] = useState(0);
@@ -47,8 +66,8 @@ export function MentionsBell({ className = "" }: { className?: string }) {
 
   return (
     <div className={`relative ${className}`}>
-      <button type="button" onClick={toggle} aria-label={unread > 0 ? `${unread} marcações novas` : "Marcações"} aria-expanded={open} className="relative flex h-9 w-9 items-center justify-center rounded-full border border-line text-gold hover:bg-panel-2">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill={unread > 0 ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+      <button type="button" onClick={toggle} aria-label={unread > 0 ? `${unread} marcações novas` : "Marcações"} aria-expanded={open} className="relative flex h-10 w-10 items-center justify-center rounded-full border border-gold/60 bg-gradient-to-b from-[#1b2750] to-[#0a1233] shadow-[0_3px_8px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,236,170,0.25),0_0_10px_rgba(217,165,32,0.25)] hover:brightness-110">
+        <GoldBell />
         {unread > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-gold px-1 text-center text-[11px] font-bold leading-[18px] text-ink">{unread > 9 ? "9+" : unread}</span>}
       </button>
       {open && (
