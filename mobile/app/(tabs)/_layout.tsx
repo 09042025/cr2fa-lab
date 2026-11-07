@@ -1,5 +1,7 @@
 import { Tabs } from "expo-router";
 import { Text } from "react-native";
+import { AppHeader } from "../../src/drawer";
+import { NoTopInset } from "../../src/ui";
 import { C } from "../../src/theme";
 
 import type { ColorValue } from "react-native";
@@ -7,11 +9,12 @@ const icon = (g: string) => ({ color }: { color: ColorValue }) => <Text style={{
 
 export default function TabsLayout() {
   return (
+    <NoTopInset.Provider value={true}>
     <Tabs screenOptions={{
-      headerShown: false,
+      header: () => <AppHeader />,
       tabBarActiveTintColor: C.goldSoft,
       tabBarInactiveTintColor: C.muted,
-      tabBarStyle: { backgroundColor: C.panel, borderTopColor: C.line },
+      tabBarStyle: { display: "none" },
     }}>
       <Tabs.Screen name="index" options={{ title: "Feed", tabBarIcon: icon("◆") }} />
       <Tabs.Screen name="mercado" options={{ title: "Mercado", tabBarIcon: icon("↗") }} />
@@ -19,5 +22,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="portfolio" options={{ title: "Portfólio", tabBarIcon: icon("▣") }} />
       <Tabs.Screen name="menu" options={{ title: "Menu", tabBarIcon: icon("≡") }} />
     </Tabs>
+    </NoTopInset.Provider>
   );
 }

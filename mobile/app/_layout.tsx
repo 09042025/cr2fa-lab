@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "../src/auth";
+import { DrawerProvider } from "../src/drawer";
 import { C } from "../src/theme";
 
 function Routes() {
@@ -39,7 +40,7 @@ export default function Root() {
   return (
     <AuthProvider>
       <StatusBar style="light" />
-      <Routes />
+      <DrawerProvider><Routes /></DrawerProvider>
     </AuthProvider>
   );
 }
