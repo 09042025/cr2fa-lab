@@ -9,7 +9,7 @@ import { Card, GoldButton, H2, Muted, ProBadge, Screen, Status } from "../src/ui
 
 interface Data { pro: boolean; enabled: boolean; asset: "BTC" | "ETH"; interval: "daily" | "1hour"; longs24?: number; shorts24?: number; total7?: number | null; pts?: { t: number; l: number; s: number }[] }
 const Chip = ({ label, on, locked, onPress }: { label: string; on: boolean; locked?: boolean; onPress: () => void }) => (
-  <Pressable onPress={onPress} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2, opacity: locked ? 0.55 : 1 }}>
+  <Pressable onPress={onPress} style={{ flexGrow: 1, flexBasis: "28%", alignItems: "center", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2, opacity: locked ? 0.55 : 1 }}>
     <Text style={{ color: on ? C.ink : C.white, fontWeight: "700" }}>{label}{locked ? " 🔒" : ""}</Text>
   </Pressable>
 );

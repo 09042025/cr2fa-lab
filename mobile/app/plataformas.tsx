@@ -11,8 +11,8 @@ interface Ex { name: string; url: string; origin: "Brasil" | "Global"; note: str
 interface Data { secao: string; chains?: string[]; offline?: boolean; platforms?: P[]; exchanges?: Ex[] }
 const SEC = [{ id: "defi", l: "Plataformas DeFi" }, { id: "dex", l: "DEX (trocas)" }, { id: "corretoras", l: "Corretoras" }];
 const Chip = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => (
-  <Pressable onPress={onPress} style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 }}>
-    <Text style={{ color: on ? C.ink : C.white, fontWeight: "700" }}>{label}</Text>
+  <Pressable onPress={onPress} style={{ flexGrow: 1, flexBasis: "28%", alignItems: "center", paddingHorizontal: 8, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 }}>
+    <Text style={{ color: on ? C.ink : C.white, fontWeight: "700", textAlign: "center" }}>{label}</Text>
   </Pressable>
 );
 const Stat = ({ l, v }: { l: string; v: string }) => <View style={{ minWidth: "30%" }}><Text style={{ color: C.muted, fontSize: 11 }}>{l}</Text><Text style={{ color: C.white, fontWeight: "700" }}>{v}</Text></View>;
