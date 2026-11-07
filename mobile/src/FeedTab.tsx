@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "./auth";
+import { Select } from "./Select";
+import { pickAndUpload } from "./upload";
 import { get, send } from "./api";
 import { Avatar, PostImage } from "./Avatar";
 import { ago } from "./format";
 import { RichText } from "./RichText";
 import { C } from "./theme";
-import { Act, ConfirmAct, PhotoPicker, ReportAct, Row } from "./actions";
+import { Act, ConfirmAct, ReportAct, Row } from "./actions";
 import type { Picked } from "./upload";
 import { Card, GoldButton, Muted, Status } from "./ui";
 
@@ -130,6 +132,16 @@ export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; on
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void load(); }, [topic]);
 
+  const [picking, setPicking] = useState(false);
+  async function addPhoto() {
+    setPicking(true); setPostErr(null);
+    const r = await pickAndUpload();
+    setPicking(false);
+    if (!r) return;
+    if ("error" in r) return setPostErr(r.error);
+    setPhoto(r);
+  }
+
   async function publish() {
     if (!draft.trim() && !photo) return;
     setPosting(true); setPostErr(null);
@@ -150,19 +162,28 @@ export function FeedTab({ composing, onCloseCompose }: { composing?: boolean; on
               <Text style={{ color: C.ink, fontWeight: "800" }}>{posting ? "…" : "Postar"}</Text>
             </Pressable>
           </View>
-          <View style={{ flex: 1, flexDirection: "row", gap: 10, paddingHorizontal: 16 }}>
+          <View style={{ flex: 1, flexDirection: "row", gap: 12, paddingHorizontal: 16 }}>
             <Avatar name={user?.name ?? ""} id={null} size={40} />
             <View style={{ flex: 1, gap: 8 }}>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                {topics.map((t) => <Chip key={t.id} label={t.label} on={draftTopic === t.id} onPress={() => setDraftTopic(t.id)} />)}
-              </View>
-              <TextInput style={{ color: C.white, fontSize: 18, flex: 1, textAlignVertical: "top" }} placeholder="Compartilhe uma análise, dúvida ou ideia…" placeholderTextColor={C.muted} value={draft} onChangeText={setDraft} maxLength={1500} multiline autoFocus />
+              <Select compact title="Assunto" value={draftTopic} onChange={setDraftTopic} options={topics.map((t) => ({ id: t.id, label: t.label }))} />
+              <TextInput style={{ color: C.white, fontSize: 18, lineHeight: 26, minHeight: 120, flexShrink: 1, textAlignVertical: "top", padding: 0 }} placeholder="Compartilhe uma análise, dúvida ou ideia de investimento…" placeholderTextColor={C.muted} value={draft} onChangeText={setDraft} maxLength={1500} multiline autoFocus />
+              {photo ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.panel2, borderRadius: 10, padding: 8 }}>
+                  <Image source={{ uri: photo.uri }} style={{ width: 56, height: 56, borderRadius: 8 }} />
+                  <Text style={{ color: C.muted, flex: 1, fontSize: 12 }}>Foto pronta para publicar</Text>
+                  <Pressable onPress={() => setPhoto(null)}><Text style={{ color: C.down, fontSize: 12 }}>remover</Text></Pressable>
+                </View>
+              ) : null}
               {postErr ? <Text style={{ color: C.down }}>{postErr}</Text> : null}
             </View>
           </View>
-          <View style={{ borderTopWidth: 1, borderTopColor: C.line, padding: 12, gap: 6 }}>
-            <PhotoPicker value={photo} onChange={setPhoto} onError={setPostErr} />
-            <Text style={{ color: C.muted, fontSize: 11 }}>{draft.length}/1500 · Conteúdo da comunidade é opinião dos membros, não recomendação de investimento.</Text>
+          <Text style={{ color: C.muted, fontSize: 11, paddingHorizontal: 16, paddingVertical: 8 }}>Conteúdo da comunidade é opinião dos membros, não recomendação de investimento. Nada de pedir dinheiro, divulgar terceiros ou prometer ganhos.</Text>
+          <View style={{ borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: 16, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Pressable onPress={addPhoto} disabled={picking} style={{ flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, opacity: picking ? 0.5 : 1 }}>
+              <Text style={{ color: C.gold, fontSize: 18, fontWeight: "700" }}>+</Text>
+              <Text style={{ color: C.white, fontWeight: "700" }}>{picking ? "Enviando…" : "Foto"}</Text>
+            </Pressable>
+            <Text style={{ color: C.muted, fontSize: 11, marginLeft: "auto" }}>{draft.length}/1500</Text>
           </View>
         </KeyboardAvoidingView>
       </Modal>
