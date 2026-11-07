@@ -15,6 +15,8 @@ function Routes() {
   return (
     <Stack screenOptions={{ headerStyle: { backgroundColor: C.panel }, headerTintColor: C.goldSoft, contentStyle: { backgroundColor: C.ink } }}>
       {/* Só quem entrou vê o app */}
+      {/* Pública: a política abre com ou sem login */}
+      <Stack.Screen name="privacidade" options={{ title: "Política de privacidade" }} />
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="visao-geral" options={{ title: "Visão geral" }} />
