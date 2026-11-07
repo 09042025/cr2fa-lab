@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 const TABS: { href: string; label: string; pro?: boolean }[] = [
   { href: "/painel/cripto", label: "Visão de mercado" },
-  { href: "/painel/cripto/mercado", label: "Mercado" },
+  { href: "/painel/cripto/mercado", label: "Mercado Cripto" },
   { href: "/painel/cripto/defi", label: "HUB DEFI", pro: true },
   { href: "/painel/cripto/rwa", label: "RWA" },
   { href: "/painel/cripto/futuros", label: "Futuros" },

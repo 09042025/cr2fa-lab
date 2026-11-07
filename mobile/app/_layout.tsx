@@ -15,6 +15,9 @@ function Routes() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="visao-geral" options={{ title: "Visão geral" }} />
         <Stack.Screen name="acoes" options={{ title: "Ações" }} />
+        <Stack.Screen name="onchain" options={{ title: "Análise on Chain" }} />
+        <Stack.Screen name="noticias" options={{ title: "Notícias" }} />
+        <Stack.Screen name="acao" options={{ title: "Ativo" }} />
         <Stack.Screen name="fiis" options={{ title: "Fundos imobiliários" }} />
         <Stack.Screen name="renda-fixa" options={{ title: "Renda fixa" }} />
         <Stack.Screen name="lives" options={{ title: "Lives Abertas" }} />

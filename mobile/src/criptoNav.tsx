@@ -4,15 +4,15 @@ import { C } from "./theme";
 import { ProBadge } from "./ui";
 
 // Mesmas seções do site (Cripto). "to" = tela nativa no app; sem "to" = próxima etapa.
-export type CriptoRoute = "/cripto" | "/mercado" | "/defi" | "/rwa" | "/futuros" | "/etf" | "/plataformas";
+export type CriptoRoute = "/cripto" | "/mercado" | "/defi" | "/rwa" | "/futuros" | "/etf" | "/onchain" | "/plataformas";
 const SECOES: { label: string; pro?: boolean; to?: CriptoRoute }[] = [
   { label: "Visão de mercado", to: "/cripto" },
-  { label: "Mercado", to: "/mercado" },
+  { label: "Mercado Cripto", to: "/mercado" },
   { label: "HUB DEFI", pro: true, to: "/defi" },
   { label: "RWA", to: "/rwa" },
   { label: "Futuros", to: "/futuros" },
   { label: "ETFs de Cripto", to: "/etf" },
-  { label: "Análise on Chain", pro: true },
+  { label: "Análise on Chain", pro: true, to: "/onchain" },
   { label: "DEX e Plataformas DeFi", to: "/plataformas" },
 ];
 

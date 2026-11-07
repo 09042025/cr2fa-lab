@@ -25,7 +25,7 @@ export default async function CryptoMarketPage({ searchParams }: { searchParams:
 
   return (
     <>
-      <PageTitle title="Mercado cripto" subtitle="Ranking das criptomoedas por valor de mercado. No Protocolo, 60% do bloco é Bitcoin, 10% Ethereum e 30% stablecoins rendendo." />
+      <PageTitle title="Mercado Cripto" subtitle="Ranking das criptomoedas por valor de mercado. No Protocolo, 60% do bloco é Bitcoin, 10% Ethereum e 30% stablecoins rendendo." />
       <section className="card p-4">
         <DataStatus result={result} source="CoinGecko" />
         {isPro ? (

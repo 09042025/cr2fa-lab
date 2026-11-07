@@ -3,12 +3,11 @@ import { useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { ChatTab } from "../../src/ChatTab";
 import { FeedTab } from "../../src/FeedTab";
-import { NoticiasTab } from "../../src/NoticiasTab";
 import { C } from "../../src/theme";
 import { Card, H2, Muted, ProBadge, ProGate, Screen } from "../../src/ui";
 
-// Mesma divisão do site: Chat (só chat-geral livre), Feed e Notícias livres, Lives VIP é Premium.
-const TABS = ["Chat", "Feed", "Notícias", "Lives VIP"] as const;
+// Mesma divisão do site: Chat (só chat-geral livre), Feed livre, Lives VIP é Premium.
+const TABS = ["Chat", "Feed", "Lives VIP"] as const;
 const CANAIS = [
   { nome: "chat-geral", pro: false },
   { nome: "boas-vindas-e-regras", pro: true },
@@ -72,7 +71,6 @@ export default function Comunidade() {
         </>
       )}
       {tab === "Feed" && <FeedTab />}
-      {tab === "Notícias" && <NoticiasTab />}
       {tab === "Lives VIP" && <ProGate feature="Lives VIP (exclusivo do plano Premium)"><Card><H2>Ao vivo</H2><Muted>A live do canal @EMERSON-NIZA aparece aqui.</Muted></Card></ProGate>}
     </Screen>
   );

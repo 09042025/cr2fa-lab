@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { brl, brlCompact, pct } from "./format";
 import { Select } from "./Select";
 import { C } from "./theme";
@@ -37,7 +37,8 @@ export function Quotes({ kind }: { kind: "acoes" | "fiis" }) {
             <Card style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><ProBadge /><Text style={{ color: C.muted, flex: 1 }}>Lista completa, filtro e busca no plano Premium.</Text></Card>
           )}
           {data.rows.map((r) => (
-            <Card key={r.symbol} style={{ gap: 4 }}>
+            <Pressable key={r.symbol} onPress={() => router.push({ pathname: "/acao", params: { t: r.symbol, de: kind } })}>
+            <Card style={{ gap: 4 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={{ color: C.goldSoft, fontWeight: "800", fontSize: 16 }}>{r.symbol}</Text>
                 <Text style={{ color: C.white, fontWeight: "700", fontSize: 16 }}>{brl(r.price)}</Text>
@@ -47,7 +48,9 @@ export function Quotes({ kind }: { kind: "acoes" | "fiis" }) {
                 <Text style={{ color: (r.changePct ?? 0) >= 0 ? C.up : C.down, fontWeight: "700" }}>{pct(r.changePct)}</Text>
               </View>
               <Text style={{ color: C.muted, fontSize: 12 }}>{r.sector} · Volume {r.volume === null ? "—" : r.volume.toLocaleString("pt-BR")} · Valor de mercado {brlCompact(r.marketCap)}</Text>
+              <Text style={{ color: C.goldSoft, fontSize: 12, fontWeight: "700" }}>Ver gráfico e informações ›</Text>
             </Card>
+            </Pressable>
           ))}
           {!data.pro && data.total > data.shown && <Card style={{ borderColor: C.gold }}><Text style={{ color: C.goldSoft, fontWeight: "700" }}>Lista completa ({data.total} ativos) no Premium.</Text><GoldButton label="Ver planos" onPress={() => router.push("/planos")} /></Card>}
           <Muted>{fii ? "Lista de FIIs da B3. A estrutura acima é a do Protocolo, e não recomendação de compra." : "Lista de ações da B3. A estratégia acima é a estrutura do Protocolo, e não recomendação de compra."} Fonte: brapi.dev (B3).</Muted>
