@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { Animated, Dimensions, Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Animated, Dimensions, Image, Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import { Avatar } from "./Avatar";
@@ -32,9 +32,11 @@ export const useDrawer = () => useContext(Ctx);
 
 export function Logo() {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <Text style={{ color: C.gold, fontSize: 30, fontWeight: "800", fontFamily: "serif" }}>N</Text>
-      <Text style={{ color: C.goldSoft, fontSize: 18, letterSpacing: 4, fontWeight: "600", fontFamily: "serif" }}>NIZA INVEST</Text>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <Image source={require("../assets/logo-niza-mark.webp")} style={{ width: 39, height: 34 }} resizeMode="contain" />
+      <Text style={{ fontFamily: "serif", fontSize: 17, fontWeight: "700", letterSpacing: 2.7, color: C.goldSoft }}>
+        NIZA <Text style={{ fontWeight: "500", color: C.gold }}>INVEST</Text>
+      </Text>
     </View>
   );
 }
