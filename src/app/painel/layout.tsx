@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Logo, ProBadge } from "@/components/ui";
@@ -39,6 +40,18 @@ const ITEM = "flex items-center justify-between gap-2 whitespace-nowrap rounded-
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  // Dentro do app (WebView): só o conteúdo da página, sem menu lateral nem cabeçalho; o app tem o próprio menu.
+  const inApp = (await headers()).get("x-niza-app") === "1" || (await cookies()).get("niza_app")?.value === "1";
+  if (inApp) {
+    return (
+      <div className="px-3 py-3">
+        <main className="min-w-0">
+          <CommunityTabs />
+          {children}
+        </main>
+      </div>
+    );
+  }
   const unread = unreadCount(user.id);
   const me = getMember(user.id, user.id)!;
   const avatarId = (db().prepare("SELECT avatar_id a FROM users WHERE id = ?").get(user.id) as { a: number | null } | undefined)?.a ?? null;
