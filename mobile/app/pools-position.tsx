@@ -1,10 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { usd } from "../src/format";
 import { C } from "../src/theme";
 import { useApi } from "../src/useApi";
 import { Card, GoldButton, H2, Muted, ProGate, Screen, Status } from "../src/ui";
+import { Select } from "../src/Select";
 
 interface Pos { tokenId: string; owner: string; chain: string; dex?: string; canAnalyze?: boolean; pair: string; fee: number; priceLower: number; priceUpper: number; inRange: boolean; valueUsd: number; feesCollectedUsd: number; pnlUsd: number; roi: number; apr: number | null; ageDays: number }
 interface Opt { id: string; label: string; ready: boolean }
@@ -19,18 +20,6 @@ const Chip = ({ label, on, onPress }: { label: string; on: boolean; onPress: () 
     <Text style={{ color: on ? C.ink : C.white, fontWeight: "700", fontSize: 13 }}>{label}</Text>
   </Pressable>
 );
-const small = (on: boolean) => ({ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9, borderWidth: 1, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : C.panel2 }) as const;
-/** Uma linha de filtro: título pequeno à esquerda e opções rolando na horizontal (ocupa pouco espaço). */
-const Line = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-    <Text style={{ color: C.muted, fontSize: 11, width: 52 }}>{title}</Text>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingRight: 8 }} style={{ flex: 1 }}>{children}</ScrollView>
-  </View>
-);
-const Mini = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => (
-  <Pressable onPress={onPress} style={small(on)}><Text style={{ color: on ? C.ink : C.white, fontWeight: "700", fontSize: 12 }}>{label}</Text></Pressable>
-);
-
 function Row({ p, i, pair }: { p: Pos; i: number; pair?: string }) {
   const router = useRouter();
   return (
@@ -114,20 +103,27 @@ export default function PoolsPosition() {
                 <Text style={{ color: C.muted, fontSize: 11, flex: 1, textAlign: "right" }} numberOfLines={2}>{resumo}</Text>
               </Pressable>
               {open && (
-                <View style={{ gap: 8 }}>
-                  <Line title="Redes">{readyNets.map((n) => <Mini key={n.id} label={n.label} on={selR.includes(n.id)} onPress={() => setRedes(toggle(selR, n.id))} />)}</Line>
-                  <Line title="Exchanges">{readyDex.map((e) => <Mini key={e.id} label={e.label} on={selD.includes(e.id)} onPress={() => setDexes(toggle(selD, e.id))} />)}</Line>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={{ color: C.muted, fontSize: 11, width: 52 }}>Par</Text>
-                    <TextInput value={t0} onChangeText={setT0} placeholder="Token 1 (ETH)" placeholderTextColor={C.muted} autoCapitalize="characters" autoCorrect={false} style={input} />
-                    <TextInput value={t1} onChangeText={setT1} placeholder="Token 2 (USDC)" placeholderTextColor={C.muted} autoCapitalize="characters" autoCorrect={false} style={input} />
+                <View style={{ gap: 10 }}>
+                  <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                    <Select multi title="Redes" value={selR} onChange={setRedes} options={[...readyNets, ...pendNets].map((n) => ({ id: n.id, label: n.label, disabled: !n.ready }))} />
+                    <Select multi title="Exchanges" value={selD} onChange={setDexes} options={[...readyDex, ...pendDex].map((e) => ({ id: e.id, label: e.label, disabled: !e.ready }))} />
                   </View>
-                  <Line title="Tipo">{(m?.kinds ?? []).map((k) => <Mini key={k.id} label={k.id === "rwa" ? "RWA" : k.label} on={tipo === k.id} onPress={() => setTipo(k.id)} />)}</Line>
-                  <Line title="Ordem">{[["apr", "APR"], ["roi", "ROI"], ["pnl", "PnL"], ["valor", "Valor"]].map(([k, l]) => <Mini key={k} label={l} on={ordem === k} onPress={() => setOrdem(k)} />)}</Line>
-                  <Line title="Valor">{[["0", "Qualquer"], ["1000", "≥ 1 mil"], ["10000", "≥ 10 mil"], ["100000", "≥ 100 mil"]].map(([k, l]) => <Mini key={k} label={l} on={min === k} onPress={() => setMin(k)} />)}</Line>
-                  <Line title="Idade">{[["0", "Qualquer"], ["7", "7 dias"], ["30", "30 dias"], ["90", "90 dias"], ["180", "180 dias"], ["365", "1 ano+"]].map(([k, l]) => <Mini key={k} label={l} on={idade === k} onPress={() => setIdade(k)} />)}</Line>
-                  <Line title="Faixa"><Mini label={faixa ? "✓ Só dentro da faixa" : "Só dentro da faixa"} on={faixa} onPress={() => setFaixa(!faixa)} /></Line>
-                  {(pendNets.length > 0 || pendDex.length > 0) && <Text style={{ color: C.muted, fontSize: 11 }}>Em breve: {[...pendNets.map((n) => n.label), ...pendDex.map((e) => e.label)].join(", ")}.</Text>}
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 11, marginBottom: 3 }}>Token 1</Text><TextInput value={t0} onChangeText={setT0} placeholder="ETH" placeholderTextColor={C.muted} autoCapitalize="characters" autoCorrect={false} style={input} /></View>
+                    <View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 11, marginBottom: 3 }}>Token 2</Text><TextInput value={t1} onChangeText={setT1} placeholder="USDC" placeholderTextColor={C.muted} autoCapitalize="characters" autoCorrect={false} style={input} /></View>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                    <Select title="Tipo de pool" value={tipo} onChange={setTipo} options={(m?.kinds ?? []).map((k) => ({ id: k.id, label: k.label }))} />
+                    <Select title="Ordenar por" value={ordem} onChange={setOrdem} options={[["apr", "Maior APR"], ["roi", "Maior ROI"], ["pnl", "Maior PnL"], ["valor", "Maior valor"]].map(([id, label]) => ({ id, label }))} />
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                    <Select title="Valor mínimo" value={min} onChange={setMin} options={[["0", "Qualquer"], ["1000", "US$ 1 mil"], ["10000", "US$ 10 mil"], ["100000", "US$ 100 mil"]].map(([id, label]) => ({ id, label }))} />
+                    <Select title="Idade mínima" value={idade} onChange={setIdade} options={[["0", "Qualquer"], ["7", "7 dias"], ["30", "30 dias"], ["90", "90 dias"], ["180", "180 dias"], ["365", "1 ano ou mais"]].map(([id, label]) => ({ id, label }))} />
+                  </View>
+                  <Pressable onPress={() => setFaixa(!faixa)} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ width: 20, height: 20, borderRadius: 5, borderWidth: 1, borderColor: faixa ? C.gold : C.line, backgroundColor: faixa ? C.gold : C.panel2, alignItems: "center", justifyContent: "center" }}>{faixa && <Text style={{ color: C.ink, fontWeight: "900", fontSize: 13 }}>✓</Text>}</View>
+                    <Text style={{ color: C.white, fontSize: 13 }}>Só dentro da faixa</Text>
+                  </Pressable>
                 </View>
               )}
               <GoldButton label="Filtrar" onPress={() => { setApplied(qs); setOpen(false); }} />
