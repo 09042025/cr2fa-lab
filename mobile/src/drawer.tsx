@@ -30,7 +30,8 @@ const ITEMS: Item[] = [
 const Ctx = createContext<{ open: () => void }>({ open: () => {} });
 export const useDrawer = () => useContext(Ctx);
 
-export function Logo() {
+export function Logo({ markOnly }: { markOnly?: boolean }) {
+  if (markOnly) return <Image source={require("../assets/logo-niza-mark.webp")} style={{ width: 62, height: 54 }} resizeMode="contain" />;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Image source={require("../assets/logo-niza-mark.webp")} style={{ width: 39, height: 34 }} resizeMode="contain" />
@@ -123,7 +124,7 @@ export function AppHeader() {
   return (
     <View style={{ paddingTop: insets.top + 6, paddingBottom: 10, paddingHorizontal: 14, backgroundColor: C.ink, borderBottomWidth: 1, borderBottomColor: C.line, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
       <Pressable onPress={open} hitSlop={10}><Avatar name={user?.name ?? ""} id={user?.avatarId ?? null} size={40} /></Pressable>
-      <Logo />
+      <Logo markOnly />
       <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6 }}><Text style={{ fontSize: 16 }}>🇧🇷 <Text style={{ color: C.muted, fontSize: 9 }}>▾</Text></Text></View>
     </View>
   );
