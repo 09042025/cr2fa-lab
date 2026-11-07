@@ -540,6 +540,32 @@ const toQuote = (i: BrapiListItem, sector: string): Quote => ({
   symbol: i.stock, name: i.name || i.stock, sector, price: i.close ?? null, changePct: i.change ?? null, volume: i.volume ?? null, marketCap: i.market_cap ?? null, logo: i.logo ?? null,
 });
 
+/** A lista da brapi costuma vir sem valor de mercado para FIIs: completa pela cotação individual (em lotes) e, se ainda faltar, não inventa valor. */
+async function fillMarketCap(quotes: Quote[]): Promise<void> {
+  const token = process.env.BRAPI_TOKEN;
+  const missing = quotes.filter((q) => q.marketCap === null).map((q) => q.symbol);
+  if (missing.length === 0) return;
+  const size = token ? 10 : 1;
+  const batches: string[][] = [];
+  for (let i = 0; i < Math.min(missing.length, token ? 600 : 0); i += size) batches.push(missing.slice(i, i + size));
+  const by = new Map(quotes.map((q) => [q.symbol, q]));
+  let next = 0;
+  const worker = async () => {
+    while (next < batches.length) {
+      const batch = batches[next++];
+      try {
+        const res = await fetchJson<{ results?: BrapiResult[] }>(`https://brapi.dev/api/quote/${batch.join(",")}?token=${encodeURIComponent(token as string)}`, {}, 20000);
+        for (const r of res.results ?? []) {
+          const q = by.get(r.symbol);
+          if (q && typeof r.marketCap === "number" && r.marketCap > 0) q.marketCap = r.marketCap;
+          if (q && !q.logo && r.logourl) q.logo = r.logourl;
+        }
+      } catch { /* segue sem o valor deste lote */ }
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+}
+
 /** Todas as ações da B3 (lista completa da brapi). Se a lista falhar, cai nos exemplos por setor. */
 export const getStocks = () =>
   cached<Quote[]>("brapi:stocks:all:v2", 15 * 60, async () => {
@@ -554,11 +580,13 @@ export const getStocks = () =>
 
 /** Todos os FIIs da B3, com segmento quando conhecido. Se a lista falhar, cai nos exemplos por segmento. */
 export const getFiis = () =>
-  cached<Quote[]>("brapi:fiis:all:v2", 15 * 60, async () => {
+  cached<Quote[]>("brapi:fiis:all:v3", 15 * 60, async () => {
     try {
       const items = (await fetchBrapiList("type=fund&subType=fii")).filter((i) => /^[A-Z]{4}1[1-3]$/.test(i.stock));
       if (items.length < 20) throw new Error("lista curta");
-      return items.map((i) => toQuote(i, FII_SEGMENT_BY_TICKER[i.stock] || "Outros / não classificado"));
+      const quotes = items.map((i) => toQuote(i, FII_SEGMENT_BY_TICKER[i.stock] || "Outros / não classificado"));
+      await fillMarketCap(quotes);
+      return quotes;
     } catch {
       return loadGroup(FII_SEGMENTS);
     }
