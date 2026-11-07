@@ -157,29 +157,29 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-xs uppercase tracking-wide text-muted">Atalhos</span>
+      <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
+        <span className="col-span-3 mb-0.5 text-xs uppercase tracking-wide text-muted sm:col-auto sm:mb-0 sm:mr-1">Atalhos</span>
         {PRESETS.map((p) => (
-          <button key={p.label} type="button" onClick={() => applyPreset(p.ids)} className="btn btn-ghost !px-3 !py-1.5 !text-xs" title={p.ids.map((i) => INDICATOR_BY_ID[i]?.name).join(" + ")}>
+          <button key={p.label} type="button" onClick={() => applyPreset(p.ids)} className="btn btn-ghost w-full !px-1 !py-1.5 !text-xs max-sm:leading-tight sm:w-auto sm:!px-3" title={p.ids.map((i) => INDICATOR_BY_ID[i]?.name).join(" + ")}>
             {p.label}
           </button>
         ))}
-        {selected.length > 0 && <button type="button" onClick={() => { setSelected([]); setNotice(""); }} className="btn btn-ghost !px-3 !py-1.5 !text-xs">Limpar</button>}
+        {selected.length > 0 && <button type="button" onClick={() => { setSelected([]); setNotice(""); }} className="btn btn-ghost w-full !px-1 !py-1.5 !text-xs sm:w-auto sm:!px-3">Limpar</button>}
       </div>
       {notice && <p className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-gold-soft">{notice} {!isPro && <Link href="/planos" className="underline">Ver planos</Link>}</p>}
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
         <section className="card min-w-0 p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Período">
+            <div className="grid w-full grid-cols-5 gap-1.5 sm:flex sm:w-auto sm:flex-wrap" role="group" aria-label="Período">
               {RANGES.map((x) => (
-                <button key={x.id} type="button" onClick={() => { setRange(x.id); setZoom(null); }} aria-pressed={!zoom && range === x.id} className={`btn !px-3 !py-1.5 !text-xs ${!zoom && range === x.id ? "btn-gold" : "btn-ghost"}`}>
+                <button key={x.id} type="button" onClick={() => { setRange(x.id); setZoom(null); }} aria-pressed={!zoom && range === x.id} className={`btn w-full !px-1 !py-1.5 !text-xs sm:w-auto sm:!px-3 ${!zoom && range === x.id ? "btn-gold" : "btn-ghost"}`}>
                   {x.label}
                 </button>
               ))}
-              {zoom && <button type="button" onClick={() => setZoom(null)} className="btn btn-ghost !px-3 !py-1.5 !text-xs">Desfazer zoom</button>}
+              {zoom && <button type="button" onClick={() => setZoom(null)} className="btn btn-ghost col-span-5 !px-3 !py-1.5 !text-xs">Desfazer zoom</button>}
             </div>
-            <div className="flex flex-wrap gap-4 text-xs text-muted">
+            <div className="flex w-full flex-wrap gap-x-6 gap-y-2 text-xs text-muted sm:w-auto">
               <label className="inline-flex cursor-pointer items-center gap-1.5">
                 <input type="checkbox" checked={logPrice} onChange={(e) => setLogPrice(e.target.checked)} /> Preço em escala log
               </label>
