@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     me: { id: user.id, admin: user.role === "admin" },
     posts: posts.map((p) => ({
       id: p.id, userId: p.userId, author: p.author, authorAvatar: p.authorAvatar, authorIsAdmin: p.authorIsAdmin, topic: p.topic, body: p.body, imageId: p.imageId,
-      createdAt: p.createdAt, likes: p.likes, liked: p.liked, pinned: p.pinned, bookmarked: p.bookmarked,
+      createdAt: p.createdAt, likes: p.likes, liked: p.liked, reposts: p.reposts, reposted: p.reposted, views: p.views, repostedBy: p.repostedBy, pinned: p.pinned, bookmarked: p.bookmarked,
       comments: p.comments.map((c) => ({ id: c.id, userId: c.userId, author: c.author, authorAvatar: c.authorAvatar, authorIsAdmin: c.authorIsAdmin, body: c.body, createdAt: c.createdAt })),
     })),
     more,
