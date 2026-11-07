@@ -60,7 +60,7 @@ function Panel({ onClose }: { onClose: () => void }) {
       return (
         <Pressable key={it.label} onPress={() => go(it)} style={({ pressed }) => ({ alignItems: "center", gap: 4, paddingVertical: 8, opacity: pressed ? 0.6 : 1 })}>
           <Image source={require("../assets/wfs-title.webp")} style={{ width: "86%", height: 92 }} resizeMode="contain" />
-          {!isPro && <ProBadge />}
+          <ProBadge />
         </Pressable>
       );
     }
