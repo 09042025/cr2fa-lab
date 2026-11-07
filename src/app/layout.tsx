@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TranslateLoader } from "@/components/TranslateLoader";
+import { PwaSplash } from "@/components/PwaSplash";
+
+const standaloneScript = `try{if(window.navigator.standalone||window.matchMedia("(display-mode: standalone)").matches)document.documentElement.setAttribute("data-standalone","")}catch(e){}`;
 
 const name = process.env.APP_NAME || "NIZA INVEST";
 
@@ -15,8 +18,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: standaloneScript }} />
+        <PwaSplash />
         {children}
         <TranslateLoader />
       </body>
