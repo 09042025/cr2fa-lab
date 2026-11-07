@@ -36,7 +36,7 @@ export default async function CoinPage({ params, searchParams }: { params: Promi
   return (
     <>
       <PageTitle title={c ? `${c.name} (${c.symbol})` : "Ativo"} subtitle="Preço, gráfico e informações do ativo." />
-      <p className="mb-3 text-sm"><Link className="text-gold-soft underline" href="/painel/cripto/mercado">Voltar para Mercado</Link> · <Link className="text-gold-soft underline" href="/painel/cripto/rwa">RWA</Link></p>
+      <p className="mb-3 text-sm"><Link className="text-gold-soft underline" href="/painel/cripto/mercado">Voltar para Mercado Cripto</Link> · <Link className="text-gold-soft underline" href="/painel/cripto/rwa">RWA</Link></p>
       <DataStatus result={detail} source="CoinGecko" />
 
       {c && (

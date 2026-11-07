@@ -11,7 +11,7 @@ export interface MarketData { coins: Coin[]; limited: boolean; fetchedAt: number
 export default function Mercado() {
   const { data, error, loading, reload } = useApi<MarketData>("/api/mobile/market");
   return (
-    <Screen title="Mercado" subtitle="Criptomoedas por valor de mercado, em dólar.">
+    <Screen title="Mercado Cripto" subtitle="Criptomoedas por valor de mercado, em dólar.">
       <Status loading={loading} error={error ?? (data?.failed ? "Não foi possível carregar as cotações agora." : null)} onRetry={reload} />
       {data?.coins?.map((c) => (
         <Card key={c.id} onPress={() => router.push({ pathname: "/ativo/[id]", params: { id: c.id } })}>

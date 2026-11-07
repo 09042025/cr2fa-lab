@@ -16,7 +16,7 @@ const ITEMS: Item[] = [
   { label: "Lives Abertas", to: "/lives" },
   { label: "Mensagens", to: "/mensagens" },
   { label: "Mentoria com Niza", to: "/mentoria", diamond: true },
-  { label: "Notícias", to: { pathname: "/comunidade", params: { aba: "Notícias" } } },
+  { label: "Notícias", to: "/noticias" },
   { label: "Planos e pagamento", to: "/planos" },
   { label: "Posts Salvos", to: "/salvos" },
   { label: "Renda fixa", to: "/renda-fixa" },
