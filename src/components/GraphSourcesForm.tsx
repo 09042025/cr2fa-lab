@@ -3,7 +3,7 @@ import { useState } from "react";
 
 interface Opt { id: string; label: string }
 /** Só admin: cadastra o ID do subgraph de uma rede/exchange. O servidor testa o ID antes de salvar. */
-export function GraphSourcesForm({ networks, exchanges }: { networks: Opt[]; exchanges: Opt[] }) {
+export function GraphSourcesForm({ networks, exchanges, saved = [] }: { networks: Opt[]; exchanges: Opt[]; saved?: { chain: string; dex: string; id: string }[] }) {
   const [chain, setChain] = useState(networks[0]?.id ?? "");
   const [dex, setDex] = useState(exchanges[0]?.id ?? "");
   const [id, setId] = useState("");
@@ -19,8 +19,31 @@ export function GraphSourcesForm({ networks, exchanges }: { networks: Opt[]; exc
     } catch { setMsg({ ok: false, text: "Falha de conexão." }); }
     setBusy(false);
   }
+  async function remove(c: string, d: string) {
+    if (!window.confirm(`Remover a fonte ${c} · ${d}?`)) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch("/api/admin/graph-source", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ chain: c, dex: d }) });
+      if (r.ok) window.location.reload(); else setMsg({ ok: false, text: `Não consegui remover (erro ${r.status}).` });
+    } catch { setMsg({ ok: false, text: "Falha de conexão." }); }
+    setBusy(false);
+  }
+  const label = (list: Opt[], id: string) => list.find((x) => x.id === id)?.label ?? id;
   return (
     <div className="mt-3 rounded-lg border border-gold/40 p-3">
+      {saved.length > 0 && (
+        <div className="mb-3">
+          <p className="mb-1 text-sm font-semibold text-gold-soft">Fontes cadastradas</p>
+          <ul className="grid gap-1 text-sm">
+            {saved.map((x) => (
+              <li key={`${x.chain}-${x.dex}`} className="flex flex-wrap items-center justify-between gap-2 rounded border border-line px-2 py-1">
+                <span>{label(networks, x.chain)} · {label(exchanges, x.dex)} <span className="text-xs text-muted">· {x.id.slice(0, 8)}…{x.id.slice(-4)}</span></span>
+                <button type="button" disabled={busy} onClick={() => remove(x.chain, x.dex)} className="rounded border border-down/60 px-2 py-0.5 text-xs text-down hover:bg-down/10">Remover</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <p className="mb-2 text-sm font-semibold text-gold-soft">Cadastrar fonte de dados (somente administrador)</p>
       <div className="grid gap-2 sm:grid-cols-[1fr_1fr_2fr_auto]">
         <select className="input" value={chain} onChange={(e) => setChain(e.target.value)}>{networks.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}</select>
