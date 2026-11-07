@@ -28,14 +28,14 @@ export async function pickAndUpload(): Promise<Picked | { error: string } | null
 }
 
 /** Envio com XMLHttpRequest: é o jeito mais compatível de mandar arquivo do celular em multipart. */
-function xhrUpload(url: string, uri: string, token: string | null): Promise<{ status: number; body: { id?: number; error?: string } }> {
+export function xhrUpload(url: string, uri: string, token: string | null, name = "foto.jpg", type = "image/jpeg"): Promise<{ status: number; body: { id?: number; error?: string } }> {
   return new Promise((resolve, reject) => {
     const fd = new FormData();
-    fd.append("file", { uri, name: "foto.jpg", type: "image/jpeg" } as unknown as Blob);
+    fd.append("file", { uri, name, type } as unknown as Blob);
     const x = new XMLHttpRequest();
     x.open("POST", url);
     if (token) x.setRequestHeader("authorization", `Bearer ${token}`);
-    x.timeout = 60_000;
+    x.timeout = 180_000;
     x.onload = () => { let body = {}; try { body = JSON.parse(x.responseText); } catch { /* resposta sem JSON */ } resolve({ status: x.status, body }); };
     x.onerror = () => reject(new Error("sem resposta do servidor"));
     x.ontimeout = () => reject(new Error("tempo esgotado"));

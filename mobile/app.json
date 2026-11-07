@@ -11,6 +11,15 @@
     "plugins": [
       "expo-router",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Permita a câmera para gravar Cashpills e stories em vídeo.",
+          "microphonePermission": "Permita o microfone para gravar o som dos seus vídeos.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-video",
+      [
         "expo-image-picker",
         {
           "photosPermission": "Permita o acesso às fotos para enviar imagens na comunidade."
