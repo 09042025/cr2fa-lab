@@ -362,6 +362,15 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     document.addEventListener("gesturechange", stop);
     return () => { document.removeEventListener("gesturestart", stop); document.removeEventListener("gesturechange", stop); };
   }, []);
+  // Tocar/clicar fora do gráfico volta o topo para os valores mais atuais.
+  useEffect(() => {
+    const outside = (e: Event) => {
+      if (wrap.current && e.target instanceof Node && !wrap.current.contains(e.target)) setHover(null);
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("touchstart", outside, { passive: true });
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("touchstart", outside); };
+  }, []);
   const logPriceRef = useRef(logPrice);
   logPriceRef.current = logPrice;
 
