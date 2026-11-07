@@ -31,3 +31,11 @@ export function usdCompact(v: number): string {
   if (a >= 1e3) return `US$ ${num(v / 1e3, 1)} mil`;
   return `US$ ${num(v, 0)}`;
 }
+
+/** Real no padrão brasileiro: R$ 1.234,56 */
+export const brl = (v: number | null | undefined): string => (v === null || v === undefined ? "—" : `R$ ${num(v, 2)}`);
+export const brlCompact = (v: number | null | undefined): string => {
+  if (v === null || v === undefined) return "—";
+  const a = Math.abs(v);
+  return a >= 1e9 ? `R$ ${num(v / 1e9, 2)} bi` : a >= 1e6 ? `R$ ${num(v / 1e6, 2)} mi` : a >= 1e3 ? `R$ ${num(v / 1e3, 1)} mil` : `R$ ${num(v, 2)}`;
+};

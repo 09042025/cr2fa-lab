@@ -10,16 +10,16 @@ interface Item { label: string; to?: Href; url?: string; pro?: boolean; diamond?
 // Mesma lista e mesmos nomes do menu lateral do site. Sem "to" = ainda não chegou ao app (as próximas etapas ligam uma a uma).
 const ITEMS: Item[] = [
   { label: "Feed", to: "/" },
-  { label: "Ações" },
+  { label: "Ações", to: "/acoes" },
   { label: "Cripto", to: "/cripto" },
-  { label: "Fundos imobiliários" },
-  { label: "Lives Abertas" },
-  { label: "Mensagens" },
-  { label: "Mentoria com Niza", diamond: true },
+  { label: "Fundos imobiliários", to: "/fiis" },
+  { label: "Lives Abertas", to: "/lives" },
+  { label: "Mensagens", to: "/mensagens" },
+  { label: "Mentoria com Niza", to: "/mentoria", diamond: true },
   { label: "Notícias", to: { pathname: "/comunidade", params: { aba: "Notícias" } } },
   { label: "Planos e pagamento", to: "/planos" },
-  { label: "Posts Salvos" },
-  { label: "Renda fixa" },
+  { label: "Posts Salvos", to: "/salvos" },
+  { label: "Renda fixa", to: "/renda-fixa" },
   { label: "Visão geral", to: "/visao-geral" },
   { label: "White Flame Society", to: "/comunidade", pro: true },
 ];

@@ -14,6 +14,15 @@ function Routes() {
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="visao-geral" options={{ title: "Visão geral" }} />
+        <Stack.Screen name="acoes" options={{ title: "Ações" }} />
+        <Stack.Screen name="fiis" options={{ title: "Fundos imobiliários" }} />
+        <Stack.Screen name="renda-fixa" options={{ title: "Renda fixa" }} />
+        <Stack.Screen name="lives" options={{ title: "Lives Abertas" }} />
+        <Stack.Screen name="live" options={{ title: "Live" }} />
+        <Stack.Screen name="mensagens" options={{ title: "Mensagens" }} />
+        <Stack.Screen name="conversa" options={{ title: "Conversa" }} />
+        <Stack.Screen name="mentoria" options={{ title: "Mentoria com Niza" }} />
+        <Stack.Screen name="salvos" options={{ title: "Posts Salvos" }} />
         <Stack.Screen name="cursos" options={{ title: "Cursos" }} />
         <Stack.Screen name="defi" options={{ title: "HUB DEFI" }} />
         <Stack.Screen name="pool" options={{ title: "Pool" }} />
