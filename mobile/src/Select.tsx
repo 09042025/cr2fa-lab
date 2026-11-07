@@ -5,10 +5,10 @@ import { C } from "./theme";
 export interface Opt { id: string; label: string; disabled?: boolean }
 
 /** Lista suspensa (abre em folha na parte de baixo da tela). Uma opção (single) ou várias (multi). */
-export function Select({ title, options, value, onChange, multi }: {
-  title: string; options: Opt[]; multi?: false; value: string; onChange: (v: string) => void;
+export function Select({ title, options, value, onChange, multi, compact }: {
+  title: string; compact?: boolean; options: Opt[]; multi?: false; value: string; onChange: (v: string) => void;
 } | {
-  title: string; options: Opt[]; multi: true; value: string[]; onChange: (v: string[]) => void;
+  title: string; compact?: boolean; options: Opt[]; multi: true; value: string[]; onChange: (v: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const sel = multi ? (value as string[]) : [value as string];
@@ -21,10 +21,10 @@ export function Select({ title, options, value, onChange, multi }: {
     else { (onChange as (v: string) => void)(o.id); setOpen(false); }
   };
   return (
-    <View style={{ flex: 1, minWidth: 140 }}>
-      <Text style={{ color: C.muted, fontSize: 11, marginBottom: 3 }}>{title}</Text>
-      <Pressable onPress={() => setOpen(true)} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderWidth: 1, borderColor: C.line, backgroundColor: C.panel2, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 }}>
-        <Text style={{ color: C.white, fontWeight: "700", fontSize: 13, flexShrink: 1 }} numberOfLines={1}>{text}</Text>
+    <View style={compact ? { alignSelf: "flex-start" } : { flex: 1, minWidth: 140 }}>
+      {compact ? null : <Text style={{ color: C.muted, fontSize: 11, marginBottom: 3 }}>{title}</Text>}
+      <Pressable onPress={() => setOpen(true)} style={compact ? { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: C.gold, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6 } : { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderWidth: 1, borderColor: C.line, backgroundColor: C.panel2, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 }}>
+        <Text style={{ color: compact ? C.goldSoft : C.white, fontWeight: "700", fontSize: compact ? 14 : 13, flexShrink: 1 }} numberOfLines={1}>{text}</Text>
         <Text style={{ color: C.gold, fontSize: 11 }}>▼</Text>
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
