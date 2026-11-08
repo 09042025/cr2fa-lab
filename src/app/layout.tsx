@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TranslateLoader } from "@/components/TranslateLoader";
 import { PwaSplash } from "@/components/PwaSplash";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const standaloneScript = `try{if(window.navigator.standalone||window.matchMedia("(display-mode: standalone)").matches)document.documentElement.setAttribute("data-standalone","")}catch(e){}`;
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <script dangerouslySetInnerHTML={{ __html: standaloneScript }} />
         <PwaSplash />
+        <PullToRefresh />
         {children}
         <TranslateLoader />
       </body>

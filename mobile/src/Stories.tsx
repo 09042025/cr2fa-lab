@@ -246,7 +246,7 @@ function Composer({ photo, onClose, onDone }: { photo: Picked; onClose: () => vo
 }
 
 /** Stories no estilo Instagram: bolinhas no topo do Feed, visualizador em tela cheia e publicar com foto. */
-export function StoriesBar({ me }: { me: { name: string; avatarId?: number | null } }) {
+export function StoriesBar({ me, reloadKey }: { me: { name: string; avatarId?: number | null }; reloadKey?: number }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [photo, setPhoto] = useState<Picked | null>(null);
@@ -256,7 +256,7 @@ export function StoriesBar({ me }: { me: { name: string; avatarId?: number | nul
     const r = await get<{ groups: Group[] }>("/api/community/stories");
     if ("data" in r) setGroups(r.data.groups);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); }, [load, reloadKey]);
 
   function add() {
     Alert.alert("Novo story", undefined, [

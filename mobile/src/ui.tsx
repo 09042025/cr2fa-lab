@@ -1,17 +1,17 @@
 import { router } from "expo-router";
 import { createContext, useContext, type ReactNode } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "./auth";
 import { C } from "./theme";
 
 export const NoTopInset = createContext(false);
 
-export function Screen({ title, subtitle, children }: { title?: string; subtitle?: string; children: ReactNode }) {
+export function Screen({ title, subtitle, children, onRefresh, refreshing }: { title?: string; subtitle?: string; children: ReactNode; onRefresh?: () => void; refreshing?: boolean }) {
   const insets = useSafeAreaInsets();
   const noTop = useContext(NoTopInset);
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: C.ink }} contentContainerStyle={{ padding: 16, paddingTop: noTop ? 16 : insets.top + 16, paddingBottom: 32, gap: 12 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: C.ink }} refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={C.gold} colors={[C.gold]} progressBackgroundColor={C.panel} /> : undefined} contentContainerStyle={{ padding: 16, paddingTop: noTop ? 16 : insets.top + 16, paddingBottom: 32, gap: 12 }}>
       {title ? <Text style={s.h1}>{title}</Text> : null}
       {subtitle ? <Text style={s.muted}>{subtitle}</Text> : null}
       {children}

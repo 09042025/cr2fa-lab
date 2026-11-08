@@ -48,7 +48,9 @@ export function MentionsBell({ className = "" }: { className?: string }) {
   useEffect(() => {
     void count();
     const t = setInterval(() => { if (!document.hidden) void count(); }, 60_000);
-    return () => clearInterval(t);
+    const f = () => void count();
+    window.addEventListener("niza:refresh", f);
+    return () => { clearInterval(t); window.removeEventListener("niza:refresh", f); };
   }, [count]);
 
   async function toggle() {
