@@ -16,7 +16,29 @@ export const DEXS_CHAIN: Record<string, string> = {
   Avalanche: "avalanche", Solana: "solana", Fantom: "fantom", Linea: "linea", Scroll: "scroll", Blast: "blast", Mantle: "mantle",
   Sonic: "sonic", Unichain: "unichain", Berachain: "berachain", Celo: "celo", Gnosis: "gnosischain", "zkSync Era": "zksync",
 };
+/** Rede no GeckoTerminal (histórico de preço do pool). */
+export const GECKO_NET: Record<string, string> = {
+  Ethereum: "eth", Base: "base", Arbitrum: "arbitrum", Polygon: "polygon_pos", BSC: "bsc", Optimism: "optimism", "OP Mainnet": "optimism",
+  Avalanche: "avax", Fantom: "ftm", Linea: "linea", Scroll: "scroll", Blast: "blast", Mantle: "mantle", Sonic: "sonic", Unichain: "unichain",
+  Berachain: "berachain", Celo: "celo", Gnosis: "xdai", "zkSync Era": "zksync", Solana: "solana",
+};
 const ADDR = /^0x[0-9a-fA-F]{40}$/;
+
+export interface PricePoint { t: number; c: number }
+
+/** Preço diário (fechamento, em US$) do primeiro token do pool, últimos ~90 dias. Vazio se a fonte não responder. */
+export async function getPoolPriceHistory(chain: string, address: string): Promise<PricePoint[]> {
+  const net = GECKO_NET[chain];
+  if (!net || !(ADDR.test(address) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address))) return [];
+  const res = await cached<PricePoint[]>(`gtprice:${net}:${address.toLowerCase()}`, 30 * 60, async () => {
+    const r = await fetchJson<{ data?: { attributes?: { ohlcv_list?: number[][] } } }>(`https://api.geckoterminal.com/api/v2/networks/${net}/pools/${address}/ohlcv/day?aggregate=1&limit=90`, {}, 12000);
+    return (r.data?.attributes?.ohlcv_list ?? [])
+      .filter((x) => Array.isArray(x) && Number.isFinite(x[0]) && Number.isFinite(x[4]))
+      .map((x) => ({ t: x[0] * 1000, c: x[4] }))
+      .sort((a, b) => a.t - b.t);
+  });
+  return res.data ?? [];
+}
 
 export interface HistPoint { t: number; apy: number | null; apyBase: number | null; tvl: number | null }
 
@@ -49,6 +71,7 @@ export interface PoolDetail {
   /** Gráfico de preço do DexScreener: endereço do par (ou do token, que o DexScreener resolve para o par principal). */
   chart: { chain: string; address: string; embed: string; page: string } | null;
   history: HistPoint[];
+  priceHistory: PricePoint[];
   /** Distribuição de liquidez (Uniswap v3), lida da blockchain; null quando não disponível. */
   dist: Distribution | null;
   fetchedAt: number | null;
@@ -108,6 +131,7 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
   const fees24hV = p.volumeUsd1d !== null && feeRate !== null ? p.volumeUsd1d * feeRate : null;
   const baseApr = fees24hV !== null ? ((fees24hV * 365) / poolValueUsd) * 100 : null;
   const chart = ds && address ? { chain: ds, address, embed: `https://dexscreener.com/${ds}/${address}?embed=1&theme=dark&trades=0&info=0&loadChartSettings=0`, page: `https://dexscreener.com/${ds}/${address}` } : null;
+  const priceHistory = link.kind === "direct" && ADDR.test(tail) ? await getPoolPriceHistory(p.chain, tail).catch(() => []) : [];
   return {
     id: p.id, symbol: p.symbol, tokens: hasTok ? [p.tokens[0], p.tokens[1]] : null, project: p.project, chain: p.chain, poolMeta: p.poolMeta,
     stablecoin: p.stablecoin, rwa: poolKind(p) === "rwa", tvlUsd: p.tvlUsd, volumeUsd1d: p.volumeUsd1d, turnover: turnover(p),
@@ -115,6 +139,6 @@ export async function getPoolDetail(id: string): Promise<PoolDetail | null> {
     feeRate, feeFromDex, poolValueUsd, poolValueFromChain, fees24h: p.volumeUsd1d !== null && feeRate !== null ? p.volumeUsd1d * feeRate : null, baseApr,
     price, usdA, usdB,
     priceNote: price ? null : sym ? `Não encontramos o preço de ${sym[0]} automaticamente. Digite o preço atual para simular.` : "Preço indisponível. Digite o preço atual para simular.",
-    link, llama: llamaUrl(p), chart, history, dist, fetchedAt: all.fetchedAt,
+    link, llama: llamaUrl(p), chart, history, priceHistory, dist, fetchedAt: all.fetchedAt,
   };
 }
