@@ -26,3 +26,12 @@ test("aula bloqueada não entrega o link a quem não é Premium; Grátis vê só
   assert.ok(!addLesson(pl, { title: "x", description: "", url: "https://exemplo.com", minutes: null, free: false }).ok);
   if (b.ok) { move("lesson", b.id, "up"); assert.equal(listLessons(pl, true)[0].title, "Avançada"); }
 });
+
+test("reordenar arrastando grava a nova ordem das playlists", async () => {
+  const { reorder, listPlaylists } = await import("../src/lib/courses");
+  const a = createPlaylist("Ordem A", "")!, b = createPlaylist("Ordem B", "")!, c = createPlaylist("Ordem C", "")!;
+  assert.ok(reorder("playlist", [c, a, b]));
+  const names = listPlaylists().filter((p) => [a, b, c].includes(p.id)).map((p) => p.title);
+  assert.deepEqual(names, ["Ordem C", "Ordem A", "Ordem B"]);
+  assert.equal(reorder("playlist", [999999]), false);
+});

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LessonEditor } from "./CoursesAdmin";
+import { SortableList } from "./SortableList";
 
 interface L { id: number; title: string; description: string; minutes: number | null; free: boolean; locked: boolean; embed: string | null; ytUrl: string; hasVideo: boolean }
 
@@ -29,10 +30,13 @@ export function CoursePlayer({ playlistId, lessons, admin }: { playlistId: numbe
         <div className="rounded-xl border border-line bg-panel p-6 text-sm text-muted">{lessons.length ? "Escolha uma aula abaixo para assistir." : "Ainda não há aulas nesta playlist."}</div>
       )}
 
-      <ul className="space-y-2">
-        {lessons.map((l, i) => (
-          <li key={l.id} className={`rounded-xl border p-3 ${l.id === sel ? "border-gold/60 bg-gold/10" : "border-line bg-panel"}`}>
+      {admin && lessons.length > 1 && <p className="text-xs text-muted">Segure e arraste a alça ⠿ para mudar a ordem das aulas.</p>}
+      <SortableList items={lessons} gap={8} onReorder={(ids) => act({ action: "reorder", kind: "lesson", playlistId, ids })} render={(l, handle) => {
+        const i = lessons.findIndex((x) => x.id === l.id);
+        return (
+          <div className={`rounded-xl border p-3 ${l.id === sel ? "border-gold/60 bg-gold/10" : "border-line bg-panel"}`}>
             <div className="flex items-center gap-3">
+              {admin && handle}
               <button type="button" onClick={() => { if (!l.locked && l.embed) { setSel(l.id); window.scrollTo({ top: 0, behavior: "smooth" }); } }} disabled={l.locked || !l.embed} className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-60">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line text-xs text-muted">{l.locked ? "🔒" : i + 1}</span>
                 <span className="min-w-0 flex-1">
@@ -42,8 +46,6 @@ export function CoursePlayer({ playlistId, lessons, admin }: { playlistId: numbe
               </button>
               {admin && (
                 <span className="flex shrink-0 gap-1 text-xs">
-                  <button type="button" aria-label="Subir aula" onClick={() => act({ action: "move", kind: "lesson", id: l.id, dir: "up" })} className="rounded border border-line px-2 py-1 text-muted hover:text-white">↑</button>
-                  <button type="button" aria-label="Descer aula" onClick={() => act({ action: "move", kind: "lesson", id: l.id, dir: "down" })} className="rounded border border-line px-2 py-1 text-muted hover:text-white">↓</button>
                   <button type="button" onClick={() => setEditing(editing === l.id ? null : l.id)} className="rounded border border-line px-2 py-1 text-gold-soft">Editar</button>
                   <button type="button" onClick={() => { if (confirm("Apagar esta aula?")) void act({ action: "lesson-delete", id: l.id }); }} className="rounded border border-line px-2 py-1 text-down">Apagar</button>
                 </span>
@@ -52,9 +54,9 @@ export function CoursePlayer({ playlistId, lessons, admin }: { playlistId: numbe
             {admin && editing === l.id && (
               <div className="mt-3"><LessonEditor playlistId={playlistId} lessonId={l.id} initial={{ title: l.title, description: l.description, minutes: l.minutes ? String(l.minutes) : "", free: l.free }} onDone={() => setEditing(null)} /></div>
             )}
-          </li>
-        ))}
-      </ul>
+          </div>
+        );
+      }} />
 
       {admin && (
         <section className="space-y-2">
