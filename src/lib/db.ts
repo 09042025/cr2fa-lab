@@ -389,6 +389,14 @@ function migrate(db: Database.Database) {
       viewed_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (story_id, viewer_id)
     );
+    CREATE TABLE IF NOT EXISTS investor_profiles (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      profile TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      reserve_warning INTEGER NOT NULL DEFAULT 0,
+      answers TEXT NOT NULL,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
     CREATE TABLE IF NOT EXISTS course_playlists (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
