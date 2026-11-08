@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { InvestorQuiz } from "./InvestorQuiz";
-import { PROFILE_INFO, QUESTIONS, type Profile } from "@/lib/investor";
+import { PROFILE_INFO, QUESTIONS, type Profile } from "@/lib/investor-data";
 
 const TONE: Record<Profile, string> = { conservador: "text-sky-300", moderado: "text-gold-soft", arrojado: "text-emerald-300" };
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Question } from "@/lib/investor";
+import type { Question } from "@/lib/investor-data";
 
 /** Questionário do perfil de investidor: uma pergunta por vez, barra de progresso e botão Voltar. */
 export function InvestorQuiz({ questions, onCancel }: { questions: Question[]; onCancel?: () => void }) {
