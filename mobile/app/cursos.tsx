@@ -1,10 +1,8 @@
-import { Card, H2, Muted, ProGate, Screen } from "../src/ui";
+import { View } from "react-native";
+import { SiteView } from "../src/SiteView";
+import { C } from "../src/theme";
 
+/** Masterclass: playlists de aulas por tipo de ativo (a mesma página do site, com o vídeo tocando aqui dentro). */
 export default function Cursos() {
-  return (
-    <Screen subtitle="Aulas em vídeo. A introdução é livre no Grátis.">
-      <Card><H2>Introdução ao investimento</H2><Muted>Liberada para todos.</Muted></Card>
-      <ProGate feature="Aulas completas (exclusivo do plano Premium)"><Card><H2>Módulos avançados</H2><Muted>Conteúdo completo do curso.</Muted></Card></ProGate>
-    </Screen>
-  );
+  return <View style={{ flex: 1, backgroundColor: C.ink }}><SiteView path="/painel/cursos" /></View>;
 }

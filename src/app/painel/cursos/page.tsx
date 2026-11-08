@@ -1,23 +1,34 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { Locked, PageTitle, ProBadge } from "@/components/ui";
+import { listPlaylists } from "@/lib/courses";
+import { MovePlaylist, NewPlaylist } from "@/components/CoursesAdmin";
+import { PageTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const user = await requireUser();
-  const isPro = user.plan === "pro";
+  const admin = user.role === "admin";
+  const playlists = listPlaylists();
   return (
     <>
-      <PageTitle title="Masterclass" subtitle="Aulas e análises de ativos para quem é Premium." />
-      {isPro ? (
-        <section className="card flex flex-col items-start gap-3 p-6">
-          <div className="flex items-center gap-2"><ProBadge /><h3 className="font-semibold">Em breve</h3></div>
-          <p className="text-sm text-muted">Estamos preparando este espaço. Assim que estiver pronto, o conteúdo aparece aqui para você.</p>
-          <Link href="/painel/visao-geral" className="btn btn-ghost">Voltar à visão geral</Link>
-        </section>
+      <PageTitle title="Masterclass" subtitle="Aulas e análises de ativos, organizadas em playlists por tipo de ativo." />
+      {admin && <NewPlaylist />}
+      {playlists.length === 0 ? (
+        <section className="card p-6 text-sm text-muted">{admin ? "Crie a primeira playlist acima (por exemplo, Ações ou Fundos imobiliários) e adicione as aulas." : "Estamos preparando as aulas. Assim que estiverem prontas, aparecem aqui para você."}</section>
       ) : (
-        <Locked feature="Masterclass (exclusivo do plano Premium)" />
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {playlists.map((p) => (
+            <li key={p.id} className="card flex flex-col gap-2 p-4">
+              <Link href={`/painel/cursos/${p.id}`} className="font-display text-lg font-bold text-gold-soft hover:underline">{p.title}</Link>
+              {p.description && <p className="text-sm text-muted">{p.description}</p>}
+              <div className="mt-auto flex items-center justify-between pt-2 text-xs text-muted">
+                <span>{p.lessons} {p.lessons === 1 ? "aula" : "aulas"}</span>
+                {admin ? <MovePlaylist id={p.id} /> : <Link href={`/painel/cursos/${p.id}`} className="text-gold-soft hover:underline">Abrir →</Link>}
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </>
   );
