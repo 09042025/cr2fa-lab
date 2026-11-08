@@ -389,6 +389,26 @@ function migrate(db: Database.Database) {
       viewed_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (story_id, viewer_id)
     );
+    CREATE TABLE IF NOT EXISTS course_playlists (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS course_lessons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      playlist_id INTEGER NOT NULL REFERENCES course_playlists(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      yt_video TEXT,
+      yt_list TEXT,
+      minutes INTEGER,
+      free INTEGER NOT NULL DEFAULT 0,
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_lessons_playlist ON course_lessons(playlist_id, position);
     CREATE TABLE IF NOT EXISTS mentions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

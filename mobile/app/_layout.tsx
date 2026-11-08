@@ -33,7 +33,7 @@ function Routes() {
         <Stack.Screen name="conversa" options={{ title: "Conversa" }} />
         <Stack.Screen name="mentoria" options={{ title: "Mentoria com Niza" }} />
         <Stack.Screen name="salvos" options={{ title: "Posts Salvos" }} />
-        <Stack.Screen name="cursos" options={{ title: "Cursos" }} />
+        <Stack.Screen name="cursos" options={{ title: "Masterclass" }} />
         <Stack.Screen name="defi" options={{ title: "HUB DEFI" }} />
         <Stack.Screen name="pool" options={{ title: "Pool" }} />
         <Stack.Screen name="saude" options={{ title: "Saúde das pools" }} />
