@@ -151,7 +151,7 @@ function PostCard({ p, topicLabel, onChanged, me, reasons }: { p: Post; topicLab
   );
 }
 
-export function FeedTab({ composing, onCloseCompose, only }: { composing?: boolean; onCloseCompose?: () => void; only?: string }) {
+export function FeedTab({ composing, onCloseCompose, only, reloadKey, onLoaded }: { composing?: boolean; onCloseCompose?: () => void; only?: string; reloadKey?: number; onLoaded?: () => void }) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [topic, setTopic] = useState(only ?? "");
@@ -178,10 +178,13 @@ export function FeedTab({ composing, onCloseCompose, only }: { composing?: boole
       setPosts(append ? [...posts, ...r.data.posts] : r.data.posts);
     } else setError(r.error);
     setLoading(false);
-  }, [topic, posts]);
+    onLoaded?.();
+  }, [topic, posts, onLoaded]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void load(); }, [topic]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (reloadKey) void load(); }, [reloadKey]);
 
   const [msg, setMsg] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);

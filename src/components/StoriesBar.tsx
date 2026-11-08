@@ -31,6 +31,7 @@ export function StoriesBar({ me, canPost }: { me: { id: number; name: string; av
     if (d?.groups) setGroups(d.groups);
   }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const f = () => void load(); window.addEventListener("niza:refresh", f); return () => window.removeEventListener("niza:refresh", f); }, [load]);
 
   const mine = groups.find((g) => g.mine);
   const others = groups.filter((g) => !g.mine);
