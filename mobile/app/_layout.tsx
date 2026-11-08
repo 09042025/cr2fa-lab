@@ -23,6 +23,7 @@ function Routes() {
         <Stack.Screen name="visao-geral" options={{ title: "Visão geral" }} />
         <Stack.Screen name="acoes" options={{ title: "Ações" }} />
         <Stack.Screen name="onchain" options={{ title: "Análise on Chain" }} />
+        <Stack.Screen name="perfil-investidor" options={{ title: "Perfil de investidor" }} />
         <Stack.Screen name="noticias" options={{ title: "Notícias" }} />
         <Stack.Screen name="acao" options={{ title: "Ativo" }} />
         <Stack.Screen name="fiis" options={{ title: "Fundos imobiliários" }} />

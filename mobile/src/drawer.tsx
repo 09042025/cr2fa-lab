@@ -21,6 +21,7 @@ const ITEMS: Item[] = [
   { label: "Mensagens", to: "/mensagens" },
   { label: "Mentoria com Niza", to: "/mentoria", diamond: true },
   { label: "Notícias", to: "/noticias" },
+  { label: "Perfil de investidor", to: "/perfil-investidor" },
   { label: "Planos e pagamento", to: "/planos" },
   { label: "Posts Salvos", to: "/salvos", saved: true },
   { label: "Renda fixa", to: "/renda-fixa" },
