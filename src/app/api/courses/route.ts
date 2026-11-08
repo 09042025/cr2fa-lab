@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getUser } from "@/lib/auth";
 import { fail, json, sameOrigin } from "@/lib/http";
-import { addLesson, createPlaylist, deleteLesson, deletePlaylist, move, updateLesson, updatePlaylist } from "@/lib/courses";
+import { addLesson, createPlaylist, deleteLesson, deletePlaylist, move, reorder, updateLesson, updatePlaylist } from "@/lib/courses";
 
 const lesson = { title: z.string().max(200), description: z.string().max(1000).default(""), url: z.string().max(500).default(""), minutes: z.number().int().min(0).max(600).nullable().default(null), free: z.boolean().default(false) };
 const schema = z.discriminatedUnion("action", [
@@ -11,6 +11,7 @@ const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("lesson-add"), playlistId: z.number().int().positive(), ...lesson }),
   z.object({ action: z.literal("lesson-edit"), id: z.number().int().positive(), ...lesson }),
   z.object({ action: z.literal("lesson-delete"), id: z.number().int().positive() }),
+  z.object({ action: z.literal("reorder"), kind: z.enum(["lesson", "playlist"]), ids: z.array(z.number().int().positive()).min(1).max(200), playlistId: z.number().int().positive().optional() }),
   z.object({ action: z.literal("move"), kind: z.enum(["lesson", "playlist"]), id: z.number().int().positive(), dir: z.enum(["up", "down"]) }),
 ]);
 
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
     case "lesson-add": { const r = addLesson(d.playlistId, d); return r.ok ? json({ id: r.id }, 201) : fail(r.error); }
     case "lesson-edit": { const r = updateLesson(d.id, d); return r.ok ? json({ ok: true }) : fail(r.error); }
     case "lesson-delete": return deleteLesson(d.id) ? json({ ok: true }) : fail("Aula não encontrada.", 404);
+    case "reorder": return reorder(d.kind, d.ids, d.playlistId) ? json({ ok: true }) : fail("Não foi possível reordenar.");
     case "move": return move(d.kind, d.id, d.dir) ? json({ ok: true }) : json({ ok: true });
   }
 }

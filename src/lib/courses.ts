@@ -102,3 +102,15 @@ export function move(kind: "lesson" | "playlist", id: number, dir: "up" | "down"
   db().transaction(() => { up.run(nb.position, me.id); up.run(me.position, nb.id); })();
   return true;
 }
+
+/** Grava a ordem escolhida arrastando: ids na ordem nova (só ids que existem; para aulas, só as da playlist). */
+export function reorder(kind: "lesson" | "playlist", ids: number[], playlistId?: number): boolean {
+  const lesson = kind === "lesson";
+  const table = lesson ? "course_lessons" : "course_playlists";
+  const valid = new Set((db().prepare(lesson ? "SELECT id FROM course_lessons WHERE playlist_id = ?" : "SELECT id FROM course_playlists").all(...(lesson ? [playlistId ?? 0] : [])) as { id: number }[]).map((r) => r.id));
+  const list = ids.filter((id, i) => valid.has(id) && ids.indexOf(id) === i);
+  if (!list.length) return false;
+  const up = db().prepare(`UPDATE ${table} SET position = ? WHERE id = ?`);
+  db().transaction(() => list.forEach((id, i) => up.run(i + 1, id)))();
+  return true;
+}
