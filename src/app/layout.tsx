@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: { default: `${name} | Organize sua carteira em cinco blocos`, template: `%s | ${name}` },
   description:
     "Dados de cripto, DeFi, ações, fundos imobiliários e renda fixa em um só lugar, organizados pelo Protocolo CR2FA: cinco blocos de 20% com diversificação em duas camadas.",
-  appleWebApp: { capable: true, title: "NIZA INVEST", statusBarStyle: "black" },
+  appleWebApp: { capable: true, title: "NIZA HUB", statusBarStyle: "black" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

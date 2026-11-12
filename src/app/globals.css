@@ -146,3 +146,8 @@ html[data-standalone] #pwa-splash { display: flex; }
   table.data th, table.data td { padding-left: 0.4rem; padding-right: 0.4rem; }
   table.data { font-size: 0.85rem; }
 }
+
+/* No app instalado (PWA) a marca é NIZA HUB; no navegador, NIZA INVEST. */
+.logo-hub { display: none; }
+html[data-standalone] .logo-hub { display: inline; }
+html[data-standalone] .logo-invest { display: none; }
