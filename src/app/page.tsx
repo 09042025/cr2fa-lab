@@ -45,7 +45,7 @@ export default async function Home() {
         <div className="flex items-center gap-2">
           <LanguageSwitcher compact />
           {user ? (
-            <Link href="/painel" className="btn btn-gold">Abrir painel</Link>
+            <Link href="/painel" className="btn btn-gold">Abrir NIZA HUB</Link>
           ) : (
             <>
               <Link href="/entrar" className="btn btn-ghost">Entrar</Link>
