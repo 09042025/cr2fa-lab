@@ -38,7 +38,7 @@ export function Logo({ markOnly }: { markOnly?: boolean }) {
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Image source={require("../assets/logo-niza-mark.webp")} style={{ width: 39, height: 34 }} resizeMode="contain" />
       <Text style={{ fontFamily: "serif", fontSize: 17, fontWeight: "700", letterSpacing: 2.7, color: C.goldSoft }}>
-        NIZA <Text style={{ fontWeight: "500", color: C.gold }}>INVEST</Text>
+        NIZA <Text style={{ fontWeight: "500", color: C.gold }}>HUB</Text>
       </Text>
     </View>
   );
