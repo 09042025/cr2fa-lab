@@ -41,11 +41,11 @@ export default async function Home() {
         </Link>
       )}
       <nav className="flex items-center justify-between py-5">
-        <Logo />
+        <Logo site />
         <div className="flex items-center gap-2">
           <LanguageSwitcher compact />
           {user ? (
-            <Link href="/painel" className="btn btn-gold">Abrir NIZA HUB</Link>
+            <Link href="/painel" className="btn btn-gold">Acessar NIZA HUB</Link>
           ) : (
             <>
               <Link href="/entrar" className="btn btn-ghost">Entrar</Link>

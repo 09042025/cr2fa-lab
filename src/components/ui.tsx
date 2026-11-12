@@ -7,7 +7,8 @@ import { dateTime } from "@/lib/format";
 
 export const APP_NAME = process.env.APP_NAME || "NIZA INVEST";
 
-export function Logo({ size = "md" }: { size?: "md" | "lg" }) {
+/** `site`: fixa o nome NIZA INVEST (páginas públicas do site), mesmo com o app instalado, que dentro do painel mostra NIZA HUB. */
+export function Logo({ size = "md", site }: { size?: "md" | "lg"; site?: boolean }) {
   if (size === "lg") {
     return (
       <Link href="/" aria-label={APP_NAME} className="inline-flex">
@@ -19,7 +20,7 @@ export function Logo({ size = "md" }: { size?: "md" | "lg" }) {
     <Link href="/" aria-label={APP_NAME} className="inline-flex items-center gap-2.5">
       <Image src={logoMark} alt="" height={34} unoptimized className="h-[34px] w-auto" />
       <span translate="no" className="notranslate font-display text-[17px] font-bold tracking-[0.16em] text-gold-soft">
-        NIZA <span className="font-medium text-gold"><span className="logo-invest">INVEST</span><span className="logo-hub">HUB</span></span>
+        NIZA <span className="font-medium text-gold">{site ? "INVEST" : <><span className="logo-invest">INVEST</span><span className="logo-hub">HUB</span></>}</span>
       </span>
     </Link>
   );

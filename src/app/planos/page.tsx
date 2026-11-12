@@ -36,7 +36,7 @@ export default async function PlansPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
-      <div className="mb-6 flex items-center justify-between"><Logo /><Link href="/painel" className="btn btn-ghost">Voltar ao painel</Link></div>
+      <div className="mb-6 flex items-center justify-between"><Logo site /><Link href="/painel" className="btn btn-ghost">Voltar ao painel</Link></div>
       <PageTitle title="Planos e pagamento" subtitle="Pague por Pix, cartão de crédito ou cripto. O Premium é liberado assim que o pagamento é confirmado." />
 
       <div className="card mb-6 p-5">
