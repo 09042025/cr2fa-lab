@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 /** Permite instalar o site como app (tela inicial do iPhone e do Android), sem passar pela loja. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "NIZA INVEST",
-    short_name: "NIZA INVEST",
+    name: "NIZA HUB",
+    short_name: "NIZA HUB",
     description: "Hub de investimentos: carteira, comunidade, cursos e ferramentas.",
     start_url: "/painel",
     scope: "/",

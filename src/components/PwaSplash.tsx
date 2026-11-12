@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Abertura do app instalado (tela inicial do iPhone/Android): fundo azul, o N e o nome NIZA INVEST
+ * Abertura do app instalado (tela inicial do iPhone/Android): fundo azul, o N e o nome NIZA HUB
  * com zoom lento. Só aparece no app instalado (não no navegador) e uma vez por abertura.
  * O script em layout.tsx marca <html data-standalone> antes de pintar, então não há "piscada".
  */
