@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Animated, Easing, Image, View } from "react-native";
 import { C } from "./theme";
 
-/** Tela de abertura: fundo azul, o N do logo bem grande e o nome NIZA INVEST, com zoom lento enquanto o app carrega. */
+/** Tela de abertura: fundo azul, o N do logo bem grande e o nome NIZA HUB, com zoom lento enquanto o app carrega. */
 export function Splash() {
   const z = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -21,7 +21,7 @@ export function Splash() {
       <Animated.View style={{ alignItems: "center", opacity: fade, transform: [{ scale }] }}>
         <Image source={require("../assets/logo-niza-mark.webp")} style={{ width: 230, height: 202 }} resizeMode="contain" />
         <Animated.Text style={{ marginTop: 18, fontFamily: "serif", fontSize: 30, fontWeight: "700", letterSpacing: 6, color: C.goldSoft }}>
-          NIZA <Animated.Text style={{ fontWeight: "500", color: C.gold }}>INVEST</Animated.Text>
+          NIZA <Animated.Text style={{ fontWeight: "500", color: C.gold }}>HUB</Animated.Text>
         </Animated.Text>
       </Animated.View>
     </View>

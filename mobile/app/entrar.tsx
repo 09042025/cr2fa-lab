@@ -26,7 +26,7 @@ export default function Entrar() {
   return (
     <Screen>
       <View style={{ alignItems: "center", marginTop: 40, marginBottom: 16 }}>
-        <Text style={{ color: C.goldSoft, fontSize: 30, fontWeight: "800", letterSpacing: 4 }}>NIZA <Text style={{ color: C.gold }}>INVEST</Text></Text>
+        <Text style={{ color: C.goldSoft, fontSize: 30, fontWeight: "800", letterSpacing: 4 }}>NIZA <Text style={{ color: C.gold }}>HUB</Text></Text>
         <Muted>Hub de investimentos</Muted>
       </View>
       <Card>
