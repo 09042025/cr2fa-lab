@@ -39,6 +39,8 @@ const OTHERS: NavItem[] = [
 const NAV: NavItem[] = [FEED, ...OTHERS];
 const ITEM = "flex items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-panel-2";
 
+export const metadata = { title: { default: "NIZA HUB", template: "%s | NIZA HUB" } };
+
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   // Dentro do app (WebView): só o conteúdo da página, sem menu lateral nem cabeçalho; o app tem o próprio menu.
@@ -58,9 +60,9 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   const avatarId = (db().prepare("SELECT avatar_id a FROM users WHERE id = ?").get(user.id) as { a: number | null } | undefined)?.a ?? null;
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 md:flex-row">
-      <MobileDrawer name={user.name} avatarId={avatarId} logo={<Logo />}>
+      <MobileDrawer name={user.name} avatarId={avatarId} logo={<Logo hub />}>
         <div className="card flex h-full flex-col overflow-hidden rounded-l-none p-4 md:rounded-l-2xl">
-          <Logo />
+          <Logo hub />
           <div className="mt-4 flex items-center gap-3 border-b border-line pb-4">
             <Link href={`/painel/feed/membro/${user.id}`} aria-label="Meu perfil" className="shrink-0"><Avatar name={user.name} id={me.avatarId} size={48} /></Link>
             <div className="min-w-0">
