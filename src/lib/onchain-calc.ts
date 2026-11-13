@@ -1,4 +1,4 @@
-import { INDICATORS, INDICATOR_BY_ID, epochDay, type BaseKey } from "./onchain-defs";
+import { HALVINGS, INDICATORS, INDICATOR_BY_ID, epochDay, type BaseKey } from "./onchain-defs";
 
 /**
  * Cálculo dos indicadores on-chain a partir de séries diárias alinhadas.
@@ -144,6 +144,46 @@ const days = (b: Base) => Array.from({ length: b.n }, (_, i) => b.start + i);
 const marketCap = (b: Base) => combine(b.price, b.supply as Series, (p, s) => p * s);
 const issuanceUsd = (b: Base) => combine(issuance(b.supply as Series), b.price, (i, p) => i * p);
 
+/** Recompensa por bloco (BTC) em um dia: 50, cortada pela metade a cada halving. */
+export function blockSubsidy(day: number): number {
+  let k = 0;
+  for (const h of HALVINGS) if (day >= epochDay(h)) k++;
+  return 50 / 2 ** k;
+}
+
+const MODEL_FROM = epochDay("2011-01-01");
+
+/**
+ * Preço de produção dos mineradores: regressão de log10(preço) contra log10(dificuldade ÷ recompensa por bloco),
+ * ajustada em todo o histórico desde 2011. Devolve o modelo e o desvio padrão dos resíduos (em log10).
+ */
+export function productionModel(b: Base): { fit: Series; sigma: number } {
+  const diff = b.diff as Series;
+  const xs: (number | null)[] = b.price.map((p, i) => {
+    const d = diff[i];
+    return p === null || p <= 0 || d === null || d <= 0 ? null : Math.log10((d * 1e12) / blockSubsidy(b.start + i));
+  });
+  let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (let i = 0; i < b.n; i++) {
+    const x = xs[i];
+    if (x === null || b.start + i < MODEL_FROM) continue;
+    const y = Math.log10(b.price[i] as number);
+    n++; sx += x; sy += y; sxx += x * x; sxy += x * y;
+  }
+  const den = n * sxx - sx * sx;
+  if (n < 100 || den / (n * n) < 1e-6) return { fit: nulls(b.n), sigma: 0 };
+  const slope = (n * sxy - sx * sy) / den;
+  const icpt = (sy - slope * sx) / n;
+  let ss = 0, m = 0;
+  for (let i = 0; i < b.n; i++) {
+    const x = xs[i];
+    if (x === null || b.start + i < MODEL_FROM) continue;
+    const r = Math.log10(b.price[i] as number) - (icpt + slope * x);
+    ss += r * r; m++;
+  }
+  return { fit: xs.map((x) => (x === null ? null : Math.pow(10, icpt + slope * x))), sigma: Math.sqrt(ss / m) };
+}
+
 type Calc = (b: Base) => Series[];
 
 const CALC: Record<string, Calc> = {
@@ -195,6 +235,12 @@ const CALC: Record<string, Calc> = {
   hashrate: (b) => [(b.hash as Series).slice()],
   hash_ribbons: (b) => [sma(b.hash as Series, 30), sma(b.hash as Series, 60)],
   difficulty: (b) => [(b.diff as Series).slice()],
+  difficulty_model: (b) => {
+    const { fit, sigma } = productionModel(b);
+    const k = Math.pow(10, sigma);
+    return [fit, scale(fit, 1 / k), scale(fit, k)];
+  },
+  pow_osc: (b) => [combine(b.price, productionModel(b).fit, (p, f) => (f > 0 && p > 0 ? p / f : null))],
   active_addr: (b) => [sma(b.addr as Series, 30)],
   tx_count: (b) => [sma(b.tx as Series, 30)],
 };

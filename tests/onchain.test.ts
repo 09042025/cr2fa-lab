@@ -215,3 +215,33 @@ test("preço ao vivo: leitores das corretoras", async () => {
   assert.equal(parseKraken({ result: { XXBTZUSD: { c: ["76410.5", "0.1"] } } }), 76410.5);
   assert.ok(Number.isNaN(parseBinance(null)));
 });
+
+test("recompensa por bloco acompanha os halvings", async () => {
+  const { blockSubsidy } = await import("../src/lib/onchain-calc");
+  assert.equal(blockSubsidy(epochDay("2010-06-01")), 50);
+  assert.equal(blockSubsidy(epochDay("2020-01-01")), 12.5);
+  assert.equal(blockSubsidy(epochDay("2020-06-01")), 6.25);
+  assert.equal(blockSubsidy(epochDay("2024-05-01")), 3.125);
+});
+
+test("preço de produção: se o preço segue dificuldade÷recompensa, o modelo o reproduz e o oscilador fica em 1", async () => {
+  const { blockSubsidy } = await import("../src/lib/onchain-calc");
+  const diff = Array.from({ length: N }, (_, i) => 5e12 * (1 + i / 40)); // dificuldade crescente (H)
+  const price = diff.map((d, i) => 3 * Math.pow(d / blockSubsidy(START + i), 0.5) / 1e5);
+  const b = buildBase(synth({ PriceUSD: price, DiffMean: diff }));
+  const out = computeIndicators(b, ["difficulty_model", "pow_osc"]);
+  assert.equal(out.difficulty_model.length, 3);
+  for (let i = 0; i < N; i += 50) {
+    assert.ok(Math.abs((out.pow_osc[0][i] as number) - 1) < 1e-6, `osc ${i}`);
+    assert.ok(Math.abs((out.difficulty_model[0][i] as number) / price[i] - 1) < 1e-6);
+    assert.ok((out.difficulty_model[1][i] as number) <= (out.difficulty_model[0][i] as number));
+    assert.ok((out.difficulty_model[2][i] as number) >= (out.difficulty_model[0][i] as number));
+  }
+});
+
+test("preço de produção: sem variação na dificuldade não inventa modelo", () => {
+  const b = buildBase({ ...synth(), start: epochDay("2024-06-01") }); // depois do último halving e com dificuldade constante
+  const out = computeIndicators(b, ["difficulty_model", "pow_osc"]);
+  assert.ok(out.difficulty_model[0].every((v) => v === null));
+  assert.ok(out.pow_osc[0].every((v) => v === null));
+});
