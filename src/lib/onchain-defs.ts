@@ -136,6 +136,16 @@ export const INDICATORS: IndicatorDef[] = [
     desc: "Dificuldade para encontrar um bloco, ajustada a cada 2.016 blocos para manter 10 minutos por bloco. Acompanha o hash rate com defasagem.",
   },
   {
+    id: "difficulty_model", name: "Preço de produção dos mineradores", group: "network", axis: "price", scale: "log", fmt: "usd", needs: ["diff"],
+    lines: [{ label: "Modelo (dificuldade ÷ emissão)" }, { label: "Faixa −1 desvio (mineradores eficientes)", dashed: true }, { label: "Faixa +1 desvio", dashed: true }],
+    desc: "Estima quanto custa produzir 1 bitcoin. A dificuldade da rede dividida pela emissão por bloco (a recompensa, que cai pela metade a cada halving) mede o esforço de mineração gasto por moeda criada. Ajustamos o preço a essa razão por regressão em escala log (todo o histórico desde 2011), o que dá a linha do modelo. As faixas tracejadas ficam 1 desvio padrão abaixo e acima: de baixo, mineradores mais eficientes. Preço abaixo do modelo sugere mineração apertada e pressão de venda dos mineradores. Preço bem acima sugere mercado esticado em relação ao custo. É um ajuste estatístico com o histórico inteiro, por isso no passado ele encaixa melhor do que encaixaria em tempo real. Inspirado no modelo Difficulty per Issuance do Checkonchain, calculado aqui com dados da Coin Metrics, então os valores não são idênticos aos dele.",
+  },
+  {
+    id: "pow_osc", name: "Oscilador PoW (preço ÷ custo de produção)", group: "network", axis: "own", scale: "log", fmt: "ratio", refs: [1], needs: ["diff"],
+    lines: [{ label: "Preço ÷ modelo de produção" }],
+    desc: "Preço dividido pela linha do modelo de preço de produção dos mineradores. Acima de 1, o preço está acima do custo estimado de produção, e valores muito altos aparecem em fases eufóricas. Perto ou abaixo de 1, o mercado paga menos do que o modelo estima para produzir a moeda, o que costuma coincidir com estresse de mineradores e fundos de bear market. Usa o mesmo ajuste do indicador Preço de produção dos mineradores, com as mesmas limitações.",
+  },
+  {
     id: "active_addr", name: "Endereços ativos (média 30 dias)", group: "network", axis: "own", scale: "log", fmt: "compact", needs: ["addr"],
     lines: [{ label: "Endereços ativos" }],
     desc: "Média de 30 dias de endereços únicos que enviaram ou receberam bitcoin por dia. Aproxima o uso e a adoção da rede.",
@@ -155,7 +165,7 @@ export const PRESETS: { label: string; ids: string[] }[] = [
   { label: "Topo de ciclo", ids: ["mvrv_z", "puell", "pi_cycle"] },
   { label: "Fundo de ciclo", ids: ["realized_price", "wma200", "mvrv"] },
   { label: "Detentores", ids: ["sth_realized_price", "lth_realized_price", "sth_mvrv"] },
-  { label: "Mineradores", ids: ["hash_ribbons", "puell", "difficulty"] },
+  { label: "Mineradores", ids: ["difficulty_model", "pow_osc", "hash_ribbons"] },
   { label: "Modelos de preço", ids: ["power_law", "wma200", "mayer"] },
 ];
 
