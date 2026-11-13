@@ -124,14 +124,17 @@ export function buildBase(raw: RawOnchain, extra: { sth?: DayValue[] | null; lth
       return p === null || sp === null || m === null || m <= 0 ? null : (p * sp) / m;
     });
   }
+  const hash = s.HashRate ? hashToEh(s.HashRate) : null;
+  // Se a fonte não entregar a dificuldade, estima pelo hash rate: dificuldade ≈ hash rate (H/s) × 600 ÷ 2^32 (um bloco a cada 10 min).
+  const diff = s.DiffMean ? scale(s.DiffMean, 1e-12) : hash ? scale(hash, (1e18 * 600) / 2 ** 32 / 1e12) : null;
   return {
     start: raw.start,
     n: raw.n,
     price,
     supply,
     rc,
-    hash: s.HashRate ? hashToEh(s.HashRate) : null,
-    diff: s.DiffMean ? scale(s.DiffMean, 1e-12) : null,
+    hash,
+    diff,
     addr: s.AdrActCnt ?? null,
     tx: s.TxCnt ?? null,
     tvol: s.TxTfrValAdjUSD ?? null,
