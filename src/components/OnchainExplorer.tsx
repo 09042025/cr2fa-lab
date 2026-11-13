@@ -22,7 +22,7 @@ interface Payload {
 
 /** Cada indicador tem sempre a mesma cor, esteja onde estiver na lista. */
 const PALETTE = ["#38bdf8", "#f472b6", "#a3e635", "#fb923c", "#a78bfa", "#2dd4bf", "#f87171", "#facc15", "#60a5fa", "#e879f9", "#4ade80", "#fda4af", "#22d3ee", "#c084fc", "#bef264", "#fdba74", "#93c5fd", "#f0abfc", "#5eead4", "#fca5a5", "#d9f99d", "#a5b4fc"];
-const colorOf = (id: string) => PALETTE[Math.max(0, INDICATORS.findIndex((d) => d.id === id)) % PALETTE.length];
+const colorOf = (id: string) => INDICATOR_BY_ID[id]?.lines[0]?.color ?? PALETTE[Math.max(0, INDICATORS.findIndex((d) => d.id === id)) % PALETTE.length];
 const RANGES = [
   { id: "1a", label: "1 ano", days: 365 },
   { id: "2a", label: "2 anos", days: 730 },
@@ -129,7 +129,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
           key: `${id}:${li}`,
           axisId: def.axis === "price" ? "price" : id,
           label: def.lines[li]?.label ?? def.name,
-          color: colorOf(id),
+          color: def.lines[li]?.color ?? colorOf(id),
           dashed: !!def.lines[li]?.dashed,
           values,
           scale: def.scale,
