@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getOpenLive, overlayKey } from "@/lib/openlives";
+import { videoIdOfEmbed, youtubeKey } from "@/lib/ytchat";
 import { Avatar } from "@/components/Avatar";
-import { EndLiveButton, LiveChat, OverlayLink } from "@/components/LivesClient";
+import { EndLiveButton, LiveChat, OverlayLink, YoutubeChatSetup } from "@/components/LivesClient";
 import { LivePlayer } from "@/components/LivePlayer";
 import { PageTitle } from "@/components/ui";
 
@@ -44,6 +45,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <Avatar name={live.name} id={live.avatarId} size={28} /> {live.name} · {live.platform}
           </Link>
           {key && <OverlayLink liveId={live.id} keyStr={key} />}
+          {host && videoIdOfEmbed(live.embed) && <YoutubeChatSetup hasKey={!!youtubeKey()} isAdmin={user.role === "admin"} />}
           <p className="mt-3 text-xs text-muted">A live é de responsabilidade de quem transmite e a opinião não é recomendação de investimento. Algo errado? Avise a moderação.</p>
         </section>
         <LiveChat liveId={live.id} canHost={host} />

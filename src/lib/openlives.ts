@@ -44,9 +44,9 @@ export function parseLiveUrl(raw: string): ParsedLive | null {
 
 export interface OpenLive {
   id: number; userId: number; name: string; avatarId: number | null; isAdmin: boolean;
-  title: string; url: string; platform: string; embed: string | null; startedAt: number; spotlightId: number | null; viewers?: number;
+  title: string; url: string; platform: string; embed: string | null; startedAt: number; spotlightId: number | null; spotlightYtId: string | null; viewers?: number;
 }
-const COLS = `l.id, l.user_id userId, u.name, u.avatar_id avatarId, (u.role = 'admin') isAdmin, l.title, l.url, l.platform, l.embed, l.started_at startedAt, l.spotlight_id spotlightId`;
+const COLS = `l.id, l.user_id userId, u.name, u.avatar_id avatarId, (u.role = 'admin') isAdmin, l.title, l.url, l.platform, l.embed, l.started_at startedAt, l.spotlight_id spotlightId, l.spotlight_yt_id spotlightYtId`;
 const ACTIVE = "l.ended_at IS NULL AND l.started_at > unixepoch() - " + LIVE_MAX_HOURS * 3600;
 
 const clean = (r: Omit<OpenLive, "isAdmin"> & { isAdmin: number }): OpenLive => ({ ...r, isAdmin: !!r.isAdmin });
@@ -95,24 +95,32 @@ export function overlayKey(liveId: number, user: { id: number; role: string }): 
   return k;
 }
 
-/** Destaca um comentário do chat na tela da transmissão (msgId = null limpa). */
-export function setSpotlight(liveId: number, user: { id: number; role: string }, msgId: number | null): boolean {
+/** Destaca um comentário na tela da transmissão: do chat do site (id), do YouTube ({ yt }) ou nenhum (null). */
+export function setSpotlight(liveId: number, user: { id: number; role: string }, target: number | null | { yt: { id: string; name: string; body: string } }): boolean {
   if (!canHost(liveId, user)) return false;
-  if (msgId !== null && !db().prepare("SELECT 1 FROM open_live_chat WHERE id = ? AND live_id = ?").get(msgId, liveId)) return false;
-  db().prepare("UPDATE open_lives SET spotlight_id = ? WHERE id = ?").run(msgId, liveId);
+  if (typeof target === "number") {
+    if (!db().prepare("SELECT 1 FROM open_live_chat WHERE id = ? AND live_id = ?").get(target, liveId)) return false;
+    db().prepare("UPDATE open_lives SET spotlight_id = ?, spotlight_yt_id = NULL, spotlight_yt_name = NULL, spotlight_yt_body = NULL WHERE id = ?").run(target, liveId);
+  } else if (target === null) {
+    db().prepare("UPDATE open_lives SET spotlight_id = NULL, spotlight_yt_id = NULL, spotlight_yt_name = NULL, spotlight_yt_body = NULL WHERE id = ?").run(liveId);
+  } else {
+    db().prepare("UPDATE open_lives SET spotlight_id = NULL, spotlight_yt_id = ?, spotlight_yt_name = ?, spotlight_yt_body = ? WHERE id = ?").run(target.yt.id, target.yt.name.slice(0, 60), target.yt.body.slice(0, 400), liveId);
+  }
   return true;
 }
 
-export interface Spotlight { id: number; name: string; body: string; isAdmin: boolean }
+export interface Spotlight { id: string; name: string; body: string; isAdmin: boolean; youtube?: boolean }
 
 /** O que o overlay mostra: o comentário em destaque. `null` se a chave estiver errada, a live acabou ou não há destaque. */
 export function getSpotlight(liveId: number, key: string): Spotlight | null {
-  const l = db().prepare("SELECT overlay_key k, spotlight_id s FROM open_lives l WHERE l.id = ? AND " + ACTIVE).get(liveId) as { k: string | null; s: number | null } | undefined;
-  if (!l?.k || !l.s) return null;
+  const l = db().prepare("SELECT overlay_key k, spotlight_id s, spotlight_yt_id yid, spotlight_yt_name yn, spotlight_yt_body yb FROM open_lives l WHERE l.id = ? AND " + ACTIVE).get(liveId) as { k: string | null; s: number | null; yid: string | null; yn: string | null; yb: string | null } | undefined;
+  if (!l?.k) return null;
   const a = Buffer.from(l.k), b = Buffer.from(key);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  if (l.yid && l.yb) return { id: `y${l.yid}`, name: l.yn ?? "YouTube", body: l.yb, isAdmin: false, youtube: true };
+  if (!l.s) return null;
   const m = db().prepare("SELECT c.id, u.name, c.body, (u.role = 'admin') isAdmin FROM open_live_chat c JOIN users u ON u.id = c.user_id WHERE c.id = ? AND c.live_id = ?").get(l.s, liveId) as { id: number; name: string; body: string; isAdmin: number } | undefined;
-  return m ? { ...m, isAdmin: !!m.isAdmin } : null;
+  return m ? { id: `s${m.id}`, name: m.name, body: m.body, isAdmin: !!m.isAdmin } : null;
 }
 
 export function endOpenLive(id: number, user: { id: number; role: string }): boolean {

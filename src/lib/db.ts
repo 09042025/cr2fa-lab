@@ -438,6 +438,7 @@ function migrate(db: Database.Database) {
   // Overlay de comentários da live (OBS): chave secreta do link e comentário em destaque.
   const liveCols = db.prepare("PRAGMA table_info(open_lives)").all() as { name: string }[];
   if (!liveCols.some((c) => c.name === "overlay_key")) db.exec("ALTER TABLE open_lives ADD COLUMN overlay_key TEXT");
+  for (const c of ["spotlight_yt_id", "spotlight_yt_name", "spotlight_yt_body"]) if (!liveCols.some((x) => x.name === c)) db.exec(`ALTER TABLE open_lives ADD COLUMN ${c} TEXT`);
   if (!liveCols.some((c) => c.name === "spotlight_id")) db.exec("ALTER TABLE open_lives ADD COLUMN spotlight_id INTEGER");
   // Curtidas na própria publicação deixaram de existir: remove as antigas.
   db.exec("DELETE FROM community_post_likes WHERE rowid IN (SELECT l.rowid FROM community_post_likes l JOIN community_posts p ON p.id = l.post_id WHERE p.user_id = l.user_id)");
