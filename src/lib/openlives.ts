@@ -1,3 +1,4 @@
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { db } from "./db";
 
 /** Lives Abertas: qualquer membro anuncia uma transmissão que está fazendo em outra plataforma; o chat é aqui. */
@@ -43,9 +44,9 @@ export function parseLiveUrl(raw: string): ParsedLive | null {
 
 export interface OpenLive {
   id: number; userId: number; name: string; avatarId: number | null; isAdmin: boolean;
-  title: string; url: string; platform: string; embed: string | null; startedAt: number; viewers?: number;
+  title: string; url: string; platform: string; embed: string | null; startedAt: number; spotlightId: number | null; viewers?: number;
 }
-const COLS = `l.id, l.user_id userId, u.name, u.avatar_id avatarId, (u.role = 'admin') isAdmin, l.title, l.url, l.platform, l.embed, l.started_at startedAt`;
+const COLS = `l.id, l.user_id userId, u.name, u.avatar_id avatarId, (u.role = 'admin') isAdmin, l.title, l.url, l.platform, l.embed, l.started_at startedAt, l.spotlight_id spotlightId`;
 const ACTIVE = "l.ended_at IS NULL AND l.started_at > unixepoch() - " + LIVE_MAX_HOURS * 3600;
 
 const clean = (r: Omit<OpenLive, "isAdmin"> & { isAdmin: number }): OpenLive => ({ ...r, isAdmin: !!r.isAdmin });
@@ -73,8 +74,45 @@ export function startOpenLive(userId: number, titleRaw: string, urlRaw: string):
   if (!u) return { ok: false, error: "Faça login.", status: 401 };
   if (u.b === 1) return { ok: false, error: "Você foi suspenso da comunidade pela moderação.", status: 403 };
   db().prepare("UPDATE open_lives SET ended_at = unixepoch() WHERE user_id = ? AND ended_at IS NULL").run(userId);
-  const id = Number(db().prepare("INSERT INTO open_lives (user_id, title, url, platform, embed) VALUES (?, ?, ?, ?, ?)").run(userId, title, p.url, p.platform, p.embed).lastInsertRowid);
+  const id = Number(db().prepare("INSERT INTO open_lives (user_id, title, url, platform, embed, overlay_key) VALUES (?, ?, ?, ?, ?, ?)").run(userId, title, p.url, p.platform, p.embed, newKey()).lastInsertRowid);
   return { ok: true, id };
+}
+
+const newKey = () => randomBytes(16).toString("hex");
+
+const canHost = (liveId: number, user: { id: number; role: string }) => {
+  const l = db().prepare("SELECT user_id userId FROM open_lives WHERE id = ? AND ended_at IS NULL").get(liveId) as { userId: number } | undefined;
+  return !!l && (l.userId === user.id || user.role === "admin");
+};
+
+/** Chave secreta do link do overlay (para o OBS, que não tem login). Só quem transmite (ou admin) a recebe; lives antigas ganham uma na hora. */
+export function overlayKey(liveId: number, user: { id: number; role: string }): string | null {
+  if (!canHost(liveId, user)) return null;
+  const r = db().prepare("SELECT overlay_key k FROM open_lives WHERE id = ?").get(liveId) as { k: string | null };
+  if (r.k) return r.k;
+  const k = newKey();
+  db().prepare("UPDATE open_lives SET overlay_key = ? WHERE id = ?").run(k, liveId);
+  return k;
+}
+
+/** Destaca um comentário do chat na tela da transmissão (msgId = null limpa). */
+export function setSpotlight(liveId: number, user: { id: number; role: string }, msgId: number | null): boolean {
+  if (!canHost(liveId, user)) return false;
+  if (msgId !== null && !db().prepare("SELECT 1 FROM open_live_chat WHERE id = ? AND live_id = ?").get(msgId, liveId)) return false;
+  db().prepare("UPDATE open_lives SET spotlight_id = ? WHERE id = ?").run(msgId, liveId);
+  return true;
+}
+
+export interface Spotlight { id: number; name: string; body: string; isAdmin: boolean }
+
+/** O que o overlay mostra: o comentário em destaque. `null` se a chave estiver errada, a live acabou ou não há destaque. */
+export function getSpotlight(liveId: number, key: string): Spotlight | null {
+  const l = db().prepare("SELECT overlay_key k, spotlight_id s FROM open_lives l WHERE l.id = ? AND " + ACTIVE).get(liveId) as { k: string | null; s: number | null } | undefined;
+  if (!l?.k || !l.s) return null;
+  const a = Buffer.from(l.k), b = Buffer.from(key);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  const m = db().prepare("SELECT c.id, u.name, c.body, (u.role = 'admin') isAdmin FROM open_live_chat c JOIN users u ON u.id = c.user_id WHERE c.id = ? AND c.live_id = ?").get(l.s, liveId) as { id: number; name: string; body: string; isAdmin: number } | undefined;
+  return m ? { ...m, isAdmin: !!m.isAdmin } : null;
 }
 
 export function endOpenLive(id: number, user: { id: number; role: string }): boolean {

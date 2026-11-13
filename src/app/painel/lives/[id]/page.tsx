@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getOpenLive } from "@/lib/openlives";
+import { getOpenLive, overlayKey } from "@/lib/openlives";
 import { Avatar } from "@/components/Avatar";
-import { EndLiveButton, LiveChat } from "@/components/LivesClient";
+import { EndLiveButton, LiveChat, OverlayLink } from "@/components/LivesClient";
 import { LivePlayer } from "@/components/LivePlayer";
 import { PageTitle } from "@/components/ui";
 
@@ -20,6 +20,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       </div>
     );
   }
+  const host = live.userId === user.id || user.role === "admin";
+  const key = host ? overlayKey(live.id, user) : null;
   return (
     <div className="mx-auto max-w-6xl">
       <p className="mb-3 text-sm"><Link href="/painel/lives" className="text-muted hover:text-white">← Lives Abertas</Link></p>
@@ -41,9 +43,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <Link href={`/painel/feed/membro/${live.userId}`} className="mt-2 flex items-center gap-2 text-sm text-muted hover:text-white">
             <Avatar name={live.name} id={live.avatarId} size={28} /> {live.name} · {live.platform}
           </Link>
+          {key && <OverlayLink liveId={live.id} keyStr={key} />}
           <p className="mt-3 text-xs text-muted">A live é de responsabilidade de quem transmite e a opinião não é recomendação de investimento. Algo errado? Avise a moderação.</p>
         </section>
-        <LiveChat liveId={live.id} />
+        <LiveChat liveId={live.id} canHost={host} />
       </div>
     </div>
   );

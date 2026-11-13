@@ -61,12 +61,13 @@ export function EndLiveButton({ id }: { id: number }) {
 }
 
 /** Chat ao vivo (atualiza a cada poucos segundos). */
-export function LiveChat({ liveId }: { liveId: number }) {
+export function LiveChat({ liveId, canHost }: { liveId: number; canHost?: boolean }) {
   const router = useRouter();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [me, setMe] = useState(0);
   const [text, setText] = useState("");
   const [err, setErr] = useState("");
+  const [spot, setSpot] = useState<number | null>(null);
   const last = useRef(0);
   const box = useRef<HTMLDivElement>(null);
 
@@ -75,10 +76,11 @@ export function LiveChat({ liveId }: { liveId: number }) {
     async function tick() {
       if (document.hidden) return;
       const r = await fetch(`/api/community/lives?id=${liveId}&after=${last.current}`, { cache: "no-store" }).catch(() => null);
-      const d = (await r?.json().catch(() => null)) as { live: unknown; me?: number; messages?: Msg[] } | null;
+      const d = (await r?.json().catch(() => null)) as { live: unknown; me?: number; spotlight?: number | null; messages?: Msg[] } | null;
       if (dead || !d) return;
       if (d.live === null) { router.refresh(); return; }
       if (d.me) setMe(d.me);
+      if (d.spotlight !== undefined) setSpot(d.spotlight);
       if (d.messages?.length) {
         last.current = d.messages[d.messages.length - 1].id;
         setMsgs((m) => [...m, ...d.messages!].slice(-200));
@@ -90,6 +92,12 @@ export function LiveChat({ liveId }: { liveId: number }) {
   }, [liveId, router]);
 
   useEffect(() => { const b = box.current; if (b) b.scrollTop = b.scrollHeight; }, [msgs]);
+
+  async function highlight(msgId: number | null) {
+    setSpot(msgId);
+    const r = await post({ action: "spotlight", id: liveId, msgId });
+    if (!r.ok) { setSpot(null); setErr(await errOf(r, "Não foi possível destacar.")); }
+  }
 
   async function send() {
     const body = text.trim();
@@ -108,7 +116,10 @@ export function LiveChat({ liveId }: { liveId: number }) {
         {msgs.map((m) => (
           <div key={m.id} className="flex items-start gap-2 text-sm">
             <Avatar name={m.name} id={m.avatarId} size={24} />
-            <p className="min-w-0 break-words"><span className={`font-semibold ${m.userId === me ? "text-gold-soft" : ""}`}>{m.name}</span>{m.isAdmin && <span className="ml-1 rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Admin</span>} <span className="text-white/90">{m.body}</span></p>
+            <p className="min-w-0 break-words"><span className={`font-semibold ${m.userId === me ? "text-gold-soft" : ""}`}>{m.name}</span>{m.isAdmin && <span className="ml-1 rounded bg-gold/20 px-1 text-[9px] font-semibold uppercase text-gold-soft">Admin</span>} <span className="text-white/90">{m.body}</span>
+              {canHost && (
+                <button type="button" onClick={() => void highlight(spot === m.id ? null : m.id)} className={`ml-2 rounded border px-1.5 text-[10px] font-semibold ${spot === m.id ? "border-gold bg-gold text-[#1a1203]" : "border-gold/50 text-gold-soft hover:bg-gold/10"}`}>{spot === m.id ? "Na tela ✕" : "Destacar"}</button>
+              )}</p>
           </div>
         ))}
       </div>
@@ -118,5 +129,30 @@ export function LiveChat({ liveId }: { liveId: number }) {
         <button type="submit" className="btn btn-gold !py-1.5 text-sm">Enviar</button>
       </form>
     </div>
+  );
+}
+
+/** Link do overlay de comentários para o OBS (só para quem transmite). */
+export function OverlayLink({ liveId, keyStr }: { liveId: number; keyStr: string }) {
+  const [copied, setCopied] = useState(false);
+  const [url, setUrl] = useState("");
+  useEffect(() => { setUrl(`${window.location.origin}/overlay/live/${liveId}?k=${keyStr}`); }, [liveId, keyStr]);
+  async function copy() {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { window.prompt("Copie o link:", url); }
+  }
+  return (
+    <details className="card mt-4 p-3 text-sm">
+      <summary className="cursor-pointer font-semibold">🎬 Comentários na tela (OBS)</summary>
+      <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-muted">
+        <li>No OBS, em Fontes, clique em <strong className="text-white">+</strong> e escolha <strong className="text-white">Navegador</strong>.</li>
+        <li>Cole o link abaixo em URL, largura 1920 e altura 1080, e confirme.</li>
+        <li>Aqui no chat, toque em <strong className="text-white">Destacar</strong> no comentário que quer mostrar. Toque de novo para tirar da tela.</li>
+      </ol>
+      <div className="mt-2 flex gap-2">
+        <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 py-2 text-xs outline-none" />
+        <button type="button" onClick={copy} className="btn btn-gold !py-1.5 text-sm">{copied ? "Copiado!" : "Copiar"}</button>
+      </div>
+      <p className="mt-2 text-[11px] text-muted">Não compartilhe este link: quem tiver pode ver o comentário em destaque da sua live.</p>
+    </details>
   );
 }
