@@ -133,7 +133,7 @@ export const INDICATORS: IndicatorDef[] = [
   {
     id: "difficulty", name: "Dificuldade de mineração", group: "network", axis: "own", scale: "log", fmt: "trillion", needs: ["diff"],
     lines: [{ label: "Dificuldade (T)" }],
-    desc: "Dificuldade para encontrar um bloco, ajustada a cada 2.016 blocos para manter 10 minutos por bloco. Acompanha o hash rate com defasagem.",
+    desc: "Dificuldade para encontrar um bloco, ajustada a cada 2.016 blocos para manter 10 minutos por bloco. Acompanha o hash rate com defasagem. Quando a fonte de dados não entrega a dificuldade, ela é estimada pelo hash rate (dificuldade ≈ hash rate × 600 ÷ 2³²).",
   },
   {
     id: "difficulty_model", name: "Preço de produção dos mineradores", group: "network", axis: "price", scale: "log", fmt: "usd", needs: ["diff"],

@@ -245,3 +245,15 @@ test("preço de produção: sem variação na dificuldade não inventa modelo", 
   assert.ok(out.difficulty_model[0].every((v) => v === null));
   assert.ok(out.pow_osc[0].every((v) => v === null));
 });
+
+test("sem a dificuldade da fonte, estima pelo hash rate e os indicadores dependentes continuam disponíveis", () => {
+  const raw = synth({ HashRate: Array.from({ length: N }, () => 1e9) }); // 1.000 EH/s (em TH/s)
+  delete raw.series.DiffMean;
+  const b = buildBase(raw);
+  assert.ok(b.diff);
+  assert.ok(Math.abs((b.diff as Series)[10]! - 139.7) < 0.5, "1.000 EH/s ≈ 139,7 T");
+  const off = unavailableIds(b);
+  for (const id of ["difficulty", "difficulty_model", "pow_osc"]) assert.ok(!off.includes(id), id);
+  delete raw.series.HashRate;
+  assert.deepEqual(unavailableIds(buildBase(raw)).filter((id) => ["difficulty", "difficulty_model", "pow_osc"].includes(id)).sort(), ["difficulty", "difficulty_model", "pow_osc"]);
+});
