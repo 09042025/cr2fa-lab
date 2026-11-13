@@ -39,3 +39,28 @@ test("lives: iniciar, trocar, chat, encerrar, bloqueio", () => {
   assert.ok(endOpenLive(id, { id: b, role: "admin" }));
   assert.equal(addLiveChat(id, b, "tarde").ok, false);
 });
+
+test("overlay: destaque só pelo apresentador/admin; chave protege a leitura", async () => {
+  const { getSpotlight, overlayKey, setSpotlight } = await import("../src/lib/openlives");
+  const host = user("host"), other = user("outro");
+  const r = startOpenLive(host, "Live com overlay", "https://youtu.be/abcdefghijk");
+  assert.ok(r.ok);
+  const id = (r as { id: number }).id;
+  const m = addLiveChat(id, other, "Ótima análise!");
+  assert.ok(m.ok);
+  const mid = (m as { id: number }).id;
+  const key = overlayKey(id, { id: host, role: "user" })!;
+  assert.equal(key.length, 32);
+  assert.equal(overlayKey(id, { id: other, role: "user" }), null);
+  assert.equal(setSpotlight(id, { id: other, role: "user" }, mid), false);
+  assert.equal(setSpotlight(id, { id: host, role: "user" }, 999999), false);
+  assert.equal(getSpotlight(id, key), null, "sem destaque ainda");
+  assert.ok(setSpotlight(id, { id: host, role: "user" }, mid));
+  assert.equal(getSpotlight(id, "chave-errada"), null);
+  assert.equal(getSpotlight(id, key)?.body, "Ótima análise!");
+  assert.ok(setSpotlight(id, { id: host, role: "user" }, null));
+  assert.equal(getSpotlight(id, key), null);
+  setSpotlight(id, { id: host, role: "user" }, mid);
+  endOpenLive(id, { id: host, role: "user" });
+  assert.equal(getSpotlight(id, key), null, "live encerrada");
+});
