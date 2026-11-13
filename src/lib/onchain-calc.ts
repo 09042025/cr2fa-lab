@@ -156,6 +156,44 @@ export function blockSubsidy(day: number): number {
 
 const MODEL_FROM = epochDay("2011-01-01");
 
+/** Premissas do custo de produção: preço da energia (US$/kWh) e quanto mais energia por hash o minerador médio gasta que o eficiente. */
+export const KWH_PRICE = 0.05;
+export const AVG_FACTOR = 1.41;
+
+/**
+ * Eficiência (J/TH) da frota de mineradores eficientes ao longo do tempo, a US$ 0,05/kWh. Pontos calibrados por geração de
+ * máquinas e ajustados ao gráfico de referência do Checkonchain em poucas datas (não é uma série oficial).
+ * Entre os pontos, interpolação em escala log; depois do último, fica constante.
+ */
+const EFFICIENCY: [number, number][] = ([
+  ["2013-01-01", 10000], ["2014-01-01", 3800], ["2016-01-01", 690], ["2018-01-01", 99], ["2020-01-01", 64],
+  ["2022-01-01", 47], ["2024-01-01", 23], ["2026-11-13", 17],
+] as [string, number][]).map(([d, v]) => [epochDay(d), v]);
+
+export function minerEfficiency(day: number): number | null {
+  if (day < EFFICIENCY[0][0]) return null;
+  for (let i = 1; i < EFFICIENCY.length; i++) {
+    const [d0, v0] = EFFICIENCY[i - 1];
+    const [d1, v1] = EFFICIENCY[i];
+    if (day <= d1) return Math.exp(Math.log(v0) + ((Math.log(v1) - Math.log(v0)) * (day - d0)) / (d1 - d0));
+  }
+  return EFFICIENCY[EFFICIENCY.length - 1][1];
+}
+
+/**
+ * Custo estimado de produzir 1 BTC (US$): energia gasta pela rede por dia ÷ bitcoins emitidos por dia.
+ * Energia = hash rate × eficiência × 24 h × preço do kWh. `factor` 1 = mineradores eficientes; AVG_FACTOR = médios.
+ * Suavizado em 14 dias (um ciclo de dificuldade) para não oscilar com o ruído diário do hash rate estimado.
+ */
+export function productionCost(b: Base, factor: number): Series {
+  const hash = sma(b.hash as Series, 14);
+  const raw = hash.map((h, i) => {
+    const eff = minerEfficiency(b.start + i);
+    return h === null || eff === null ? null : (h * eff * factor * 24000 * KWH_PRICE) / (blockSubsidy(b.start + i) * 144);
+  });
+  return sma(raw, 14);
+}
+
 /**
  * Preço de produção dos mineradores: regressão de log10(preço) contra log10(dificuldade ÷ recompensa por bloco),
  * ajustada em todo o histórico desde 2011. Devolve o modelo e o desvio padrão dos resíduos (em log10).
@@ -238,12 +276,8 @@ const CALC: Record<string, Calc> = {
   hashrate: (b) => [(b.hash as Series).slice()],
   hash_ribbons: (b) => [sma(b.hash as Series, 30), sma(b.hash as Series, 60)],
   difficulty: (b) => [(b.diff as Series).slice()],
-  difficulty_model: (b) => {
-    const { fit, sigma } = productionModel(b);
-    const k = Math.pow(10, sigma);
-    return [fit, scale(fit, 1 / k), scale(fit, k)];
-  },
-  pow_osc: (b) => [combine(b.price, productionModel(b).fit, (p, f) => (f > 0 && p > 0 ? p / f : null))],
+  difficulty_model: (b) => [sma(productionModel(b).fit, 14), productionCost(b, AVG_FACTOR), productionCost(b, 1)],
+  pow_osc: (b) => [combine(b.price, productionCost(b, AVG_FACTOR), (p, c) => (c > 0 && p > 0 ? p / c : null))],
   active_addr: (b) => [sma(b.addr as Series, 30)],
   tx_count: (b) => [sma(b.tx as Series, 30)],
 };
