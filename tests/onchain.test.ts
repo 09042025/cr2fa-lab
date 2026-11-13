@@ -224,26 +224,45 @@ test("recompensa por bloco acompanha os halvings", async () => {
   assert.equal(blockSubsidy(epochDay("2024-05-01")), 3.125);
 });
 
-test("preço de produção: se o preço segue dificuldade÷recompensa, o modelo o reproduz e o oscilador fica em 1", async () => {
-  const { blockSubsidy } = await import("../src/lib/onchain-calc");
-  const diff = Array.from({ length: N }, (_, i) => 5e12 * (1 + i / 40)); // dificuldade crescente (H)
-  const price = diff.map((d, i) => 3 * Math.pow(d / blockSubsidy(START + i), 0.5) / 1e5);
-  const b = buildBase(synth({ PriceUSD: price, DiffMean: diff }));
-  const out = computeIndicators(b, ["difficulty_model", "pow_osc"]);
-  assert.equal(out.difficulty_model.length, 3);
-  for (let i = 0; i < N; i += 50) {
-    assert.ok(Math.abs((out.pow_osc[0][i] as number) - 1) < 1e-6, `osc ${i}`);
-    assert.ok(Math.abs((out.difficulty_model[0][i] as number) / price[i] - 1) < 1e-6);
-    assert.ok((out.difficulty_model[1][i] as number) <= (out.difficulty_model[0][i] as number));
-    assert.ok((out.difficulty_model[2][i] as number) >= (out.difficulty_model[0][i] as number));
-  }
+test("custo de produção: bate com a fórmula e fica na faixa de referência (1.000 EH/s, 450 BTC/dia, 17 J/TH)", async () => {
+  const { minerEfficiency, AVG_FACTOR } = await import("../src/lib/onchain-calc");
+  const raw = { ...synth({ HashRate: Array.from({ length: N }, () => 1e9) }), start: epochDay("2026-12-01") }; // 1.000 EH/s
+  const out = computeIndicators(buildBase(raw), ["difficulty_model", "pow_osc"]);
+  const eff = (out.difficulty_model[2] as Series)[100] as number;
+  const avg = (out.difficulty_model[1] as Series)[100] as number;
+  assert.ok(Math.abs(eff / ((1000 * 17 * 24000 * 0.05) / 450) - 1) < 1e-9, `eficientes ${eff}`);
+  assert.ok(eff > 44_000 && eff < 46_500, "≈ US$ 45 mil");
+  assert.ok(Math.abs(avg / eff - AVG_FACTOR) < 1e-9);
+  assert.ok(avg > 62_000 && avg < 65_000, "≈ US$ 63 mil");
+  assert.ok(Math.abs(((out.pow_osc[0] as Series)[100] as number) - (raw.series.PriceUSD[100] as number) / avg) < 1e-9);
+  // eficiência: cai com o tempo, interpolada, constante depois do último ponto e sem modelo antes de 2013
+  assert.equal(minerEfficiency(epochDay("2012-01-01")), null);
+  assert.equal(Math.round(minerEfficiency(epochDay("2018-01-01"))!), 99);
+  assert.ok(minerEfficiency(epochDay("2019-01-01"))! < 99 && minerEfficiency(epochDay("2019-01-01"))! > 64);
+  assert.equal(minerEfficiency(epochDay("2030-01-01")), 17);
 });
 
-test("preço de produção: sem variação na dificuldade não inventa modelo", () => {
+test("custo de produção: linhas suaves (sem o serrilhado do hash rate diário)", () => {
+  const noisy = Array.from({ length: N }, (_, i) => 5e8 * (1 + 0.2 * Math.sin(i * 2.1))); // ±20% de ruído diário
+  const out = computeIndicators(buildBase({ ...synth({ HashRate: noisy }), start: epochDay("2024-06-01") }), ["difficulty_model"]);
+  const line = out.difficulty_model[2].slice(60) as number[];
+  const swing = (a: number[]) => Math.max(...a.slice(1).map((v, i) => Math.abs(v / a[i] - 1)));
+  assert.ok(swing(line) < 0.03, `variação diária ${swing(line)}`);
+});
+
+test("regressão dificuldade÷emissão: reproduz um preço que segue exatamente essa razão (linha tracejada)", async () => {
+  const { blockSubsidy } = await import("../src/lib/onchain-calc");
+  const diff = Array.from({ length: N }, (_, i) => 5e12 * (1 + i / 4000));
+  const price = diff.map((d, i) => (3 * Math.pow(d / blockSubsidy(START + i), 0.5)) / 1e5);
+  const out = computeIndicators(buildBase(synth({ PriceUSD: price, DiffMean: diff })), ["difficulty_model"]);
+  for (let i = 200; i < N; i += 50) assert.ok(Math.abs((out.difficulty_model[0][i] as number) / price[i] - 1) < 0.01, `i=${i}`);
+});
+
+test("regressão: sem variação na dificuldade não inventa modelo (mas o custo de produção continua)", () => {
   const b = buildBase({ ...synth(), start: epochDay("2024-06-01") }); // depois do último halving e com dificuldade constante
   const out = computeIndicators(b, ["difficulty_model", "pow_osc"]);
   assert.ok(out.difficulty_model[0].every((v) => v === null));
-  assert.ok(out.pow_osc[0].every((v) => v === null));
+  assert.ok(out.difficulty_model[2].some((v) => v !== null));
 });
 
 test("sem a dificuldade da fonte, estima pelo hash rate e os indicadores dependentes continuam disponíveis", () => {

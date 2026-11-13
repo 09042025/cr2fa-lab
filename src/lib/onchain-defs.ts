@@ -136,14 +136,14 @@ export const INDICATORS: IndicatorDef[] = [
     desc: "Dificuldade para encontrar um bloco, ajustada a cada 2.016 blocos para manter 10 minutos por bloco. Acompanha o hash rate com defasagem. Quando a fonte de dados não entrega a dificuldade, ela é estimada pelo hash rate (dificuldade ≈ hash rate × 600 ÷ 2³²).",
   },
   {
-    id: "difficulty_model", name: "Preço de produção dos mineradores", group: "network", axis: "price", scale: "log", fmt: "usd", needs: ["diff"],
-    lines: [{ label: "Modelo (dificuldade ÷ emissão)" }, { label: "Faixa −1 desvio (mineradores eficientes)", dashed: true }, { label: "Faixa +1 desvio", dashed: true }],
-    desc: "Estima quanto custa produzir 1 bitcoin. A dificuldade da rede dividida pela emissão por bloco (a recompensa, que cai pela metade a cada halving) mede o esforço de mineração gasto por moeda criada. Ajustamos o preço a essa razão por regressão em escala log (todo o histórico desde 2011), o que dá a linha do modelo. As faixas tracejadas ficam 1 desvio padrão abaixo e acima: de baixo, mineradores mais eficientes. Preço abaixo do modelo sugere mineração apertada e pressão de venda dos mineradores. Preço bem acima sugere mercado esticado em relação ao custo. É um ajuste estatístico com o histórico inteiro, por isso no passado ele encaixa melhor do que encaixaria em tempo real. Inspirado no modelo Difficulty per Issuance do Checkonchain, calculado aqui com dados da Coin Metrics, então os valores não são idênticos aos dele.",
+    id: "difficulty_model", name: "Preço de produção dos mineradores", group: "network", axis: "price", scale: "log", fmt: "usd", needs: ["diff", "hash"],
+    lines: [{ label: "Modelo de regressão (dificuldade ÷ emissão)", dashed: true }, { label: "Mineradores médios (custo)" }, { label: "Mineradores eficientes (custo)" }],
+    desc: "Estima quanto custa produzir 1 bitcoin. Custo = energia que a rede gasta por dia ÷ bitcoins emitidos por dia. A energia vem do hash rate vezes a eficiência das máquinas (joules por terahash) e do preço da energia (US$ 0,05 por kWh). Os mineradores eficientes usam as máquinas mais novas; os médios gastam cerca de 41% mais energia por hash. A emissão cai pela metade a cada halving, e por isso o custo sobe de um salto. A linha tracejada é uma regressão do preço contra dificuldade ÷ emissão. Preço abaixo da linha dos médios sugere mineração apertada e pressão de venda; abaixo da dos eficientes costuma coincidir com capitulação. É uma estimativa: a eficiência por época é uma premissa calibrada em poucas datas, não um dado oficial. Inspirado no modelo Difficulty per Issuance do Checkonchain; os valores são próximos, mas não idênticos.",
   },
   {
-    id: "pow_osc", name: "Oscilador PoW (preço ÷ custo de produção)", group: "network", axis: "own", scale: "log", fmt: "ratio", refs: [1], needs: ["diff"],
-    lines: [{ label: "Preço ÷ modelo de produção" }],
-    desc: "Preço dividido pela linha do modelo de preço de produção dos mineradores. Acima de 1, o preço está acima do custo estimado de produção, e valores muito altos aparecem em fases eufóricas. Perto ou abaixo de 1, o mercado paga menos do que o modelo estima para produzir a moeda, o que costuma coincidir com estresse de mineradores e fundos de bear market. Usa o mesmo ajuste do indicador Preço de produção dos mineradores, com as mesmas limitações.",
+    id: "pow_osc", name: "Oscilador PoW (preço ÷ custo médio)", group: "network", axis: "own", scale: "log", fmt: "ratio", refs: [1], needs: ["hash"],
+    lines: [{ label: "Preço ÷ custo de produção dos médios" }],
+    desc: "Preço dividido pelo custo estimado de produção do minerador médio (mesmo cálculo do indicador Preço de produção dos mineradores, com as mesmas premissas). Perto ou abaixo de 1, o mercado paga menos do que custa produzir a moeda, o que costuma coincidir com estresse de mineradores e fundos de bear market. Valores muito altos apareceram em fases eufóricas.",
   },
   {
     id: "active_addr", name: "Endereços ativos (média 30 dias)", group: "network", axis: "own", scale: "log", fmt: "compact", needs: ["addr"],
