@@ -18,7 +18,8 @@ export interface IndicatorDef {
   axis: "price" | "own";
   scale: "linear" | "log";
   fmt: Fmt;
-  lines: { label: string; dashed?: boolean }[];
+  /** `color` fixa a cor da linha (senão vale a cor do indicador). */
+  lines: { label: string; dashed?: boolean; color?: string }[];
   /** Linhas de referência horizontais (no eixo do indicador). */
   refs?: number[];
   /** Séries-base necessárias além do preço. */
@@ -137,12 +138,12 @@ export const INDICATORS: IndicatorDef[] = [
   },
   {
     id: "difficulty_model", name: "Preço de produção dos mineradores", group: "network", axis: "price", scale: "log", fmt: "usd", needs: ["diff", "hash"],
-    lines: [{ label: "Modelo de regressão (dificuldade ÷ emissão)", dashed: true }, { label: "Mineradores médios (custo)" }, { label: "Mineradores eficientes (custo)" }],
+    lines: [{ label: "Modelo de regressão (dificuldade ÷ emissão)", dashed: true, color: "#60a5fa" }, { label: "Mineradores médios (custo)", color: "#fb923c" }, { label: "Mineradores eficientes (custo)", color: "#ef4444" }],
     desc: "Estima quanto custa produzir 1 bitcoin. Custo = energia que a rede gasta por dia ÷ bitcoins emitidos por dia. A energia vem do hash rate vezes a eficiência das máquinas (joules por terahash) e do preço da energia (US$ 0,05 por kWh). Os mineradores eficientes usam as máquinas mais novas; os médios gastam cerca de 41% mais energia por hash. A emissão cai pela metade a cada halving, e por isso o custo sobe de um salto. A linha tracejada é uma regressão do preço contra dificuldade ÷ emissão. Preço abaixo da linha dos médios sugere mineração apertada e pressão de venda; abaixo da dos eficientes costuma coincidir com capitulação. É uma estimativa: a eficiência por época é uma premissa calibrada em poucas datas, não um dado oficial. Inspirado no modelo Difficulty per Issuance do Checkonchain; os valores são próximos, mas não idênticos.",
   },
   {
     id: "pow_osc", name: "Oscilador PoW (preço ÷ custo médio)", group: "network", axis: "own", scale: "log", fmt: "ratio", refs: [1], needs: ["hash"],
-    lines: [{ label: "Preço ÷ custo de produção dos médios" }],
+    lines: [{ label: "Preço ÷ custo de produção dos médios", color: "#a78bfa" }],
     desc: "Preço dividido pelo custo estimado de produção do minerador médio (mesmo cálculo do indicador Preço de produção dos mineradores, com as mesmas premissas). Perto ou abaixo de 1, o mercado paga menos do que custa produzir a moeda, o que costuma coincidir com estresse de mineradores e fundos de bear market. Valores muito altos apareceram em fases eufóricas.",
   },
   {
