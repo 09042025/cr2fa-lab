@@ -61,7 +61,7 @@ export function B3Import() {
     const res = await fetch("/api/portfolio/import", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mode, items: chosen.map((r) => ({ block: r.block, label: r.label, value: r.value })) }),
+      body: JSON.stringify({ mode, items: chosen.map((r) => ({ block: r.block, label: r.label, value: r.value, ticker: (r.block === "acoes" || r.block === "fiis") && /^[A-Z]{4}\d{1,2}$/.test(r.code) && r.qty && r.qty > 0 ? r.code : undefined, qty: (r.block === "acoes" || r.block === "fiis") && r.qty && r.qty > 0 ? r.qty : undefined })) }),
     });
     setBusy(false);
     const body = await res.json().catch(() => ({}));
