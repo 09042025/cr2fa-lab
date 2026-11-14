@@ -5,12 +5,11 @@ import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { PortfolioEntry } from "@/components/PortfolioEntry";
 import { DeleteHolding } from "@/components/DeleteHolding";
 import { HoldingActions } from "@/components/HoldingActions";
-import { LineChart } from "@/components/LineChart";
+import { EvolutionChart, IncomeByMonth, ProtocolDashboard } from "@/components/PortfolioCharts";
 import { getQuote, type Quote } from "@/lib/dividends";
 import { evolution, lastMonths, monthlyIncome } from "@/lib/portfolio-calc";
 import { brl, pct } from "@/lib/format";
 
-const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export const dynamic = "force-dynamic";
 
@@ -43,11 +42,8 @@ export default async function PortfolioPage() {
   const total = rows.reduce((a, r) => a + r.currentCents, 0);
 
   const income = monthlyIncome(tracked.map((h) => ({ ticker: h.ticker as string, qty: h.qty as number, dividends: quotes.get(h.ticker as string)?.dividends ?? [] })), today);
-  const income12 = income.reduce((a, m) => a + m.total, 0);
-  const maxIncome = Math.max(...income.map((m) => m.total), 1);
-  const fixed = holdings.filter((h) => !(h.ticker && h.qty && h.qty > 0)).reduce((a, h) => a + h.value_cents, 0) / 100;
-  const evo = tracked.length ? evolution(tracked.map((h) => ({ qty: h.qty as number, monthly: quotes.get(h.ticker as string)?.monthly ?? [] })), fixed, lastMonths(today, 12)) : [];
-  const evoOk = evo.filter((e) => e.ok);
+    const fixed = holdings.filter((h) => !(h.ticker && h.qty && h.qty > 0)).reduce((a, h) => a + h.value_cents, 0) / 100;
+  const evo = tracked.length ? evolution(tracked.map((h) => ({ qty: h.qty as number, monthly: quotes.get(h.ticker as string)?.monthly ?? [] })), fixed, lastMonths(today, 60)).filter((e) => e.ok).map((e) => ({ m: e.m, value: e.value })) : [];
   const invested = tracked.reduce((a, h) => a + (h.avg_price ? h.avg_price * (h.qty as number) : 0), 0);
   const marketValue = tracked.reduce((a, h) => a + valueOf(h) / 100, 0);
 
@@ -55,6 +51,8 @@ export default async function PortfolioPage() {
     <>
       <PageTitle title="Portfólio" subtitle="Importe sua posição da B3 ou preencha manualmente, por bloco. A tabela mostra quanto comprar (+) ou vender (−) em cada bloco para voltar aos 20% do Protocolo." />
       <PortfolioEntry startOnB3={holdings.length === 0} />
+
+      <ProtocolDashboard totalCents={total} slices={rows.map((r) => ({ key: r.block.key, name: r.block.name, color: r.block.color, value: r.currentCents / 100, target: r.block.pct }))} />
 
       <section className="card mb-6 p-4">
         <h2 className="mb-1 font-semibold">Rebalanceamento</h2>
@@ -82,22 +80,7 @@ export default async function PortfolioPage() {
 
       {tracked.length > 0 && (
         <>
-          <section className="card mb-6 p-4">
-            <h2 className="mb-1 font-semibold">Dividendos por mês</h2>
-            <p className="mb-3 text-sm text-muted">
-              Projeção para os próximos 12 meses: repete o que cada ativo pagou nos últimos 12 meses, multiplicado pela quantidade que você tem hoje. Total estimado: <strong className="text-white">{brl(income12)}</strong> (média de {brl(income12 / 12)} por mês).
-            </p>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-              {income.map((m) => (
-                <div key={m.month} className="rounded-lg border border-line bg-panel-2 p-2 text-center text-xs">
-                  <p className="font-semibold">{MONTHS[Number(m.month.slice(5)) - 1]}/{m.month.slice(2, 4)}</p>
-                  <div className="mx-auto my-1 flex h-10 items-end"><div className="w-6 rounded-t bg-gold/70" style={{ height: `${Math.max(m.total ? 8 : 2, (m.total / maxIncome) * 40)}px` }} /></div>
-                  <p>{m.total ? brl(m.total) : "—"}</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-muted">Estimativa baseada no histórico, não é promessa de pagamento. Considera só ações e FIIs com código e quantidade informados.</p>
-          </section>
+          <IncomeByMonth months={income.map((m) => ({ month: m.month, total: m.total, items: m.items }))} />
 
           <section className="card mb-6 p-4">
             <h2 className="mb-1 font-semibold">Evolução da carteira</h2>
@@ -105,8 +88,8 @@ export default async function PortfolioPage() {
               Valor de mercado de hoje: <strong className="text-white">{brl(marketValue)}</strong>
               {invested > 0 && <> · Custo (preço médio): <strong className="text-white">{brl(invested)}</strong> · Resultado: <strong className={marketValue >= invested ? "text-up" : "text-down"}>{pct(((marketValue - invested) / invested) * 100, 1)}</strong></>}
             </p>
-            {evoOk.length >= 2 ? <LineChart points={evoOk.map((e) => e.value)} color="auto" format={(v) => brl(v)} /> : <p className="text-sm text-muted">Histórico de preços indisponível agora.</p>}
-            <p className="mt-2 text-xs text-muted">Mostra como a carteira de hoje (mesmas quantidades) se comportou nos últimos 12 meses, com fechamento mensal das cotações. Posições sem código entram com o valor informado.</p>
+            <EvolutionChart points={evo} marketValue={marketValue} invested={invested} />
+            <p className="mt-2 text-xs text-muted">Mostra como a carteira de hoje (mesmas quantidades) se comportou, com fechamento mensal das cotações. Passe o mouse (ou o dedo) sobre o gráfico para ver cada mês; o período máximo é o histórico que temos (até 5 anos). Posições sem código entram com o valor informado.</p>
           </section>
         </>
       )}

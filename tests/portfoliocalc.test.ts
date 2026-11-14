@@ -18,6 +18,7 @@ test("dividendos por mês: repete os últimos 12 meses vezes a quantidade", () =
   assert.equal(m[0].month, "2026-10");
   const mar = m.find((x) => x.month === "2027-03");
   assert.equal(mar?.total, 50);
+  assert.deepEqual(mar?.items.map((i) => [i.ticker, i.date, i.perShare, i.qty, i.total]), [["AAAA3", "2026-03-10", 0.5, 100, 50]]);
   assert.equal(m.find((x) => x.month === "2027-01")?.total, 0); // 2025 já saiu da janela
   assert.equal(Math.round(m.reduce((a, x) => a + x.total, 0) * 100) / 100, 120);
 });
