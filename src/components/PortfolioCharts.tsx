@@ -99,22 +99,23 @@ export function ProtocolDashboard({ slices, totalCents }: { slices: PieSlice[]; 
       <div className="grid items-center gap-4 [&>*]:min-w-0 grid-cols-2 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.6fr)]">
         <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.value }))} caption="Sua carteira" hover={hover} setHover={setHover} label="Distribuição atual da carteira" /></div>
         <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.target }))} caption="Protocolo" hover={hover} setHover={setHover} label="Alvo do Protocolo: 20% em cada bloco" /></div>
-        <table className="data col-span-2 w-full table-fixed text-xs lg:col-span-1 [&_td]:whitespace-normal! [&_td]:px-1.5 [&_td]:py-1.5 [&_th]:px-1.5 [&_th]:text-[10px]">
-          <thead><tr><th className="w-[40%]">Bloco</th><th className="num w-[19%]">Atual</th><th className="num w-[16%]">Alvo</th><th className="num w-[25%]">Dif.</th></tr></thead>
-          <tbody>
-            {rows.map((s) => {
-              const diff = s.pct - s.target;
-              return (
-                <tr key={s.key} onMouseEnter={() => setHover(s.key)} onMouseLeave={() => setHover(null)} className={hover === s.key ? "bg-panel-2" : ""}>
-                  <td><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />{s.name}</td>
-                  <td className="num">{pct(s.pct)}</td>
-                  <td className="num">{pct(s.target, 0)}</td>
-                  <td className={`num font-semibold ${Math.abs(diff) < 0.5 ? "" : diff > 0 ? "text-down" : "text-up"}`}>{diff > 0 ? "+" : ""}{pct(diff)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="col-span-2 w-full text-xs lg:col-span-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_3.4rem_2.6rem_3.8rem] gap-x-2 border-b border-line px-1 pb-1.5 text-[10px] uppercase tracking-wider text-muted">
+            <span>Bloco</span><span className="text-right">Atual</span><span className="text-right">Alvo</span><span className="text-right">Dif.</span>
+          </div>
+          {rows.map((s) => {
+            const diff = s.pct - s.target;
+            return (
+              <div key={s.key} onMouseEnter={() => setHover(s.key)} onMouseLeave={() => setHover(null)}
+                className={`grid grid-cols-[minmax(0,1fr)_3.4rem_2.6rem_3.8rem] items-center gap-x-2 border-b border-line/50 px-1 py-2 ${hover === s.key ? "bg-panel-2" : ""}`}>
+                <span className="flex min-w-0 items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} /><span className="truncate">{s.name}</span></span>
+                <span className="text-right tabular-nums">{pct(s.pct)}</span>
+                <span className="text-right tabular-nums">{pct(s.target, 0)}</span>
+                <span className={`text-right font-semibold tabular-nums ${Math.abs(diff) < 0.5 ? "" : diff > 0 ? "text-down" : "text-up"}`}>{diff > 0 ? "+" : ""}{pct(diff)}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
       <p className="mt-2 text-xs text-muted">Diferença em verde = abaixo do alvo (espaço para aportar); em vermelho = acima do alvo. A tabela de rebalanceamento abaixo mostra os valores em reais.</p>
     </section>
@@ -151,6 +152,19 @@ export function IncomeByMonth({ months }: { months: IncomeMonthView[] }) {
         <div className="mt-4 rounded-lg border border-line bg-panel-2 p-3">
           <h3 className="mb-2 text-sm font-semibold">{mlabel(cur.month)}: {cur.total ? brl(cur.total) : "nenhum provento estimado"}</h3>
           {cur.items.length > 0 && (
+            <>
+              <div className="space-y-1.5 sm:hidden">
+                {cur.items.map((x) => (
+                  <div key={`${x.ticker}-${x.date}`} className="flex items-center justify-between gap-2 rounded-md bg-ink/40 px-2.5 py-2 text-xs">
+                    <div className="min-w-0">
+                      <p className="font-semibold">{x.ticker}</p>
+                      <p className="text-[11px] text-muted">{x.qty.toLocaleString("pt-BR")} × {brl(x.perShare)} · com {x.date.split("-").reverse().slice(0, 2).join("/")}</p>
+                    </div>
+                    <span className="shrink-0 font-semibold text-gold-soft">{brl(x.total)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden sm:block">
             <table className="data w-full text-xs [&_td]:px-2 [&_td]:py-1.5 [&_th]:px-2">
               <thead><tr><th>Ativo</th><th>Data com (ano passado)</th><th className="num">Por cota/ação</th><th className="num">Quantidade</th><th className="num">Estimado</th></tr></thead>
               <tbody>
@@ -165,6 +179,8 @@ export function IncomeByMonth({ months }: { months: IncomeMonthView[] }) {
                 ))}
               </tbody>
             </table>
+              </div>
+            </>
           )}
         </div>
       )}
