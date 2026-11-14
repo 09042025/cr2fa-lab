@@ -5,10 +5,9 @@ import { getAssetDetail } from "@/lib/market";
 import { Change, DataStatus, Disclaimer, Locked, PageTitle, ProBadge } from "@/components/ui";
 import { TradingViewChart } from "@/components/TradingViewChart";
 import { brl, brlCompact } from "@/lib/format";
+import { AssetAnalysis } from "@/components/AssetAnalysis";
 
 export const dynamic = "force-dynamic";
-
-const num = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }));
 
 function Item({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -55,7 +54,8 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
     <>
       <PageTitle title={d ? `${d.name} (${ticker})` : ticker} subtitle="Cotação, gráfico e informações do ativo." />
       <p className="mb-3 text-sm"><Link className="text-gold-soft underline" href={back.href}>{back.label}</Link></p>
-      <DataStatus result={result} source="brapi.dev (B3)" />
+      {!d && <p className="mb-3 rounded-lg border border-line bg-panel-2 p-3 text-xs text-muted">A cotação ao vivo não carregou agora. Os indicadores abaixo usam dados abertos da CVM e continuam disponíveis.</p>}
+      {d && <DataStatus result={result} source="brapi.dev (B3)" />}
 
       {d && (
         <section className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -68,37 +68,25 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
 
       {symbol && <TradingViewChart symbol={symbol} />}
 
-      <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-xl font-bold text-gold-soft">Indicadores {!isPro && <ProBadge />}</h2>
       {isPro ? (
-        d ? (
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Item label="Mínima do dia" value={brl(d.dayLow)} />
-            <Item label="Máxima do dia" value={brl(d.dayHigh)} />
-            <Item label="Mínima 52 semanas" value={brl(d.low52)} />
-            <Item label="Máxima 52 semanas" value={brl(d.high52)} />
-            <Item label="P/L" value={num(d.pe)} />
-            <Item label="Lucro por ação (LPA)" value={brl(d.eps)} />
-          </section>
-        ) : <p className="card p-4 text-sm text-muted">Indicadores indisponíveis no momento.</p>
-      ) : (
-        <Locked feature="Indicadores e histórico de proventos" />
-      )}
-
-      {isPro && d && (
         <>
-          <h2 className="mb-3 mt-8 font-display text-xl font-bold text-gold-soft">Proventos recentes</h2>
-          {d.dividends.length ? (
-            <div className="card overflow-x-auto p-4">
-              <table className="data">
-                <thead><tr><th>Pagamento</th><th>Tipo</th><th className="num">Valor por cota/ação</th></tr></thead>
-                <tbody>
-                  {d.dividends.map((x, i) => (
-                    <tr key={`${x.date}-${i}`}><td>{x.date.split("-").reverse().join("/")}</td><td>{x.label}</td><td className="num">{brl(x.value)}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : <p className="card p-4 text-sm text-muted">Sem proventos registrados para este ativo.</p>}
+          {d && (
+            <>
+              <h2 className="mb-3 mt-8 font-display text-xl font-bold text-gold-soft">Faixas de preço</h2>
+              <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Item label="Mínima do dia" value={brl(d.dayLow)} />
+                <Item label="Máxima do dia" value={brl(d.dayHigh)} />
+                <Item label="Mínima 52 semanas" value={brl(d.low52)} />
+                <Item label="Máxima 52 semanas" value={brl(d.high52)} />
+              </section>
+            </>
+          )}
+          <AssetAnalysis ticker={ticker} isFii={isFii} marketCap={d?.marketCap ?? null} brapiPrice={d?.price ?? null} />
+        </>
+      ) : (
+        <>
+          <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-xl font-bold text-gold-soft">Indicadores <ProBadge /></h2>
+          <Locked feature="Indicadores, pontos de atenção e calendário de proventos" />
         </>
       )}
 

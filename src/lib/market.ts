@@ -622,7 +622,14 @@ export function getAssetDetail(ticker: string) {
   return cached<AssetDetail>(`brapi:detail:${ticker}:v1`, 15 * 60, async () => {
     const token = process.env.BRAPI_TOKEN;
     const url = `https://brapi.dev/api/quote/${ticker}?fundamental=true&dividends=true${token ? `&token=${encodeURIComponent(token)}` : ""}`;
-    const r = (await fetchJson<{ results?: BrapiDetail[] }>(url, {}, 20000)).results?.[0];
+    let r: BrapiDetail | undefined;
+    try {
+      r = (await fetchJson<{ results?: BrapiDetail[] }>(url, {}, 20000)).results?.[0];
+    } catch {
+      // plano grátis sem permissão para fundamentos/proventos (HTTP 403): tenta só a cotação básica
+      const basic = `https://brapi.dev/api/quote/${ticker}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+      r = (await fetchJson<{ results?: BrapiDetail[] }>(basic, {}, 20000)).results?.[0];
+    }
     if (!r) throw new Error("ativo não encontrado na brapi");
     const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
     const divs = (r.dividendsData?.cashDividends ?? [])
