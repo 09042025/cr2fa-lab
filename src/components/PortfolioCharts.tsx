@@ -53,7 +53,7 @@ function Pie({ slices, hover, setHover, label, caption }: { slices: { key: strin
   const off = (g: { key: string; mid: number; share: number }) => { const e = g.share > 0.9999 ? 0 : hover === g.key ? 9 : 3; return [Math.cos(g.mid) * e, Math.sin(g.mid) * e] as const; };
   return (
     <figure className="m-0">
-      <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full max-w-[280px]" role="img" aria-label={label} style={{ filter: "drop-shadow(0 14px 14px rgba(0,0,0,.55))" }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full max-w-[210px]" role="img" aria-label={label} style={{ filter: "drop-shadow(0 14px 14px rgba(0,0,0,.55))" }}>
         <defs>
           {geo.map((g) => (
             <radialGradient key={g.key} id={`pg-${id}-${g.key}`} cx="35%" cy="28%" r="85%">
@@ -96,11 +96,11 @@ export function ProtocolDashboard({ slices, totalCents }: { slices: PieSlice[]; 
     <section className="card mb-6 p-4">
       <h2 className="mb-1 font-semibold">Carteira x Protocolo</h2>
       <p className="mb-3 text-sm text-muted">À esquerda, como está a sua carteira. À direita, o alvo do Protocolo CR2FA (20% em cada bloco).</p>
-      <div className="grid items-center gap-4 [&>*]:min-w-0 grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
+      <div className="grid items-center gap-4 [&>*]:min-w-0 grid-cols-2 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.6fr)]">
         <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.value }))} caption="Sua carteira" hover={hover} setHover={setHover} label="Distribuição atual da carteira" /></div>
         <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.target }))} caption="Protocolo" hover={hover} setHover={setHover} label="Alvo do Protocolo: 20% em cada bloco" /></div>
-        <table className="data col-span-2 w-full text-xs lg:col-span-1 [&_td]:px-2 [&_td]:py-1.5 [&_th]:px-2 [&_th]:text-[10px]">
-          <thead><tr><th>Bloco</th><th className="num">Atual</th><th className="num">Alvo</th><th className="num">Diferença</th></tr></thead>
+        <table className="data col-span-2 w-full table-fixed text-xs lg:col-span-1 [&_td]:whitespace-normal! [&_td]:px-1.5 [&_td]:py-1.5 [&_th]:px-1.5 [&_th]:text-[10px]">
+          <thead><tr><th className="w-[40%]">Bloco</th><th className="num w-[19%]">Atual</th><th className="num w-[16%]">Alvo</th><th className="num w-[25%]">Dif.</th></tr></thead>
           <tbody>
             {rows.map((s) => {
               const diff = s.pct - s.target;
