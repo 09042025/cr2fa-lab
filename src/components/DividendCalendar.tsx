@@ -3,6 +3,7 @@ import { getFiis, getStocks, type Quote } from "@/lib/market";
 import { getQuote } from "@/lib/dividends";
 import { Locked } from "@/components/ui";
 import { brl, pct } from "@/lib/format";
+import { shortName } from "@/lib/names";
 
 const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const MAX_ALL = 40;
@@ -71,18 +72,18 @@ export async function DividendCalendar({ fii, isPro, setor, mes }: { fii: boolea
         ))}
       </div>
       {!list.data ? <p className="card p-4 text-sm text-muted">Lista de ativos indisponível agora. Tente de novo em instantes.</p> : (
-        <section className="card overflow-x-auto p-4">
+        <section className="card p-4">
           <h2 className="mb-1 font-semibold">{MONTHS[month - 1]}: {items.length} provento(s){sp.setor ? ` em ${sp.setor}` : ""}</h2>
           <p className="mb-3 text-xs text-muted">Analisamos os {picked.length} {fii ? "fundos" : "ativos"} de maior negociação{sp.setor ? " do filtro" : ""}{bySector.length > picked.length ? ` (de ${bySector.length}; filtre por ${fii ? "segmento" : "setor"} para ver outros)` : ""}.{failed ? ` ${failed} sem dados agora.` : ""}</p>
           {items.length === 0 ? <p className="text-sm text-muted">Nenhum provento neste mês nos últimos 12 meses para esta seleção.</p> : (
-            <table className="data">
-              <thead><tr><th>Data com (ex)</th><th>Ativo</th><th>{fii ? "Segmento" : "Setor"}</th><th className="num">Valor por {fii ? "cota" : "ação"}</th><th className="num">% sobre o preço</th></tr></thead>
+            <table className="data w-full table-fixed text-xs [&_td]:px-2 [&_td]:py-2 [&_th]:px-2 [&_th]:text-[10px]">
+              <thead><tr><th className="w-[22%] sm:w-[14%]">Data com</th><th className="w-[38%] sm:w-[34%]">Ativo</th><th className="hidden w-[24%] sm:table-cell">{fii ? "Segmento" : "Setor"}</th><th className="num w-[20%] sm:w-[14%]">{fii ? "Cota" : "Ação"} (R$)</th><th className="num w-[20%] sm:w-[14%]">% preço</th></tr></thead>
               <tbody>
                 {items.map((x) => (
                   <tr key={`${x.q.symbol}-${x.date}`}>
                     <td>{x.date.split("-").reverse().join("/")}</td>
-                    <td><Link className="font-semibold text-gold-soft underline" href={`/painel/ativo/${x.q.symbol}${fii ? "?de=fiis" : ""}`}>{x.q.symbol}</Link> <span className="text-xs text-muted">{x.q.name}</span></td>
-                    <td>{x.q.sector}</td>
+                    <td className="truncate" title={x.q.name}><Link className="font-semibold text-gold-soft underline" href={`/painel/ativo/${x.q.symbol}${fii ? "?de=fiis" : ""}`}>{x.q.symbol}</Link> <span className="text-[11px] text-muted">{shortName(x.q.name)}</span></td>
+                    <td className="hidden truncate sm:table-cell" title={x.q.sector}>{x.q.sector}</td>
                     <td className="num">{brl(x.value)}</td>
                     <td className="num">{x.price ? pct((x.value / x.price) * 100, 2) : "—"}</td>
                   </tr>
