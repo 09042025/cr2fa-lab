@@ -106,6 +106,8 @@ export interface CvmData {
   year: number;
   companies: Record<string, CvmCompany>; // chave = CNPJ só com dígitos
   tickers: Record<string, string>; // ticker -> CNPJ
+  /** Diagnóstico do que foi lido (ajuda a achar problemas quando um ticker não é encontrado). */
+  diag?: string;
 }
 
 /** Lê um CSV de demonstração (DRE/BPA/BPP consolidada) e acumula nas empresas. Mantém a maior VERSAO por linha. */
@@ -141,13 +143,32 @@ export function ingestStatement(t: Table, stmt: "DRE" | "BPA" | "BPP", acc: Map<
 /** Extrai tickers (ex.: BBAS3, ITUB4) do campo de código de negociação do FRE. */
 export function ingestTickers(t: Table, into: Record<string, string>) {
   const iC = col(t, /^CNPJ/i);
-  const iT = col(t, /negocia/i);
-  if (iC < 0 || iT < 0) throw new Error("colunas de ticker não encontradas no FRE");
+  if (iC < 0) throw new Error(`FRE sem coluna de CNPJ (colunas: ${t.headers.join(",")})`);
+  // procura tickers em qualquer coluna de código/negociação; se nada, em todas as colunas de texto
+  let cols = t.headers.map((h, i) => (/negocia|codigo|ticker|simbolo/i.test(h) ? i : -1)).filter((i) => i >= 0 && i !== iC);
+  if (!cols.length) cols = t.headers.map((_, i) => i).filter((i) => i !== iC);
   for (const r of t.rows) {
     const cnpj = digits(r[iC]);
     if (!cnpj) continue;
-    for (const m of (r[iT] ?? "").toUpperCase().matchAll(/\b[A-Z]{4}\d{1,2}\b/g)) into[m[0]] = cnpj;
+    for (const i of cols) for (const m of (r[i] ?? "").toUpperCase().matchAll(/\b[A-Z]{4}\d{1,2}\b/g)) into[m[0]] = cnpj;
   }
+}
+
+/** Normaliza nome de empresa para comparar ("Banco do Brasil S.A." == "BANCO DO BRASIL SA"). */
+export function normName(s: string): string {
+  return norm(s).replace(/\b(s\.?\/?a\.?|sa|ltda|cia|companhia|holding|participacoes|part)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+export function companyByName(d: CvmData, name: string): { cnpj: string; company: CvmCompany } | null {
+  const n = normName(name);
+  if (n.length < 4) return null;
+  let hit: [string, CvmCompany] | undefined;
+  for (const e of Object.entries(d.companies)) if (normName(e[1].name) === n) { hit = e; break; }
+  if (!hit) {
+    const cands = Object.entries(d.companies).filter(([, c]) => { const m = normName(c.name); return m.startsWith(n) || n.startsWith(m); });
+    if (cands.length === 1) hit = cands[0];
+  }
+  return hit ? { cnpj: hit[0], company: hit[1] } : null;
 }
 
 async function loadZipCsvs(url: string, re: RegExp): Promise<Map<string, Table>> {
@@ -167,6 +188,7 @@ async function buildCvmData(): Promise<CvmData> {
     { kind: "itr", y: year - 1 }, { kind: "itr", y: year },
   ];
   let ok = 0;
+  const diag: string[] = [];
   for (const j of jobs) {
     try {
       const tabs = await loadZipCsvs(`${BASE}/CIA_ABERTA/DOC/${j.kind.toUpperCase()}/DADOS/${j.kind}_cia_aberta_${j.y}.zip`, /_(DRE|BPA|BPP)_con_/i);
@@ -175,7 +197,8 @@ async function buildCvmData(): Promise<CvmData> {
         ingestStatement(t, s, acc);
       }
       ok++;
-    } catch {
+    } catch (e) {
+      diag.push(`${j.kind}${j.y}: ${e instanceof Error ? e.message : "erro"}`);
       // ano ainda sem arquivo (ex.: DFP do ano corrente em janeiro): segue com os outros
     }
   }
@@ -183,13 +206,14 @@ async function buildCvmData(): Promise<CvmData> {
   for (const y of [year, year - 1]) {
     try {
       const tabs = await loadZipCsvs(`${BASE}/CIA_ABERTA/DOC/FRE/DADOS/fre_cia_aberta_${y}.zip`, /valor_mobiliario/i);
+      diag.push(`fre${y}: arquivos ${[...tabs.keys()].join("|") || "nenhum"}; colunas ${[...tabs.values()].map((t) => t.headers.join(",")).join(" // ").slice(0, 300)}`);
       for (const t of tabs.values()) ingestTickers(t, tickers);
       if (Object.keys(tickers).length) break;
-    } catch { /* tenta o ano anterior */ }
+    } catch (e) { diag.push(`fre${y}: ${e instanceof Error ? e.message : "erro"}`); }
   }
   const companies: Record<string, CvmCompany> = {};
   for (const [cnpj, c] of acc) companies[cnpj] = { name: c.name, cd: c.cd, bank: c.bank, rows: c.rows };
-  return { loadedAt: Math.floor(Date.now() / 1000), year, companies, tickers };
+  return { loadedAt: Math.floor(Date.now() / 1000), year, companies, tickers, diag: `${Object.keys(tickers).length} tickers; ${diag.join(" ; ")}`.slice(0, 900) };
 }
 
 /* ------------------------------ FII (informe mensal) ------------------------------ */
@@ -286,7 +310,7 @@ function get<T>(key: string, build: () => Promise<T>): Loaded<T> {
 }
 const failedAtMap = new Map<string, number>();
 
-export const getCvmData = () => get<CvmData>("cvm:acoes:v1", buildCvmData);
+export const getCvmData = () => get<CvmData>("cvm:acoes:v2", buildCvmData);
 export const getFiiData = () => get<FiiData>("cvm:fii:v1", buildFiiData);
 
 /** Acha a empresa de um ticker: exato; senão, mesma raiz de 4 letras (ex.: ITUB3 -> ITUB4). */

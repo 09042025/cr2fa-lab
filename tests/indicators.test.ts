@@ -138,3 +138,11 @@ test("proventos: Yahoo, soma, calendário e próxima data estimada", () => {
   assert.ok(nx && nx.date > "2026-10-31");
   assert.throws(() => parseYahoo({}));
 });
+
+test("empresa por nome quando o ticker não está no FRE", async () => {
+  const { companyByName, normName } = await import("../src/lib/cvm");
+  assert.equal(normName("Banco do Brasil S.A."), normName("BANCO DO BRASIL SA"));
+  const d: CvmData = { loadedAt: 0, year: 2026, tickers: {}, companies: { "1": { name: "BANCO DO BRASIL S.A.", cd: "1", bank: true, rows: [] } } };
+  assert.equal(companyByName(d, "Banco do Brasil S.A.")?.cnpj, "1");
+  assert.equal(companyByName(d, "Outra Empresa"), null);
+});
