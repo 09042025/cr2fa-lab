@@ -81,7 +81,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
               </section>
             </>
           )}
-          <AssetAnalysis ticker={ticker} isFii={isFii} marketCap={d?.marketCap ?? null} brapiPrice={d?.price ?? null} />
+          <AssetAnalysis ticker={ticker} isFii={isFii} marketCap={d?.marketCap ?? null} brapiPrice={d?.price ?? null} name={d?.name ?? null} />
         </>
       ) : (
         <>

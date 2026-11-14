@@ -1,5 +1,5 @@
 import { analyzeFii, analyzeStock, attentionPoints, type Indicator, type Status } from "@/lib/indicators";
-import { companyOf, getCvmData, getFiiData } from "@/lib/cvm";
+import { companyByName, companyOf, getCvmData, getFiiData } from "@/lib/cvm";
 import { getQuote, monthCalendar, monthsPaid, nextEstimate, sumBetween } from "@/lib/dividends";
 import { brl } from "@/lib/format";
 
@@ -30,7 +30,7 @@ function Notice({ children }: { children: React.ReactNode }) {
   return <p className="card p-4 text-sm text-muted">{children}</p>;
 }
 
-export async function AssetAnalysis({ ticker, isFii, marketCap, brapiPrice }: { ticker: string; isFii: boolean; marketCap: number | null; brapiPrice: number | null }) {
+export async function AssetAnalysis({ ticker, isFii, marketCap, brapiPrice, name }: { ticker: string; isFii: boolean; name?: string | null; marketCap: number | null; brapiPrice: number | null }) {
   const today = new Date().toISOString().slice(0, 10);
   const q = await getQuote(ticker);
   const quote = q.data;
@@ -58,7 +58,7 @@ export async function AssetAnalysis({ ticker, isFii, marketCap, brapiPrice }: { 
     else if (!rec) notice = "Não encontramos este fundo no informe mensal da CVM; P/VP, patrimônio e cotistas ficam sem valor.";
   } else {
     const cvm = getCvmData();
-    const found = cvm.data ? companyOf(cvm.data, ticker) : null;
+    const found = cvm.data ? (companyOf(cvm.data, ticker) ?? (name ? companyByName(cvm.data, name) : null)) : null;
     if (found) {
       const a = analyzeStock({ rows: found.company.rows, bank: found.company.bank, price, marketCap, dividends12m: quote ? div12 : null });
       indicators = a.indicators;
@@ -66,7 +66,7 @@ export async function AssetAnalysis({ ticker, isFii, marketCap, brapiPrice }: { 
       if (!a.indicators.length) notice = "A CVM ainda não tem demonstrações consolidadas desta empresa para calcular os indicadores.";
     } else if (!cvm.data) {
       notice = cvm.loading ? "Estamos baixando as demonstrações financeiras da CVM (leva alguns minutos na primeira vez). Volte em alguns minutos." : `Demonstrações da CVM indisponíveis agora${cvm.error ? ` (${cvm.error})` : ""}. Tentaremos de novo automaticamente.`;
-    } else notice = "Não encontramos este ticker nos dados abertos da CVM (empresa sem demonstrações consolidadas ou ticker novo).";
+    } else notice = "Não encontramos este ticker nos dados abertos da CVM (empresa sem demonstrações consolidadas ou ticker novo)." + (cvm.data.diag ? ` [diagnóstico: ${cvm.data.diag}]` : "");
     source = "Demonstrações financeiras ITR/DFP da CVM (dados abertos), proventos e cotação da Yahoo Finance";
   }
 
