@@ -4,8 +4,8 @@ import { db } from "@/lib/db";
 import { fail, json, sameOrigin } from "@/lib/http";
 
 const schema = z.object({
-  /** "replace" apaga as posições importadas antes da B3 e grava as novas; "add" só acrescenta. */
-  mode: z.enum(["replace", "add"]),
+  /** "merge" atualiza as já importadas (mesmo nome e bloco) e acrescenta as novas, sem apagar nada; "replace" apaga as importadas antes; "add" só acrescenta. */
+  mode: z.enum(["merge", "replace", "add"]),
   items: z
     .array(
       z.object({
@@ -36,7 +36,14 @@ export async function POST(req: Request) {
     const count = (d.prepare("SELECT COUNT(*) c FROM holdings WHERE user_id = ?").get(user.id) as { c: number }).c;
     if (count + parsed.data.items.length > 500) throw new Error("LIMIT");
     const ins = d.prepare("INSERT INTO holdings (user_id, block, label, value_cents, source, ticker, qty, avg_price) VALUES (?, ?, ?, ?, 'b3', ?, ?, ?)");
-    for (const i of parsed.data.items) ins.run(user.id, i.block, i.label, Math.round(i.value * 100), i.ticker ?? null, i.qty ?? null, i.avgPrice ?? null);
+    const find = d.prepare("SELECT id FROM holdings WHERE user_id = ? AND block = ? AND lower(label) = lower(?) AND source = 'b3' LIMIT 1");
+    const upd = d.prepare("UPDATE holdings SET value_cents = ?, ticker = COALESCE(?, ticker), qty = COALESCE(?, qty) WHERE id = ?");
+    for (const i of parsed.data.items) {
+      const cents = Math.round(i.value * 100);
+      const hit = parsed.data.mode === "merge" ? (find.get(user.id, i.block, i.label) as { id: number } | undefined) : undefined;
+      if (hit) upd.run(cents, i.ticker ?? null, i.qty ?? null, hit.id);
+      else ins.run(user.id, i.block, i.label, cents, i.ticker ?? null, i.qty ?? null, i.avgPrice ?? null);
+    }
     return removed;
   });
   try {
