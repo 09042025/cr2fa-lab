@@ -15,7 +15,8 @@ export function HoldingForm() {
   const [avg, setAvg] = useState("");
   const [px, setPx] = useState<{ state: "idle" | "loading" | "ok" | "err"; price?: number; msg?: string }>({ state: "idle" });
   const t = ticker.trim().toUpperCase();
-  const valid = /^[A-Z]{4}\d{1,2}$/.test(t);
+  const b3 = /^[A-Z]{4}\d{1,2}$/.test(t);
+  const valid = b3 || /^[A-Z]{2,10}$/.test(t);
 
   // ao digitar um código válido da B3, busca o preço atual sozinho
   useEffect(() => {
@@ -27,7 +28,7 @@ export function HoldingForm() {
         const j = await r.json().catch(() => ({}));
         if (r.ok && typeof j.price === "number") {
           setPx({ state: "ok", price: j.price });
-          setBlock((b) => (b === "acoes" || b === "fiis" ? b : t.endsWith("11") ? "fiis" : "acoes"));
+          setBlock((b) => (j.kind === "cripto" ? "cripto" : b === "acoes" || b === "fiis" ? b : j.kind));
         } else setPx({ state: "err", msg: j.error || "Preço indisponível agora." });
       } catch { setPx({ state: "err", msg: "Sem conexão." }); }
     }, 500);
@@ -50,7 +51,7 @@ export function HoldingForm() {
         block: f.get("block"),
         label: String(f.get("label") || "").trim() || t,
         value: Number(String(f.get("value")).replace(",", ".")) || est || 0,
-        ticker: valid ? t : undefined,
+        ticker: b3 ? t : undefined,
         qty: num(f.get("qty")),
         avgPrice: num(f.get("avg")),
       }),
@@ -69,7 +70,7 @@ export function HoldingForm() {
       </div>
       <div><label className="label" htmlFor="label">Posição</label><input id="label" name="label" className="input" required={!valid} maxLength={60} placeholder={valid ? "opcional (usa o código)" : "ex.: Bitcoin, HGLG11"} /></div>
       <div><label className="label" htmlFor="value">Valor atual (R$)</label><input id="value" name="value" className="input" inputMode="decimal" placeholder={est ? `automático: ${brl(est)}` : "ou use qtd. e preço"} /></div>
-      <div><label className="label" htmlFor="ticker">Código (ação/FII)</label><input id="ticker" name="ticker" className="input uppercase" maxLength={7} placeholder="ex.: BBAS3" value={ticker} onChange={(e) => setTicker(e.target.value)} autoCapitalize="characters" />
+      <div><label className="label" htmlFor="ticker">Código (ação, FII ou cripto)</label><input id="ticker" name="ticker" className="input uppercase" maxLength={10} placeholder="ex.: BBAS3, HGLG11, BTC, ETH" value={ticker} onChange={(e) => setTicker(e.target.value)} autoCapitalize="characters" />
         {px.state === "loading" && <p className="mt-1 text-xs text-muted">Buscando preço…</p>}
         {px.state === "ok" && px.price && <p className="mt-1 text-xs text-up">Preço atual: <strong>{brl(px.price)}</strong></p>}
         {px.state === "err" && <p className="mt-1 text-xs text-down">{px.msg}</p>}</div>
