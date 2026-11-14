@@ -125,9 +125,19 @@ function findColumns(rows: Cell[][]): Cols | null {
     const product = find((x) => x === "produto" || x.startsWith("produto") || x === "nome");
     let qty = find((x) => x === "quantidade");
     if (qty < 0) qty = find((x) => x.startsWith("quantidade") && !/disponivel|indisponivel|garantia|bloque/.test(x));
-    let value = find((x) => x.startsWith("valor atualizado"));
-    if (value < 0) value = find((x) => x === "valor liquido" || x === "valor bruto" || x.startsWith("valor de mercado") || x === "valor");
-    const price = find((x) => x.startsWith("preco de fechamento") || x.startsWith("preco atualizado"));
+    // valor: tenta do mais "atualizado" para o mais genérico (Renda Fixa e Tesouro trazem nomes diferentes de Ações/FIIs)
+    const valueNames: ((x: string) => boolean)[] = [
+      (x) => x.startsWith("valor atualizado"),
+      (x) => x === "valor liquido" || x.startsWith("valor liquido"),
+      (x) => x === "valor bruto" || x.startsWith("valor bruto"),
+      (x) => x.startsWith("valor de mercado") || x === "valor total" || x.startsWith("valor total"),
+      (x) => x === "valor" || x.startsWith("saldo"),
+      (x) => x.startsWith("valor aplicado") || x.startsWith("valor investido"),
+    ];
+    let value = -1;
+    for (const pred of valueNames) { value = find(pred); if (value >= 0) break; }
+    let price = find((x) => x.startsWith("preco de fechamento") || x.startsWith("preco atualizado"));
+    if (price < 0) price = find((x) => x.startsWith("valor unitario") || x.startsWith("preco unitario") || x === "pu");
     if ((code >= 0 || product >= 0) && (value >= 0 || (price >= 0 && qty >= 0))) return { header: r, code, product, qty, value, price };
   }
   return null;
