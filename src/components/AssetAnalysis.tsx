@@ -63,7 +63,7 @@ export async function AssetAnalysis({ ticker, isFii, marketCap, brapiPrice, name
       const a = analyzeStock({ rows: found.company.rows, bank: found.company.bank, price, marketCap, dividends12m: quote ? div12 : null });
       indicators = a.indicators;
       period = a.period;
-      if (!a.indicators.length) notice = "A CVM ainda não tem demonstrações consolidadas desta empresa para calcular os indicadores.";
+      if (!a.indicators.length) notice = `Encontramos a empresa na CVM (${found.company.name}), mas não conseguimos ler o lucro consolidado dela. Contas lidas: ${[...new Set(found.company.rows.map((r) => r.k))].join(", ") || "nenhuma"}.`;
     } else if (!cvm.data) {
       notice = cvm.loading ? "Estamos baixando as demonstrações financeiras da CVM (leva alguns minutos na primeira vez). Volte em alguns minutos." : `Demonstrações da CVM indisponíveis agora${cvm.error ? ` (${cvm.error})` : ""}. Tentaremos de novo automaticamente.`;
     } else notice = "Não encontramos este ticker nos dados abertos da CVM (empresa sem demonstrações consolidadas ou ticker novo)." + (cvm.data.diag ? ` [diagnóstico: ${cvm.data.diag}]` : "");
