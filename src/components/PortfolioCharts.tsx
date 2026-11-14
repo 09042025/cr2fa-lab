@@ -96,10 +96,10 @@ export function ProtocolDashboard({ slices, totalCents }: { slices: PieSlice[]; 
     <section className="card mb-6 p-4">
       <h2 className="mb-1 font-semibold">Carteira x Protocolo</h2>
       <p className="mb-3 text-sm text-muted">À esquerda, como está a sua carteira. À direita, o alvo do Protocolo CR2FA (20% em cada bloco).</p>
-      <div className="grid items-center gap-4 md:grid-cols-[280px_280px_1fr]">
+      <div className="grid items-center gap-4 [&>*]:min-w-0 grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
         <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.value }))} caption="Sua carteira" hover={hover} setHover={setHover} label="Distribuição atual da carteira" /></div>
         <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.target }))} caption="Protocolo" hover={hover} setHover={setHover} label="Alvo do Protocolo: 20% em cada bloco" /></div>
-        <table className="data w-full text-xs [&_td]:px-2 [&_td]:py-1.5 [&_th]:px-2">
+        <table className="data col-span-2 w-full text-xs lg:col-span-1 [&_td]:px-2 [&_td]:py-1.5 [&_th]:px-2 [&_th]:text-[10px]">
           <thead><tr><th>Bloco</th><th className="num">Atual</th><th className="num">Alvo</th><th className="num">Diferença</th></tr></thead>
           <tbody>
             {rows.map((s) => {
