@@ -5,7 +5,7 @@
 import { cached, fetchJson } from "./market";
 
 export interface Dividend { date: string; value: number } // data ex (AAAA-MM-DD)
-export interface Quote { price: number | null; avgDailyVolume: number | null; dividends: Dividend[] }
+export interface Quote { price: number | null; avgDailyVolume: number | null; dividends: Dividend[]; /** Fechamento do último pregão de cada mês (AAAA-MM). */ monthly: { m: string; close: number }[] }
 
 interface YahooChart {
   chart?: { result?: {
@@ -31,12 +31,15 @@ export function parseYahoo(j: YahooChart): Quote {
     const v = q?.volume?.[i];
     if ((ts[i] ?? 0) >= cut && c && v) { sum += c * v; n++; }
   });
+  const last = new Map<string, number>();
+  (q?.close ?? []).forEach((c, i) => { if (c && ts[i]) last.set(new Date(ts[i] * 1000).toISOString().slice(0, 7), c); });
+  const monthly = [...last.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([m, close]) => ({ m, close }));
   const price = r.meta?.regularMarketPrice;
-  return { price: typeof price === "number" ? price : null, avgDailyVolume: n ? sum / n : null, dividends: divs };
+  return { price: typeof price === "number" ? price : null, avgDailyVolume: n ? sum / n : null, dividends: divs, monthly };
 }
 
 export function getQuote(ticker: string) {
-  return cached<Quote>(`yahoo:div:${ticker}:v1`, 6 * 3600, async () => {
+  return cached<Quote>(`yahoo:div:${ticker}:v2`, 6 * 3600, async () => {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?range=5y&interval=1d&events=div`;
     return parseYahoo(await fetchJson<YahooChart>(url, {}, 20000));
   });

@@ -12,6 +12,9 @@ const schema = z.object({
         block: z.enum(["cripto", "fiis", "acoes", "renda_fixa", "oportunidades"]),
         label: z.string().trim().min(1).max(60),
         value: z.number().min(0).max(1_000_000_000),
+        ticker: z.string().trim().toUpperCase().regex(/^[A-Z]{4}\d{1,2}$/).optional(),
+        qty: z.number().positive().max(1_000_000_000).optional(),
+        avgPrice: z.number().positive().max(1_000_000).optional(),
       }),
     )
     .min(1)
@@ -32,8 +35,8 @@ export async function POST(req: Request) {
     if (parsed.data.mode === "replace") removed = d.prepare("DELETE FROM holdings WHERE user_id = ? AND source = 'b3'").run(user.id).changes;
     const count = (d.prepare("SELECT COUNT(*) c FROM holdings WHERE user_id = ?").get(user.id) as { c: number }).c;
     if (count + parsed.data.items.length > 500) throw new Error("LIMIT");
-    const ins = d.prepare("INSERT INTO holdings (user_id, block, label, value_cents, source) VALUES (?, ?, ?, ?, 'b3')");
-    for (const i of parsed.data.items) ins.run(user.id, i.block, i.label, Math.round(i.value * 100));
+    const ins = d.prepare("INSERT INTO holdings (user_id, block, label, value_cents, source, ticker, qty, avg_price) VALUES (?, ?, ?, ?, 'b3', ?, ?, ?)");
+    for (const i of parsed.data.items) ins.run(user.id, i.block, i.label, Math.round(i.value * 100), i.ticker ?? null, i.qty ?? null, i.avgPrice ?? null);
     return removed;
   });
   try {
