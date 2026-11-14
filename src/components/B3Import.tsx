@@ -17,7 +17,7 @@ export function B3Import() {
   const [fileName, setFileName] = useState("");
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"replace" | "add">("replace");
+  const [mode, setMode] = useState<"merge" | "replace" | "add">("merge");
   const [busy, setBusy] = useState(false);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -128,8 +128,9 @@ export function B3Import() {
             <div className="text-sm">
               <strong>{chosen.length}</strong> selecionadas, total <strong>{brl(total)}</strong>
               <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-                <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="radio" name="b3mode" checked={mode === "replace"} onChange={() => setMode("replace")} /> Substituir o que importei da B3 antes</label>
-                <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="radio" name="b3mode" checked={mode === "add"} onChange={() => setMode("add")} /> Apenas acrescentar</label>
+                <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="radio" name="b3mode" checked={mode === "merge"} onChange={() => setMode("merge")} /> Atualizar e acrescentar (não apaga nada)</label>
+                <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="radio" name="b3mode" checked={mode === "replace"} onChange={() => setMode("replace")} /> Substituir tudo o que importei da B3 antes</label>
+                <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="radio" name="b3mode" checked={mode === "add"} onChange={() => setMode("add")} /> Apenas acrescentar (pode duplicar)</label>
               </div>
             </div>
             <button type="button" className="btn btn-gold" disabled={busy || chosen.length === 0} onClick={save}>{busy ? "Salvando…" : "Importar selecionadas"}</button>
