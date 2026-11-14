@@ -3,8 +3,7 @@ import { db } from "@/lib/db";
 import { BLOCKS, rebalance, type BlockKey } from "@/lib/protocol";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { PortfolioEntry } from "@/components/PortfolioEntry";
-import { DeleteHolding } from "@/components/DeleteHolding";
-import { HoldingActions } from "@/components/HoldingActions";
+import { PositionsTable } from "@/components/PositionsTable";
 import { EvolutionChart, IncomeByMonth, ProtocolDashboard } from "@/components/PortfolioCharts";
 import { getQuote, type Quote } from "@/lib/dividends";
 import { evolution, lastMonths, monthlyIncome } from "@/lib/portfolio-calc";
@@ -96,31 +95,18 @@ export default async function PortfolioPage() {
 
       <section className="card p-4">
         <h2 className="mb-1 font-semibold">Posições</h2>
-        <p className="mb-3 text-xs text-muted">Preço médio no método da B3: a compra recalcula a média ponderada; a venda reduz a quantidade e não muda o preço médio. Use “compra”, “venda” ou “ajustar” em cada linha.</p>
+        <p className="mb-3 text-xs text-muted">Preço médio no método da B3: a compra recalcula a média ponderada; a venda reduz a quantidade e não muda o preço médio. Clique em uma linha para ver as opções: compra, venda, ajustar ou remover.</p>
         {holdings.length === 0 ? <p className="text-sm text-muted">Nenhuma posição registrada.</p> : (
-          <div>
-          <table className="data w-full table-fixed text-xs [&_td]:px-2 [&_td]:py-2 [&_th]:px-2 [&_th]:text-[10px]">
-            <thead><tr><th className="w-[11%]">Bloco</th><th className="w-[16%]">Posição</th><th className="num w-[8%]">Qtd.</th><th className="num w-[12%]">Preço médio</th><th className="num w-[11%]">Atual</th><th className="num w-[9%]">Result.</th><th className="num w-[13%]">Valor</th><th className="num w-[20%]">Ações</th></tr></thead>
-            <tbody>
-              {holdings.map((h) => {
-                const px = h.ticker ? quotes.get(h.ticker)?.price ?? null : null;
-                const res = px && h.avg_price ? ((px - h.avg_price) / h.avg_price) * 100 : null;
-                return (
-                  <tr key={h.id}>
-                    <td>{BLOCKS.find((b) => b.key === h.block)?.name}</td>
-                    <td className="break-words">{h.label}{h.source === "b3" && <span className="ml-2 rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">B3</span>}</td>
-                    <td className="num">{h.qty ? h.qty.toLocaleString("pt-BR") : "—"}</td>
-                    <td className="num">{h.avg_price ? brl(h.avg_price) : h.ticker ? <span className="text-[10px] text-muted">use “ajustar”</span> : "—"}</td>
-                    <td className="num">{px ? brl(px) : "—"}</td>
-                    <td className={`num ${res === null ? "" : res >= 0 ? "text-up" : "text-down"}`}>{res === null ? "—" : pct(res, 1)}</td>
-                    <td className="num">{brl(valueOf(h) / 100)}</td>
-                    <td className="num">{h.ticker && h.qty ? <HoldingActions id={h.id} /> : null}<DeleteHolding id={h.id} /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          </div>
+          <PositionsTable rows={holdings.map((h) => {
+            const px = h.ticker ? quotes.get(h.ticker)?.price ?? null : null;
+            const res = px && h.avg_price ? ((px - h.avg_price) / h.avg_price) * 100 : null;
+            return {
+              id: h.id, block: BLOCKS.find((b) => b.key === h.block)?.name ?? "", label: h.label, b3: h.source === "b3", canTrade: !!(h.ticker && h.qty),
+              qty: h.qty ? h.qty.toLocaleString("pt-BR") : "—", avg: h.avg_price ? brl(h.avg_price) : null, needsAvg: !!h.ticker,
+              price: px ? brl(px) : "—", result: res === null ? "—" : pct(res, 1), resultTone: res === null ? "none" as const : res >= 0 ? "up" as const : "down" as const,
+              value: brl(valueOf(h) / 100),
+            };
+          })} />
         )}
       </section>
       <Disclaimer />
