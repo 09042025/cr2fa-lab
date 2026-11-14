@@ -81,3 +81,14 @@ test("arquivo sem colunas reconhecíveis não gera linhas", () => {
   assert.equal(res.items.length, 0);
   assert.equal(res.sheetsRead, 0);
 });
+
+test("renda fixa com colunas 'Valor Total' / 'Valor Unitário' (CDB) é lida", () => {
+  const r = parseB3([
+    { name: "CDB", rows: [["Produto", "Vencimento", "Instituição", "Quantidade", "Valor Unitário", "Valor Total"], ["CDB - BANCO C6 CONSIGNADO S.A", "11/09/2029", "BANCO C6 S.A.", 1000, "R$ 1,02", "R$ 1.022,98"]] },
+    { name: "CDB2", rows: [["Produto", "Instituição", "Quantidade", "Valor Unitário"], ["CDB - ITAU UNIBANCO S.A", "ITAU", 2000, "R$ 1,50"]] },
+  ]);
+  const by = Object.fromEntries(r.items.map((i) => [i.label, i]));
+  assert.equal(by["CDB - BANCO C6 CONSIGNADO S.A"].value, 1022.98);
+  assert.equal(by["CDB - BANCO C6 CONSIGNADO S.A"].block, "renda_fixa");
+  assert.equal(by["CDB - ITAU UNIBANCO S.A"].value, 3000);
+});
