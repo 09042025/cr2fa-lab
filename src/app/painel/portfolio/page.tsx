@@ -56,7 +56,22 @@ export default async function PortfolioPage() {
       <section className="card mb-6 p-4">
         <h2 className="mb-1 font-semibold">Rebalanceamento</h2>
         <p className="mb-3 text-sm text-muted">Patrimônio nos blocos: <strong className="text-white">{brl(total / 100)}</strong> (a reserva de emergência não entra aqui).</p>
-        <div className="overflow-x-auto">
+        <div className="space-y-2 sm:hidden">
+          {rows.map((r) => (
+            <div key={r.block.key} className="rounded-lg border border-line bg-panel-2 p-3 text-xs">
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-sm font-semibold"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: r.block.color }} />{r.block.name}</span>
+                <span className={`font-semibold ${r.diffCents > 0 ? "text-up" : r.diffCents < 0 ? "text-down" : ""}`}>{r.diffCents > 0 ? "Comprar " : r.diffCents < 0 ? "Vender " : ""}{brl(Math.abs(r.diffCents) / 100)}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-muted">
+                <div><p className="text-[10px] uppercase">Atual</p><p className="text-white">{brl(r.currentCents / 100)}</p></div>
+                <div><p className="text-[10px] uppercase">% atual</p><p className="text-white">{pct(r.currentPct, 1)}</p></div>
+                <div><p className="text-[10px] uppercase">Alvo (20%)</p><p className="text-white">{brl(r.targetCents / 100)}</p></div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="data">
             <thead><tr><th>Bloco</th><th className="num">Atual</th><th className="num">% atual</th><th className="num">Alvo (20%)</th><th className="num">Ajuste</th></tr></thead>
             <tbody>
