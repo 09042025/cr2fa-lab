@@ -7,30 +7,84 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const pct = (v: number, d = 1) => `${v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d })}%`;
 const mlabel = (m: string) => `${MONTHS[Number(m.slice(5)) - 1]}/${m.slice(2, 4)}`;
 
-/* ------------------------- Pizza: carteira x Protocolo ------------------------- */
+/* ------------------------- Pizza 3D: carteira x Protocolo ------------------------- */
 
 export interface PieSlice { key: string; name: string; color: string; value: number; target: number }
 
-function Pie({ slices, pick, hover, setHover, label }: { slices: { key: string; color: string; v: number }[]; pick: string; hover: string | null; setHover: (k: string | null) => void; label: string }) {
-  const size = 220, c = size / 2, r = c - 6;
+function shade(hex: string, amt: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v: number) => Math.max(0, Math.min(255, Math.round(amt >= 0 ? v + (255 - v) * amt : v * (1 + amt))));
+  return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => f(v).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Ícones simples (douradinhos) de cada bloco, desenhados em torno de (0,0) numa caixa de ~40px. */
+function Icon({ k }: { k: string }) {
+  const g = "#f7e4a6", d = "#7a5410";
+  const common = { stroke: d, strokeWidth: 1, strokeLinejoin: "round" as const };
+  switch (k) {
+    case "cripto":
+      return <g><circle r="17" fill="#f3c04a" {...common} /><circle r="13" fill="none" stroke="#b8860b" strokeWidth="1.5" /><text y="1" textAnchor="middle" dominantBaseline="middle" fontSize="20" fontWeight={800} fill="#8a5a05">₿</text></g>;
+    case "fiis":
+      return <g {...common}><rect x="-17" y="-6" width="12" height="22" fill="#e9d3a0" /><rect x="-7" y="-18" width="16" height="34" fill={g} /><rect x="10" y="-2" width="10" height="18" fill="#e9d3a0" />{[-13, -5, 3, 11].map((y) => <rect key={y} x="-4" y={y} width="3" height="3" fill="#f3a712" stroke="none" />)}{[-13, -5, 3, 11].map((y) => <rect key={"b" + y} x="3" y={y} width="3" height="3" fill="#f3a712" stroke="none" />)}</g>;
+    case "acoes":
+      return <g {...common}><rect x="-17" y="2" width="8" height="14" fill={g} /><rect x="-6" y="-5" width="8" height="21" fill={g} /><rect x="5" y="-12" width="8" height="28" fill={g} /><path d="M-18 -2 L-7 -10 L0 -5 L14 -18" fill="none" stroke="#f3a712" strokeWidth="3" strokeLinecap="round" /><path d="M8 -19 L16 -19 L16 -11" fill="none" stroke="#f3a712" strokeWidth="3" strokeLinecap="round" /></g>;
+    case "renda_fixa":
+      return <g {...common}><path d="M-19 -6 L0 -18 L19 -6 Z" fill={g} />{[-13, -4.5, 4.5, 13].map((x) => <rect key={x} x={x - 2.5} y="-4" width="5" height="16" fill="#e9d3a0" />)}<rect x="-20" y="13" width="40" height="5" fill={g} /></g>;
+    default:
+      return <g {...common}>{[8, 0, -8].map((y, i) => <rect key={y} x={-17 + i * 2} y={y - 6} width="30" height="11" rx="2" fill={i === 2 ? "#cfe3ff" : "#9fc1f2"} />)}<circle cx="-2" cy="-8" r="3.5" fill="#6d9be0" stroke="none" /></g>;
+  }
+}
+
+function Pie({ slices, hover, setHover, label, caption }: { slices: { key: string; color: string; v: number }[]; hover: string | null; setHover: (k: string | null) => void; label: string; caption: string }) {
+  const W = 280, H = 300, c = W / 2, cy = 140, r = 118, depth = 14;
+  const id = caption.replace(/\W/g, "");
   const total = slices.reduce((a, s) => a + s.v, 0);
   let a = -Math.PI / 2;
-  const p = (ang: number, rr = r) => `${c + rr * Math.cos(ang)} ${c + rr * Math.sin(ang)}`;
+  const geo = slices.filter((s) => s.v > 0).map((s) => {
+    const a0 = a, a1 = a + (s.v / (total || 1)) * Math.PI * 2;
+    a = a1;
+    return { ...s, a0, a1, mid: (a0 + a1) / 2, share: s.v / (total || 1) };
+  });
+  const path = (g: { a0: number; a1: number; share: number }, ox: number, oy: number) => {
+    const p = (ang: number) => `${c + ox + r * Math.cos(ang)} ${cy + oy + r * Math.sin(ang)}`;
+    if (g.share > 0.9999) return `M ${c + ox - r} ${cy + oy} a ${r} ${r} 0 1 0 ${r * 2} 0 a ${r} ${r} 0 1 0 ${-r * 2} 0`;
+    return `M ${c + ox} ${cy + oy} L ${p(g.a0)} A ${r} ${r} 0 ${g.a1 - g.a0 > Math.PI ? 1 : 0} 1 ${p(g.a1)} Z`;
+  };
+  const off = (g: { key: string; mid: number; share: number }) => { const e = g.share > 0.9999 ? 0 : hover === g.key ? 9 : 3; return [Math.cos(g.mid) * e, Math.sin(g.mid) * e] as const; };
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="mx-auto w-full max-w-[220px]" role="img" aria-label={label}>
-      {total <= 0 ? <circle cx={c} cy={c} r={r} fill="#131f3f" stroke="#24335f" /> : slices.map((s) => {
-        if (s.v <= 0) return null;
-        const a0 = a, a1 = a + (s.v / total) * Math.PI * 2;
-        a = a1;
-        const grow = hover === s.key ? 5 : 0;
-        const d = s.v / total > 0.9999
-          ? `M ${c - r - grow} ${c} a ${r + grow} ${r + grow} 0 1 0 ${(r + grow) * 2} 0 a ${r + grow} ${r + grow} 0 1 0 ${-(r + grow) * 2} 0`
-          : `M ${c} ${c} L ${p(a0, r + grow)} A ${r + grow} ${r + grow} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${p(a1, r + grow)} Z`;
-        return <path key={s.key} d={d} fill={s.color} stroke="#070d1c" strokeWidth={2.5} opacity={hover && hover !== s.key ? 0.5 : 1} onMouseEnter={() => setHover(s.key)} onMouseLeave={() => setHover(null)} />;
-      })}
-      <circle cx={c} cy={c} r={r * 0.42} fill="#0e1730" />
-      <text x={c} y={c} textAnchor="middle" dominantBaseline="middle" fontSize="12" fontWeight={700} fill="#f3d27a">{pick}</text>
-    </svg>
+    <figure className="m-0">
+      <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full max-w-[280px]" role="img" aria-label={label} style={{ filter: "drop-shadow(0 14px 14px rgba(0,0,0,.55))" }}>
+        <defs>
+          {geo.map((g) => (
+            <radialGradient key={g.key} id={`pg-${id}-${g.key}`} cx="35%" cy="28%" r="85%">
+              <stop offset="0%" stopColor={shade(g.color, 0.42)} /><stop offset="55%" stopColor={g.color} /><stop offset="100%" stopColor={shade(g.color, -0.38)} />
+            </radialGradient>
+          ))}
+          <linearGradient id={`rim-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f3c04a" /><stop offset="60%" stopColor="#b8780b" /><stop offset="100%" stopColor="#6d4506" /></linearGradient>
+          <linearGradient id={`gloss-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fff" stopOpacity="0.38" /><stop offset="50%" stopColor="#fff" stopOpacity="0.05" /><stop offset="100%" stopColor="#fff" stopOpacity="0" /></linearGradient>
+        </defs>
+        {total <= 0 ? (
+          <><ellipse cx={c} cy={cy + depth} rx={r} ry={r} fill="#3a2a08" /><circle cx={c} cy={cy} r={r} fill="#131f3f" stroke="#24335f" /></>
+        ) : (
+          <>
+            {geo.map((g) => { const [dx, dy] = off(g); return <path key={`d-${g.key}`} d={path(g, dx, dy + depth)} fill={`url(#rim-${id})`} stroke="#4a2f04" strokeWidth="1" strokeLinejoin="round" />; })}
+            {geo.map((g) => {
+              const [dx, dy] = off(g);
+              const ix = c + dx + Math.cos(g.mid) * r * 0.6, iy = cy + dy + Math.sin(g.mid) * r * 0.6;
+              return (
+                <g key={g.key} onMouseEnter={() => setHover(g.key)} onMouseLeave={() => setHover(null)} style={{ cursor: "pointer", transition: "opacity .15s" }} opacity={hover && hover !== g.key ? 0.6 : 1}>
+                  <path d={path(g, dx, dy)} fill={`url(#pg-${id}-${g.key})`} stroke={shade(g.color, 0.55)} strokeWidth="1.4" strokeLinejoin="round" />
+                  <path d={path(g, dx, dy)} fill="none" stroke="rgba(0,0,0,.35)" strokeWidth="0.8" transform="translate(0.6 0.8)" />
+                  {g.share > 0.07 && <g transform={`translate(${ix} ${iy}) scale(${Math.min(1.15, 0.55 + g.share * 2.2)})`}><Icon k={g.key} /></g>}
+                </g>
+              );
+            })}
+            <ellipse cx={c} cy={cy - r * 0.42} rx={r * 0.92} ry={r * 0.5} fill={`url(#gloss-${id})`} pointerEvents="none" />
+          </>
+        )}
+      </svg>
+      <figcaption className="-mt-1 text-center text-sm font-semibold text-gold-soft">{caption}</figcaption>
+    </figure>
   );
 }
 
@@ -42,9 +96,9 @@ export function ProtocolDashboard({ slices, totalCents }: { slices: PieSlice[]; 
     <section className="card mb-6 p-4">
       <h2 className="mb-1 font-semibold">Carteira x Protocolo</h2>
       <p className="mb-3 text-sm text-muted">À esquerda, como está a sua carteira. À direita, o alvo do Protocolo CR2FA (20% em cada bloco).</p>
-      <div className="grid items-center gap-4 md:grid-cols-[220px_220px_1fr]">
-        <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.value }))} pick="Sua carteira" hover={hover} setHover={setHover} label="Distribuição atual da carteira" /></div>
-        <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.target }))} pick="Protocolo" hover={hover} setHover={setHover} label="Alvo do Protocolo: 20% em cada bloco" /></div>
+      <div className="grid items-center gap-4 md:grid-cols-[280px_280px_1fr]">
+        <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.value }))} caption="Sua carteira" hover={hover} setHover={setHover} label="Distribuição atual da carteira" /></div>
+        <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.target }))} caption="Protocolo" hover={hover} setHover={setHover} label="Alvo do Protocolo: 20% em cada bloco" /></div>
         <table className="data w-full text-xs [&_td]:px-2 [&_td]:py-1.5 [&_th]:px-2">
           <thead><tr><th>Bloco</th><th className="num">Atual</th><th className="num">Alvo</th><th className="num">Diferença</th></tr></thead>
           <tbody>
