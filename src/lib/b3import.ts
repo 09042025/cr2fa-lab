@@ -115,7 +115,21 @@ export function guessBlock(sheet: string, product: string, code: string): { bloc
   return { block: "renda_fixa", review: true };
 }
 
-interface Cols { header: number; code: number; product: number; qty: number; value: number; price: number }
+interface Cols { header: number; code: number; product: number; qty: number; values: number[]; prices: number[] }
+
+/** Colunas de valor em ordem de preferência: as mais "atualizadas" primeiro, depois as genéricas. */
+const VALUE_RANK: ((x: string) => boolean)[] = [
+  (x) => x.startsWith("valor atualizado"),
+  (x) => x.startsWith("valor liquido"),
+  (x) => x.startsWith("valor bruto"),
+  (x) => x.startsWith("valor de mercado") || x.startsWith("valor total"),
+  (x) => x === "valor" || x.startsWith("saldo") || x.startsWith("valor curva") || x.startsWith("valor mtm") || x.startsWith("valor na curva") || x.startsWith("valor a mercado"),
+  (x) => x.startsWith("valor aplicado") || x.startsWith("valor investido") || x.startsWith("valor da aplicacao"),
+];
+const PRICE_RANK: ((x: string) => boolean)[] = [
+  (x) => x.startsWith("preco de fechamento") || x.startsWith("preco atualizado"),
+  (x) => x.startsWith("valor unitario") || x.startsWith("preco unitario") || x === "pu" || x.startsWith("pu ") || x.startsWith("preco"),
+];
 
 function findColumns(rows: Cell[][]): Cols | null {
   for (let r = 0; r < Math.min(rows.length, 25); r++) {
@@ -125,20 +139,15 @@ function findColumns(rows: Cell[][]): Cols | null {
     const product = find((x) => x === "produto" || x.startsWith("produto") || x === "nome");
     let qty = find((x) => x === "quantidade");
     if (qty < 0) qty = find((x) => x.startsWith("quantidade") && !/disponivel|indisponivel|garantia|bloque/.test(x));
-    // valor: tenta do mais "atualizado" para o mais genérico (Renda Fixa e Tesouro trazem nomes diferentes de Ações/FIIs)
-    const valueNames: ((x: string) => boolean)[] = [
-      (x) => x.startsWith("valor atualizado"),
-      (x) => x === "valor liquido" || x.startsWith("valor liquido"),
-      (x) => x === "valor bruto" || x.startsWith("valor bruto"),
-      (x) => x.startsWith("valor de mercado") || x === "valor total" || x.startsWith("valor total"),
-      (x) => x === "valor" || x.startsWith("saldo"),
-      (x) => x.startsWith("valor aplicado") || x.startsWith("valor investido"),
-    ];
-    let value = -1;
-    for (const pred of valueNames) { value = find(pred); if (value >= 0) break; }
-    let price = find((x) => x.startsWith("preco de fechamento") || x.startsWith("preco atualizado"));
-    if (price < 0) price = find((x) => x.startsWith("valor unitario") || x.startsWith("preco unitario") || x === "pu");
-    if ((code >= 0 || product >= 0) && (value >= 0 || (price >= 0 && qty >= 0))) return { header: r, code, product, qty, value, price };
+    const all = (ranks: ((x: string) => boolean)[]) => {
+      const out: number[] = [];
+      for (const pred of ranks) h.forEach((x, i) => { if (x !== "" && pred(x) && !out.includes(i)) out.push(i); });
+      return out;
+    };
+    const values = all(VALUE_RANK);
+    const prices = all(PRICE_RANK);
+    // aceita a aba mesmo sem coluna de valor se houver quantidade (CDB: o valor nominal é a quantidade)
+    if ((code >= 0 || product >= 0) && (values.length > 0 || (prices.length > 0 && qty >= 0) || (product >= 0 && qty >= 0))) return { header: r, code, product, qty, values, prices };
   }
   return null;
 }
@@ -164,14 +173,19 @@ export function parseB3(sheets: Sheet[]): B3Parse {
       if (norm(product).startsWith("total") || norm(code).startsWith("total") || (!code && !product)) { skipped++; continue; }
 
       const qty = cols.qty >= 0 ? parseNumberBR(row[cols.qty]) : null;
-      let value = cols.value >= 0 ? parseNumberBR(row[cols.value]) : null;
-      if ((value === null || value <= 0) && cols.price >= 0 && qty !== null) {
-        const price = parseNumberBR(row[cols.price]);
-        if (price !== null) value = price * qty;
+      let value: number | null = null;
+      for (const c of cols.values) { const v = parseNumberBR(row[c]); if (v !== null && v > 0) { value = v; break; } }
+      if (value === null && qty !== null) {
+        for (const c of cols.prices) { const pr = parseNumberBR(row[c]); if (pr !== null && pr > 0) { value = pr * qty; break; } }
       }
+      let approx = false;
+      // Renda fixa sem valor atualizado no arquivo (comum em CDB registrado): usa a quantidade como valor nominal (R$ 1,00 por unidade) e pede conferência
+      if ((value === null || !(value > 0)) && qty !== null && qty > 0 && guessBlock(sheet.name, product, code).block === "renda_fixa") { value = qty; approx = true; }
       if (value === null || !(value > 0)) { skipped++; continue; }
 
-      const { block, review } = guessBlock(sheet.name, product, code);
+      const g = guessBlock(sheet.name, product, code);
+      const block = g.block;
+      const review = g.review || approx;
       const raw = block === "renda_fixa" ? product || code : code || product;
       const label = raw.slice(0, 60);
       const key = `${block}|${label}`;

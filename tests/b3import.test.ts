@@ -92,3 +92,22 @@ test("renda fixa com colunas 'Valor Total' / 'Valor Unitário' (CDB) é lida", (
   assert.equal(by["CDB - BANCO C6 CONSIGNADO S.A"].block, "renda_fixa");
   assert.equal(by["CDB - ITAU UNIBANCO S.A"].value, 3000);
 });
+
+test("CDB registrado sem valor atualizado na planilha: usa a quantidade como valor nominal e pede conferência", () => {
+  const header = ["Produto", "Instituição", "Emissor", "Código", "Indexador", "Tipo de regime", "Data de Emissão", "Vencimento", "Quantidade", "Quantidade Disponível", "Quantidade Indisponível"];
+  const r = parseB3([{ name: "Renda Fixa", rows: [header,
+    ["CDB - BANCO C6 S.A.", "BANCO C6 S.A.", "BANCO C6 S.A.", "CDB7261T8YM", "DI", "REGISTRADO", "02/07/2026", "03/07/2029", 100, 100, "-"],
+    ["CDB - ITAU UNIBANCO S.A.", "ITAU", "ITAU", "CDB7243GGRQ", "DI", "REGISTRADO", "04/07/2024", "08/06/2029", 29400, 29400, "-"],
+    ["CDB - ITAU UNIBANCO S.A.", "ITAU", "ITAU", "CDB9267I91A", "DI", "REGISTRADO", "10/09/2026", "15/08/2031", 10000, 10000, "-"]] }]);
+  const by = Object.fromEntries(r.items.map((i) => [i.label, i]));
+  assert.equal(by["CDB - BANCO C6 S.A."].value, 100);
+  assert.equal(by["CDB - ITAU UNIBANCO S.A."].value, 39400);
+  assert.ok(by["CDB - ITAU UNIBANCO S.A."].review);
+  assert.equal(by["CDB - ITAU UNIBANCO S.A."].block, "renda_fixa");
+});
+
+test("CDB com várias colunas de valor: usa a primeira que tem número", () => {
+  const r = parseB3([{ name: "Renda Fixa", rows: [["Produto", "Quantidade", "Valor Atualizado CURVA", "Valor Atualizado MTM"], ["CDB - X S.A.", 1000, "-", "R$ 1.050,00"]] }]);
+  assert.equal(r.items[0].value, 1050);
+  assert.ok(!r.items[0].review);
+});
