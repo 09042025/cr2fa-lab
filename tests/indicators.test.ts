@@ -145,4 +145,8 @@ test("empresa por nome quando o ticker não está no FRE", async () => {
   const d: CvmData = { loadedAt: 0, year: 2026, tickers: {}, companies: { "1": { name: "BANCO DO BRASIL S.A.", cd: "1", bank: true, rows: [] } } };
   assert.equal(companyByName(d, "Banco do Brasil S.A.")?.cnpj, "1");
   assert.equal(companyByName(d, "Outra Empresa"), null);
+  const d2: CvmData = { loadedAt: 0, year: 2026, tickers: {}, companies: { a: { name: "BCO BRASIL S.A.", cd: "1", bank: true, rows: [] }, b: { name: "PETROLEO BRASILEIRO S.A. PETROBRAS", cd: "2", bank: false, rows: [] }, c: { name: "BCO BRADESCO S.A.", cd: "3", bank: true, rows: [] }, e: { name: "BCO BRADESCO FINANCIAMENTOS S.A.", cd: "4", bank: true, rows: [] } } };
+  assert.equal(companyByName(d2, "Banco do Brasil S.A.")?.cnpj, "a");
+  assert.equal(companyByName(d2, "Petróleo Brasileiro S.A. - Petrobras")?.cnpj, "b");
+  assert.equal(companyByName(d2, "Banco Bradesco S.A.")?.cnpj, "c");
 });

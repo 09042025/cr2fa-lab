@@ -174,7 +174,12 @@ export function ingestTickers(t: Table, into: Record<string, string>) {
 
 /** Normaliza nome de empresa para comparar ("Banco do Brasil S.A." == "BANCO DO BRASIL SA"). */
 export function normName(s: string): string {
-  return norm(s).replace(/\bbco\b/g, "banco").replace(/\b(s\.?\/?a\.?|sa|ltda|cia|companhia|holding|participacoes|part)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+  return norm(s)
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .map((w) => (w === "bco" ? "banco" : w))
+    .filter((w) => w && !["s", "a", "sa", "ltda", "cia", "companhia", "holding", "do", "da", "de", "dos", "das", "e", "participacoes", "part"].includes(w))
+    .join(" ");
 }
 
 export function companyByName(d: CvmData, name: string): { cnpj: string; company: CvmCompany } | null {
@@ -183,8 +188,9 @@ export function companyByName(d: CvmData, name: string): { cnpj: string; company
   let hit: [string, CvmCompany] | undefined;
   for (const e of Object.entries(d.companies)) if (normName(e[1].name) === n) { hit = e; break; }
   if (!hit) {
-    const cands = Object.entries(d.companies).filter(([, c]) => { const m = normName(c.name); return m.startsWith(n) || n.startsWith(m); });
-    if (cands.length === 1) hit = cands[0];
+    const cands = Object.entries(d.companies).filter(([, c]) => { const m = normName(c.name); return m.length >= 4 && (m.startsWith(n) || n.startsWith(m)); });
+    // várias candidatas (ex.: "banco bradesco" e "banco bradesco financiamentos"): fica com a de nome mais curto
+    if (cands.length) hit = cands.sort((a, b) => normName(a[1].name).length - normName(b[1].name).length)[0];
   }
   return hit ? { cnpj: hit[0], company: hit[1] } : null;
 }
