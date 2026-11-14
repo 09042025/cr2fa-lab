@@ -27,7 +27,7 @@ function IndicatorCard({ i }: { i: Indicator }) {
 }
 
 function Notice({ children }: { children: React.ReactNode }) {
-  return <p className="card p-4 text-sm text-muted">{children}</p>;
+  return <p className="card break-words p-4 text-sm text-muted">{children}</p>;
 }
 
 export async function AssetAnalysis({ ticker, isFii, marketCap, brapiPrice, name }: { ticker: string; isFii: boolean; name?: string | null; marketCap: number | null; brapiPrice: number | null }) {

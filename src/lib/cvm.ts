@@ -15,6 +15,24 @@ const MAX_ENTRY = 400 * 1024 * 1024;
 
 /* ------------------------------- zip ------------------------------- */
 
+/** Nomes dos arquivos dentro do zip, sem descompactar. */
+export function zipNames(buf: Buffer): string[] {
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65_557); i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) return [];
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const names: string[] = [];
+  for (let n = 0; n < count && buf.readUInt32LE(p) === 0x02014b50; n++) {
+    const nameLen = buf.readUInt16LE(p + 28);
+    names.push(buf.toString("utf8", p + 46, p + 46 + nameLen));
+    p += 46 + nameLen + buf.readUInt16LE(p + 30) + buf.readUInt16LE(p + 32);
+  }
+  return names;
+}
+
 export function unzipAll(buf: Buffer, want: (name: string) => boolean): Map<string, Buffer> {
   let eocd = -1;
   for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65_557); i--) {
@@ -156,7 +174,7 @@ export function ingestTickers(t: Table, into: Record<string, string>) {
 
 /** Normaliza nome de empresa para comparar ("Banco do Brasil S.A." == "BANCO DO BRASIL SA"). */
 export function normName(s: string): string {
-  return norm(s).replace(/\b(s\.?\/?a\.?|sa|ltda|cia|companhia|holding|participacoes|part)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+  return norm(s).replace(/\bbco\b/g, "banco").replace(/\b(s\.?\/?a\.?|sa|ltda|cia|companhia|holding|participacoes|part)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 export function companyByName(d: CvmData, name: string): { cnpj: string; company: CvmCompany } | null {
@@ -205,15 +223,23 @@ async function buildCvmData(): Promise<CvmData> {
   if (!ok) throw new Error("não foi possível baixar as demonstrações da CVM");
   for (const y of [year, year - 1]) {
     try {
-      const tabs = await loadZipCsvs(`${BASE}/CIA_ABERTA/DOC/FRE/DADOS/fre_cia_aberta_${y}.zip`, /valor_mobiliario/i);
-      diag.push(`fre${y}: arquivos ${[...tabs.keys()].join("|") || "nenhum"}; colunas ${[...tabs.values()].map((t) => t.headers.join(",")).join(" // ").slice(0, 300)}`);
-      for (const t of tabs.values()) ingestTickers(t, tickers);
+      const zip = await download(`${BASE}/CIA_ABERTA/DOC/FRE/DADOS/fre_cia_aberta_${y}.zip`);
+      const names = zipNames(zip);
+      diag.push(`fre${y}: ${names.map((n) => n.replace(/^fre_cia_aberta_|\.csv$/g, "")).join("|")}`.slice(0, 500));
+      const pick = names.filter((n) => /\.csv$/i.test(n) && /negoci|valor_mobiliario|acao|papel|ticker/i.test(n) && !/outro_valor/i.test(n));
+      const files = unzipAll(zip, (n) => pick.includes(n));
+      for (const [name, buf] of files) {
+        const t = parseCsv(buf);
+        const before = Object.keys(tickers).length;
+        try { ingestTickers(t, tickers); } catch { /* arquivo sem CNPJ */ }
+        diag.push(`${name.replace(/^fre_cia_aberta_/, "")}: +${Object.keys(tickers).length - before} (${t.headers.slice(0, 12).join(",")})`.slice(0, 300));
+      }
       if (Object.keys(tickers).length) break;
     } catch (e) { diag.push(`fre${y}: ${e instanceof Error ? e.message : "erro"}`); }
   }
   const companies: Record<string, CvmCompany> = {};
   for (const [cnpj, c] of acc) companies[cnpj] = { name: c.name, cd: c.cd, bank: c.bank, rows: c.rows };
-  return { loadedAt: Math.floor(Date.now() / 1000), year, companies, tickers, diag: `${Object.keys(tickers).length} tickers; ${diag.join(" ; ")}`.slice(0, 900) };
+  return { loadedAt: Math.floor(Date.now() / 1000), year, companies, tickers, diag: `${Object.keys(tickers).length} tickers; ${diag.join(" ; ")}`.slice(0, 1500) };
 }
 
 /* ------------------------------ FII (informe mensal) ------------------------------ */
@@ -310,7 +336,7 @@ function get<T>(key: string, build: () => Promise<T>): Loaded<T> {
 }
 const failedAtMap = new Map<string, number>();
 
-export const getCvmData = () => get<CvmData>("cvm:acoes:v2", buildCvmData);
+export const getCvmData = () => get<CvmData>("cvm:acoes:v3", buildCvmData);
 export const getFiiData = () => get<FiiData>("cvm:fii:v1", buildFiiData);
 
 /** Acha a empresa de um ticker: exato; senão, mesma raiz de 4 letras (ex.: ITUB3 -> ITUB4). */
