@@ -21,20 +21,27 @@ const ymd = (d: Date) => d.toISOString().slice(0, 10);
  * Projeção mensal: repete o que o ativo pagou nos últimos 12 meses (por mês do calendário) multiplicado pela
  * quantidade que o investidor tem hoje. Devolve os próximos 12 meses a partir do mês atual.
  */
-export function monthlyIncome(pos: PosDiv[], today: string): { month: string; total: number; byTicker: Record<string, number> }[] {
+export interface IncomeItem { ticker: string; date: string; perShare: number; qty: number; total: number }
+export interface IncomeMonth { month: string; total: number; byTicker: Record<string, number>; items: IncomeItem[] }
+
+export function monthlyIncome(pos: PosDiv[], today: string): IncomeMonth[] {
   const from = ymd(new Date(new Date(`${today}T00:00:00Z`).getTime() - 365 * 86400000));
   const t = new Date(`${today}T00:00:00Z`);
-  const out: { month: string; total: number; byTicker: Record<string, number> }[] = [];
+  const out: IncomeMonth[] = [];
   for (let k = 0; k < 12; k++) {
     const d = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + k, 1));
     const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
     const byTicker: Record<string, number> = {};
+    const items: IncomeItem[] = [];
     let total = 0;
     for (const p of pos) {
-      const v = p.dividends.filter((x) => x.date > from && x.date <= today && x.date.slice(5, 7) === mm).reduce((s, x) => s + x.value, 0) * p.qty;
+      const evs = p.dividends.filter((x) => x.date > from && x.date <= today && x.date.slice(5, 7) === mm);
+      for (const e of evs) items.push({ ticker: p.ticker, date: e.date, perShare: e.value, qty: p.qty, total: e.value * p.qty });
+      const v = evs.reduce((s, x) => s + x.value, 0) * p.qty;
       if (v > 0) { byTicker[p.ticker] = v; total += v; }
     }
-    out.push({ month: `${d.getUTCFullYear()}-${mm}`, total, byTicker });
+    items.sort((a, b) => b.total - a.total);
+    out.push({ month: `${d.getUTCFullYear()}-${mm}`, total, byTicker, items });
   }
   return out;
 }
