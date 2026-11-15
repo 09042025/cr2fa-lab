@@ -13,6 +13,7 @@ import { TestMail } from "@/components/TestMail";
 import { AckButton } from "@/components/AckButton";
 import { DeleteHolding } from "@/components/DeleteHolding";
 import { HoldingActions } from "@/components/HoldingActions";
+import { PrivacyEye } from "@/components/PrivacyEye";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { brl, pct } from "@/lib/format";
@@ -47,7 +48,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
 
   return (
     <>
-      <p className="mb-3 text-sm"><Link className="text-gold-soft underline" href="/painel/portfolio">← Voltar para o Portfólio</Link></p>
+      <div className="mb-3 flex items-center justify-between"><p className="text-sm"><Link className="text-gold-soft underline" href="/painel/portfolio">← Voltar para o Portfólio</Link></p><PrivacyEye /></div>
       <div className="mb-4 flex items-center gap-3">
         <TickerLogo src={logo} symbol={h.ticker ?? h.label} size={48} />
         <div className="min-w-0">
@@ -73,7 +74,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
 
       <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[["Quantidade", h.qty ? h.qty.toLocaleString("pt-BR") : "—"], ["Preço médio", h.avg_price ? brl(h.avg_price) : "—"], ["Preço atual", price ? brl(price) : "—"], ["Valor", brl(value)]].map(([l, v]) => (
-          <div key={l} className="rounded-lg border border-line bg-panel-2 p-3"><p className="text-xs text-muted">{l}</p><p className="mt-1 text-lg font-semibold">{v}</p></div>
+          <div key={l} className="rounded-lg border border-line bg-panel-2 p-3"><p className="text-xs text-muted">{l}</p><p className={`mt-1 text-lg font-semibold ${l === "Preço atual" ? "" : "money"}`}>{v}</p></div>
         ))}
       </section>
       {res !== null && <p className="mb-4 text-sm text-muted">Resultado sobre o preço médio: <strong className={res >= 0 ? "text-up" : "text-down"}>{pct(res, 1)}</strong></p>}
