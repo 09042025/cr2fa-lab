@@ -20,8 +20,9 @@ export function buildMonthly(cdiDaily: Sgs[], ipcaMonthly: Sgs[], ibov: { ts: nu
   const ib = new Map<number, number>(); for (const p of ibov) if (p.close > 0) ib.set(ym(p.ts), p.close);
   const months = [...cdi.keys()].filter((m) => ipca.has(m)).sort((a, b) => a - b);
   if (months.length < 2) return [];
-  const base = ib.get(months[0]) ?? null;
-  return months.map((m) => ({ ts: Date.UTC(Math.floor(m / 12), m % 12 + 1, 0), cdi: cdi.get(m)!, ipca: ipca.get(m)!, ibov: base && ib.has(m) ? (ib.get(m)! / base) * 100 : null }));
+  const baseM = months.find((m) => ib.has(m));
+  const base = baseM === undefined ? null : ib.get(baseM)!;
+  return months.map((m) => ({ ts: Date.UTC(Math.floor(m / 12), m % 12 + 1, 0), cdi: cdi.get(m)!, ipca: ipca.get(m)!, ibov: base && ib.has(m) && m >= baseM! ? (ib.get(m)! / base) * 100 : null }));
 }
 
 const fmt = (d: Date) => `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
