@@ -4,7 +4,7 @@
  * Informativo, não é recomendação de investimento.
  */
 import { analyzeFii, analyzeStock, type Indicator, type Status } from "./indicators";
-import { companyByName, companyOf, getCvmData, getFiiData } from "./cvm";
+import { companyByName, companyOf, getCvmData, getFiiData, getFiiImoveis } from "./cvm";
 import { getQuote, monthsPaid, sumBetween, type Quote } from "./dividends";
 import { getAssetDetail, getCoinDetail } from "./market";
 import { coinIdOf, isCryptoHolding, isUsStock } from "./cryptoquote";
@@ -47,13 +47,13 @@ export function summarize(list: Indicator[]) {
 /** Mais da metade dos indicadores ruins. */
 export const isCritical = (a: { total: number; bad: number }) => a.total > 0 && a.bad / a.total > 0.5;
 
-export async function assessStockOrFii(ticker: string, isFii: boolean, hint?: { name?: string | null; marketCap?: number | null; price?: number | null }): Promise<Assessment> {
+export async function assessStockOrFii(ticker: string, isFii: boolean, hint?: { name?: string | null; marketCap?: number | null; price?: number | null; quote?: Quote | null }): Promise<Assessment> {
   const today = new Date().toISOString().slice(0, 10);
   const detail = hint ? null : (await getAssetDetail(ticker)).data;
   const name = hint?.name ?? detail?.name ?? null;
   const marketCap = hint?.marketCap ?? detail?.marketCap ?? null;
   const brapiPrice = hint?.price ?? detail?.price ?? null;
-  const q = await getQuote(ticker);
+  const q = hint?.quote !== undefined ? { data: hint.quote, error: undefined as string | undefined } : await getQuote(ticker);
   const quote = q.data;
   const price = quote?.price ?? brapiPrice;
   const from12 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
@@ -68,7 +68,10 @@ export async function assessStockOrFii(ticker: string, isFii: boolean, hint?: { 
   if (isFii) {
     const fii = getFiiData();
     const rec = fii.data?.byPrefix[ticker.slice(0, 4)] ?? null;
+    const imv = getFiiImoveis();
+    const imoveis = rec?.cnpj && imv.data ? imv.data[rec.cnpj] ?? null : null;
     indicators = analyzeFii({
+      imoveis,
       price, dividends12m: quote ? div12 : null, vpa: rec?.vpa ?? null, patrimonio: rec?.patrimonio ?? null, cotistas: rec?.cotistas ?? null,
       taxaAdm: rec?.taxaAdm ?? null, div12mPrev: div12Prev, monthsPaid: quote ? monthsPaid(quote.dividends, today) : 0, avgDailyVolume: quote?.avgDailyVolume ?? null,
     });
@@ -90,7 +93,7 @@ export async function assessStockOrFii(ticker: string, isFii: boolean, hint?: { 
     } else notice = "Não encontramos este ticker nos dados abertos da CVM (empresa sem demonstrações consolidadas ou ticker novo).";
     source = "Demonstrações financeiras ITR/DFP da CVM (dados abertos), proventos e cotação da Yahoo Finance";
   }
-  return { kind: isFii ? "fii" : "acao", indicators, ...summarize(indicators), period, notice, source, logo: detail?.logo ?? null, name, quote, quoteError: q.error ?? null, coinId: null };
+  return { kind: isFii ? "fii" : "acao", indicators, ...summarize(indicators), period, notice, source, logo: detail?.logo ?? null, name, quote, quoteError: (q as { error?: string }).error ?? null, coinId: null };
 }
 
 const pctTxt = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;

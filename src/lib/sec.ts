@@ -15,6 +15,8 @@ export interface Fund {
   debt: number | null; cash: number | null; curAssets: number | null; curLiab: number | null;
   ocf: number | null;
   shares: number | null;
+  /** Número de imóveis (REITs), quando a empresa informa. */
+  properties?: number | null;
 }
 
 interface Entry { start?: string; end: string; val: number; form?: string; fp?: string; filed?: string }
@@ -52,6 +54,17 @@ function instant(f: Facts, concepts: string[]): number | null {
   return best ? best.val : null;
 }
 
+function propertyCount(f: Facts): number | null {
+  for (const c of ["NumberOfRealEstateProperties", "NumberOfPropertiesOwned", "NumberOfRealEstatePropertiesOwned"]) {
+    const us = f.facts?.["us-gaap"]?.[c]?.units;
+    if (!us) continue;
+    let best: Entry | null = null;
+    for (const arr of Object.values(us)) for (const e of arr) if (!e.start && (!best || e.end > best.end)) best = e;
+    if (best) return best.val;
+  }
+  return null;
+}
+
 export function reduceFacts(f: Facts): Fund {
   const rev = annual(f, ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet"]);
   const ni = annual(f, ["NetIncomeLoss", "ProfitLoss"]);
@@ -65,7 +78,7 @@ export function reduceFacts(f: Facts): Fund {
   return {
     period: rev.end ?? ni.end, revenue: rev.cur, revenuePrev: rev.prev, netIncome: ni.cur, netIncomePrev: ni.prev, opIncome: op.cur,
     equity, assets, liabilities, debt: instant(f, ["LongTermDebtNoncurrent", "LongTermDebt"]), cash: instant(f, ["CashAndCashEquivalentsAtCarryingValue"]),
-    curAssets: instant(f, ["AssetsCurrent"]), curLiab: instant(f, ["LiabilitiesCurrent"]), ocf: ocf.cur, shares,
+    curAssets: instant(f, ["AssetsCurrent"]), curLiab: instant(f, ["LiabilitiesCurrent"]), ocf: ocf.cur, shares, properties: propertyCount(f),
   };
 }
 
@@ -79,7 +92,7 @@ async function cikOf(sym: string): Promise<string | null> {
   return m.data?.[sym] ?? null;
 }
 
-export const fundKey = (sym: string) => `sec:fund:${sym}:v1`;
+export const fundKey = (sym: string) => `sec:fund:${sym}:v2`;
 
 export function getFund(sym: string) {
   return cached<Fund>(fundKey(sym), 24 * 3600, async () => {

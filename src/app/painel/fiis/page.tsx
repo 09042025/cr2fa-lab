@@ -6,6 +6,7 @@ import { DividendCalendar } from "@/components/DividendCalendar";
 import { CountryTabs } from "@/components/CountryTabs";
 import { UsMarket } from "@/components/UsMarket";
 import { QuotesTable } from "@/components/QuotesTable";
+import { brExtras, warmBr } from "@/lib/brlist";
 import { FREE_LIMITS } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   const filtered = isPro && term ? bySector.filter((q) => q.symbol.includes(term) || q.name.toUpperCase().includes(term)) : bySector;
   const rows = isPro ? filtered : filtered.slice(0, FREE_LIMITS.fiis);
 
+  const extras = !us && isPro && !cal ? await brExtras(rows, true) : undefined;
+  if (!us && isPro && !cal) warmBr(all);
   return (
     <>
       <PageTitle title="Fundos imobiliários" subtitle="Bloco de 20% do Protocolo: 30% galpões logísticos, 30% shopping centers, 30% outros imóveis de tijolo e 10% fundos de papel." />
@@ -62,7 +65,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
             <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por segmento e busca no plano Premium.</div>
           )}
           {isPro && <p className="mb-2 text-xs text-muted">{rows.length} de {all.length} ativos. Clique no código para abrir gráfico e informações.</p>}
-          <QuotesTable rows={rows} origem="fiis" />
+          <QuotesTable rows={rows} extras={extras} origem="fiis" />
           {!isPro && all.length > rows.length && <div className="mt-4"><Locked feature={`Lista completa (${all.length} ativos)`} /></div>}
         </section>
       )}

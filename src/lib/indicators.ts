@@ -198,6 +198,16 @@ export interface FiiInput {
   /** Quantos dos últimos 12 meses tiveram pagamento. */
   monthsPaid: number;
   avgDailyVolume: number | null;
+  /** Número de imóveis do fundo (informe trimestral da CVM); ausente em fundos de papel e FoF. */
+  imoveis?: number | null;
+}
+
+/** Diversificação por número de imóveis: até 5 = alto risco, 6 a 9 = médio, 10 ou mais = bom. */
+export function propertyIndicator(n: number | null | undefined, what = "imóveis"): Indicator {
+  const hint = "Quantidade de imóveis do fundo (diversificação). Até 5 = alto risco, de 6 a 9 = médio, 10 ou mais = bom.";
+  if (n === null || n === undefined || !Number.isFinite(n) || n <= 0) return mk("imoveis", "Número de imóveis", null, "—", "nd", hint);
+  const status: Status = n <= 5 ? "ruim" : n < 10 ? "atencao" : "bom";
+  return mk("imoveis", "Número de imóveis", n, `${n.toLocaleString("pt-BR")} ${what}`, status, hint, `Só ${n} ${what}: concentração alta, a vacância de um imóvel pesa muito na renda.`);
 }
 
 export function analyzeFii(i: FiiInput): Indicator[] {
@@ -212,6 +222,7 @@ export function analyzeFii(i: FiiInput): Indicator[] {
   const trend = i.dividends12m !== null && i.div12mPrev && i.div12mPrev > 0 ? ((i.dividends12m - i.div12mPrev) / i.div12mPrev) * 100 : null;
   out.push(mk("trend", "Proventos vs. 12 meses anteriores", trend, pct(trend), rate(trend, "higher", 0, -10), "Soma dos proventos dos últimos 12 meses contra os 12 anteriores. Bom se estável ou crescendo, ruim se cair mais de 10%.", `Proventos ${pct(trend)} contra os 12 meses anteriores: renda em queda.`));
   out.push(mk("reg", "Meses com pagamento (últimos 12)", i.monthsPaid, `${i.monthsPaid} de 12`, i.dividends12m === null ? "nd" : i.monthsPaid >= 12 ? "bom" : i.monthsPaid >= 9 ? "atencao" : "ruim", "Regularidade dos proventos. O ideal é pagar todos os meses.", `Pagou proventos em só ${i.monthsPaid} dos últimos 12 meses: renda irregular.`));
+  out.push(propertyIndicator(i.imoveis));
   out.push(mk("pl", "Patrimônio líquido", i.patrimonio, i.patrimonio === null ? "—" : i.patrimonio.toLocaleString("pt-BR", { style: "currency", currency: "BRL", notation: "compact" }), i.patrimonio === null ? "nd" : i.patrimonio >= 500e6 ? "bom" : i.patrimonio >= 150e6 ? "atencao" : "ruim", "Tamanho do fundo. Acima de R$ 500 milhões costuma ter mais liquidez e diversificação.", `Patrimônio pequeno: pouca diversificação e liquidez.`));
   out.push(mk("cotistas", "Número de cotistas", i.cotistas, i.cotistas === null ? "—" : i.cotistas.toLocaleString("pt-BR"), i.cotistas === null ? "nd" : i.cotistas >= 20000 ? "bom" : i.cotistas >= 5000 ? "atencao" : "ruim", "Mais cotistas costuma significar mais liquidez de negociação.", `Poucos cotistas (${i.cotistas?.toLocaleString("pt-BR")}): liquidez de negociação limitada.`));
   out.push(mk("liq", "Liquidez diária média", i.avgDailyVolume, i.avgDailyVolume === null ? "—" : i.avgDailyVolume.toLocaleString("pt-BR", { style: "currency", currency: "BRL", notation: "compact" }), i.avgDailyVolume === null ? "nd" : i.avgDailyVolume >= 1e6 ? "bom" : i.avgDailyVolume >= 3e5 ? "atencao" : "ruim", "Volume financeiro médio negociado por dia. Acima de R$ 1 milhão é confortável.", "Liquidez diária baixa: pode ser difícil comprar ou vender grandes valores."));
