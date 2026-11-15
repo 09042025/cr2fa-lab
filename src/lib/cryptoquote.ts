@@ -71,7 +71,7 @@ export async function findCoin(query: string): Promise<{ id: string; name: strin
 export const isUsStock = (h: { block: string; ticker: string | null }) => (h.block === "acoes" || h.block === "fiis") && !!h.ticker && !/^[A-Z]{4}\d{1,2}$/.test(h.ticker);
 
 /** Logo de empresa americana (fonte aberta de logos por código). */
-export const usLogo = (t: string) => `https://financialmodelingprep.com/image-stock/${t}.png`;
+export const usLogo = (t: string) => [`https://assets.parqet.com/logos/symbol/${t}?format=png`, `https://financialmodelingprep.com/image-stock/${t}.png`];
 
 async function usRate(): Promise<number | null> { return yahooPrice("BRL=X"); }
 
@@ -87,7 +87,7 @@ async function findUsSymbol(label: string): Promise<string | null> {
   const q = label.trim();
   if (!q) return null;
   const upper = q.toUpperCase();
-  if (/^[A-Z]{1,5}$/.test(upper) && (await yahooPrice(upper))) return upper;
+  for (const c of [upper, upper.slice(0, -1)]) if (/^[A-Z]{1,5}$/.test(c) && (await yahooPrice(c))) return c; // AAPLE → AAPL
   try {
     const r = await cached<YSearch>(`yahoo:search:${upper}`, 24 * 3600, () => fetchJson(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=6&newsCount=0`, {}, 12000));
     const hit = r.data?.quotes?.find((x) => x.symbol && /^[A-Z]{1,5}$/.test(x.symbol) && (x.quoteType === "EQUITY" || x.quoteType === "ETF"));
