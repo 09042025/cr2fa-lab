@@ -3,9 +3,9 @@
  * programa da Receita (cabeçalho, fichas na mesma ordem, colunas e rótulos), para o usuário ir copiando para o programa.
  * Dados pessoais (nome, CPF, endereço) não existem no Niza: ficam para preencher direto no programa.
  */
-import { fmtField, upNoAccent, type BemRow, type CustomBem, type ProvRow, type ProvType } from "./irpf";
+import { fmtField, upNoAccent, type BemRow, type CustomBem, type ExtraProv, type ProvRow, type ProvType } from "./irpf";
 
-export interface PdfInput { year: number; bens: BemRow[]; custom: CustomBem[]; prov: ProvRow[] }
+export interface PdfInput { year: number; bens: BemRow[]; custom: CustomBem[]; prov: ProvRow[]; extras?: ExtraProv[] }
 
 /** Fontes padrão do PDF só têm Latin-1: troca o que sair disso. */
 const clean = (s: string) => s.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, "-").replace(/[·•●]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/→/g, ">").replace(/[^ -ÿ\n]/g, "?");
@@ -84,18 +84,22 @@ export async function buildIrpfPdf(inp: PdfInput): Promise<Blob> {
   };
   const rows = (t: ProvType) => inp.prov.filter((p) => p.type === t && p.gross > 0);
   const toRows = (list: ProvRow[], liquid = false) => list.map((p) => { const v = liquid ? p.gross - p.irrf : p.gross; return { cnpj: p.cnpj, payer: p.payer, v, valor: fmtField(v) }; });
+  const exRows = (f: (x: ExtraProv) => boolean) => (inp.extras ?? []).filter(f).map((x) => ({ cnpj: x.cnpj, payer: x.fonte || x.cnpj, v: x.valor, valor: fmtField(x.valor) }));
 
   section("RENDIMENTOS ISENTOS E NÃO TRIBUTÁVEIS", "(Valores em Reais)");
   let isentos = 0;
-  if (rows("dividendos").length) isentos += provTable(PROG.dividendos.codigo, PROG.dividendos.nome, toRows(rows("dividendos")));
-  if (rows("fii").length) isentos += provTable(PROG.fii.codigo, PROG.fii.nome, toRows(rows("fii")));
+  const d09 = [...toRows(rows("dividendos")), ...exRows((x) => x.tipo === "dividendos" || (x.tipo === "outro" && x.codigo === "09"))];
+  const d26 = [...toRows(rows("fii")), ...exRows((x) => x.tipo === "fii" || (x.tipo === "outro" && x.codigo === "26"))];
+  if (d09.length) isentos += provTable(PROG.dividendos.codigo, PROG.dividendos.nome, d09);
+  if (d26.length) isentos += provTable(PROG.fii.codigo, PROG.fii.nome, d26);
   if (!isentos) note("Nenhum rendimento calculado a partir da carteira.");
   else note("Fundos imobiliários: use o código indicado no informe de rendimentos do administrador/corretora (declarações anteriores podem ter usado 09).", 90, 7.5);
   total("TOTAL", fmtField(isentos));
 
   section("RENDIMENTOS SUJEITOS À TRIBUTAÇÃO EXCLUSIVA / DEFINITIVA", "(Valores em Reais)");
   let excl = 0;
-  if (rows("jcp").length) { excl += provTable(PROG.jcp.codigo, PROG.jcp.nome, toRows(rows("jcp"), true)); note("JCP: informe o valor líquido (já sem os 15% retidos). Confirme no informe de rendimentos.", 90, 7.5); }
+  const dj = [...toRows(rows("jcp"), true), ...exRows((x) => x.tipo === "jcp")];
+  if (dj.length) { excl += provTable(PROG.jcp.codigo, PROG.jcp.nome, dj); note("JCP: informe o valor líquido (já sem os 15% retidos). Confirme no informe de rendimentos.", 90, 7.5); }
   const ext = rows("exterior");
   if (ext.length) {
     ensure(24); font(8.5); doc.text("12. Aplicações Financeiras e Lucros e Dividendos no Exterior (Lei 14.754/2023)", M + 1, y); y += 5.5;
