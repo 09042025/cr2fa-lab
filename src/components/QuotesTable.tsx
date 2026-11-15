@@ -4,12 +4,14 @@ import { TickerLogo } from "@/components/TickerLogo";
 import { Change } from "@/components/ui";
 import { brl, brlCompact } from "@/lib/format";
 import { shortName } from "@/lib/names";
+import { AttentionBall } from "@/components/AttentionBall";
+import type { Extra } from "@/lib/brlist";
 
-export function QuotesTable({ rows, origem }: { rows: Quote[]; origem: "acoes" | "fiis" }) {
+export function QuotesTable({ rows, origem, extras }: { rows: Quote[]; origem: "acoes" | "fiis"; extras?: Map<string, Extra> }) {
   return (
     <div className="overflow-x-auto">
       <table className="data">
-        <thead><tr><th>Código</th><th>Nome</th><th>Setor</th><th className="num">Preço</th><th className="num">Dia</th><th className="num">Volume</th><th className="num">Valor de mercado</th></tr></thead>
+        <thead><tr><th>Código</th><th>Nome</th><th>Setor</th><th className="num">Preço</th><th className="num">Dia</th><th className="num">Volume</th><th className="num">Valor de mercado</th>{extras && <th className="num">Indic.</th>}</tr></thead>
         <tbody>
           {rows.map((q) => (
             <tr key={q.symbol}>
@@ -19,7 +21,8 @@ export function QuotesTable({ rows, origem }: { rows: Quote[]; origem: "acoes" |
               <td className="num">{brl(q.price)}</td>
               <td className="num"><Change value={q.changePct} /></td>
               <td className="num">{q.volume === null ? "—" : q.volume.toLocaleString("pt-BR")}</td>
-              <td className="num">{brlCompact(q.marketCap)}</td>
+              <td className="num">{brlCompact(q.marketCap ?? extras?.get(q.symbol)?.mc ?? null)}</td>
+              {extras && <td className="num"><AttentionBall a={extras.get(q.symbol)?.a ?? null} /></td>}
             </tr>
           ))}
         </tbody>

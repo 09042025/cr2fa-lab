@@ -265,7 +265,7 @@ async function buildCvmData(): Promise<CvmData> {
 
 /* ------------------------------ FII (informe mensal) ------------------------------ */
 
-export interface FiiRecord { name: string; isin: string; date: string; vpa: number | null; patrimonio: number | null; cotistas: number | null; taxaAdm: number | null }
+export interface FiiRecord { cnpj?: string; name: string; isin: string; date: string; vpa: number | null; patrimonio: number | null; cotistas: number | null; taxaAdm: number | null }
 export interface FiiData { loadedAt: number; byPrefix: Record<string, FiiRecord> }
 
 export function ingestFii(geral: Table, compl: Table, into: Record<string, FiiRecord>) {
@@ -293,6 +293,7 @@ export function ingestFii(geral: Table, compl: Table, into: Record<string, FiiRe
     const c = latestCompl.get(cnpj);
     if (!c) continue;
     into[prefix] = {
+      cnpj,
       name: gN >= 0 ? g[gN] ?? "" : "", isin, date: c[cD] ?? "",
       vpa: cVpa >= 0 ? n(c[cVpa]) : null, patrimonio: cPl >= 0 ? n(c[cPl]) : null,
       cotistas: cCot >= 0 ? n(c[cCot]) : null, taxaAdm: cAdm >= 0 ? n(c[cAdm]) : null,
@@ -358,7 +359,45 @@ function get<T>(key: string, build: () => Promise<T>): Loaded<T> {
 const failedAtMap = new Map<string, number>();
 
 export const getCvmData = () => get<CvmData>("cvm:acoes:v3", buildCvmData);
-export const getFiiData = () => get<FiiData>("cvm:fii:v1", buildFiiData);
+export const getFiiData = () => get<FiiData>("cvm:fii:v2", buildFiiData);
+
+/* ------------------- FII: número de imóveis (informe trimestral) ------------------- */
+
+/** Conta imóveis distintos por fundo na data de referência mais recente do informe trimestral. */
+export function ingestFiiImoveis(t: Table, into: Record<string, number>) {
+  const cC = col(t, /cnpj/i), cD = col(t, /data.*ref/i), cV = col(t, /versao/i), cN = col(t, /nome.*imovel|^imovel/i);
+  if (cC < 0 || cN < 0) throw new Error("colunas inesperadas no informe trimestral de FII");
+  const latest = new Map<string, string>();
+  const key = (r: string[]) => `${cD >= 0 ? r[cD] ?? "" : ""}|${cV >= 0 ? (r[cV] ?? "").padStart(4, "0") : ""}`;
+  for (const r of t.rows) { const c = digits(r[cC]); const k = key(r); if (!latest.has(c) || k > (latest.get(c) as string)) latest.set(c, k); }
+  const names = new Map<string, Set<string>>();
+  for (const r of t.rows) {
+    const c = digits(r[cC]);
+    if (key(r) !== latest.get(c)) continue;
+    const nm = norm(r[cN] ?? "");
+    if (!nm) continue;
+    if (!names.has(c)) names.set(c, new Set());
+    names.get(c)!.add(nm);
+  }
+  for (const [c, set] of names) into[c] = set.size;
+}
+
+async function buildFiiImoveis(): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  const year = new Date().getFullYear();
+  for (const y of [year, year - 1]) {
+    try {
+      const tabs = await loadZipCsvs(`${BASE}/FII/DOC/INF_TRIMESTRAL/DADOS/inf_trimestral_fii_${y}.zip`, /imovel/i);
+      for (const [name, t] of tabs) { if (!/alienacao|aquisicao|venda|compra/i.test(name)) { try { ingestFiiImoveis(t, out); } catch { /* arquivo sem as colunas */ } } }
+      if (Object.keys(out).length) break;
+    } catch { /* tenta o ano anterior */ }
+  }
+  if (!Object.keys(out).length) throw new Error("não foi possível ler o informe trimestral de FII da CVM");
+  return out;
+}
+
+/** CNPJ (só dígitos) → número de imóveis. Fundos de papel e FoF não aparecem. */
+export const getFiiImoveis = () => get<Record<string, number>>("cvm:fii-imoveis:v1", buildFiiImoveis);
 
 /** Acha a empresa de um ticker: exato; senão, mesma raiz de 4 letras (ex.: ITUB3 -> ITUB4). */
 export function companyOf(d: CvmData, ticker: string): { cnpj: string; company: CvmCompany } | null {

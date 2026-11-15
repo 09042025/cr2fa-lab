@@ -150,3 +150,18 @@ test("empresa por nome quando o ticker não está no FRE", async () => {
   assert.equal(companyByName(d2, "Petróleo Brasileiro S.A. - Petrobras")?.cnpj, "b");
   assert.equal(companyByName(d2, "Banco Bradesco S.A.")?.cnpj, "c");
 });
+
+import { propertyIndicator } from "../src/lib/indicators";
+test("número de imóveis: até 5 ruim, 6-9 atenção, 10+ bom, sem dado = nd", () => {
+  assert.equal(propertyIndicator(3).status, "ruim");
+  assert.equal(propertyIndicator(5).status, "ruim");
+  assert.equal(propertyIndicator(6).status, "atencao");
+  assert.equal(propertyIndicator(9).status, "atencao");
+  assert.equal(propertyIndicator(10).status, "bom");
+  assert.equal(propertyIndicator(30, "shoppings").display.includes("shoppings"), true);
+  assert.equal(propertyIndicator(null).status, "nd");
+});
+test("FII sempre traz o indicador de imóveis", () => {
+  const a = analyzeFii({ price: 100, dividends12m: 10, vpa: 100, patrimonio: 1e9, cotistas: 1000, taxaAdm: 0.1, div12mPrev: 9, monthsPaid: 12, avgDailyVolume: 1e6, imoveis: 4 });
+  assert.equal(a.find((x) => x.id === "imoveis")?.status, "ruim");
+});

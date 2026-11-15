@@ -1,6 +1,6 @@
 /** Indicadores de ações e REITs americanos (SEC + Yahoo), no mesmo formato dos brasileiros. Informativo, não é recomendação. */
 import type { Indicator, Status } from "./indicators";
-import { rate } from "./indicators";
+import { propertyIndicator, rate } from "./indicators";
 import type { Fund } from "./sec";
 import type { Quote } from "./dividends";
 import { monthsPaid, sumBetween } from "./dividends";
@@ -41,6 +41,7 @@ export function usIndicators(f: Fund | null, quote: Quote | null, reit: boolean,
   list.push(dy === null ? nd("dy", "Dividend yield (12 meses)", "Proventos dos últimos 12 meses ÷ preço.") : mk("dy", "Dividend yield (12 meses)", dy, pc(dy), dy === 0 ? "atencao" : "bom", "Proventos dos últimos 12 meses ÷ preço. Muito alto pode indicar risco.", "Não pagou proventos nos últimos 12 meses."));
   list.push(dg === null ? nd("dg", "Crescimento do provento", "Proventos de 12 meses ÷ 12 meses anteriores.") : mk("dg", "Crescimento do provento", dg, pc(dg), rate(dg, "higher", 0, -10), "Proventos dos últimos 12 meses contra os 12 anteriores.", "Proventos em queda."));
   if (reit) {
+    list.push(propertyIndicator(f?.properties ?? null, "imóveis"));
     list.push(paid === null ? nd("paid", "Regularidade", "Meses com pagamento no ano.") : mk("paid", "Regularidade", paid, `${paid} meses`, paid >= 4 ? "bom" : paid >= 2 ? "atencao" : "ruim", "Meses diferentes com pagamento nos últimos 12 meses.", "Pagamentos pouco frequentes."));
     list.push(la === null ? nd("la", "Passivo ÷ ativo", "Quanto do ativo é financiado por dívidas e obrigações.") : mk("la", "Passivo ÷ ativo", la, pc(la), rate(la, "lower", 50, 65), "Quanto do ativo é financiado por obrigações. Mais baixo é mais folgado.", "Alto endividamento em relação ao ativo."));
     list.push(pvp === null ? nd("pvp", "Preço ÷ patrimônio (P/VP)", "Valor de mercado ÷ patrimônio contábil.") : mk("pvp", "Preço ÷ patrimônio (P/VP)", pvp, x2(pvp), rate(pvp, "lower", 3, 6), "Valor de mercado ÷ patrimônio contábil (em REITs o contábil subestima imóveis).", "Preço muito acima do patrimônio contábil."));
