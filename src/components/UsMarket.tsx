@@ -99,7 +99,19 @@ export async function UsMarket({ kind, isPro, aba, setor, q, mes, ordem }: { kin
           </form>
         ) : <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por {label} e busca no plano Premium.</div>}
         {isPro && <p className="mb-2 text-xs text-muted">{rows.length} de {rowsAll.length} ativos. Cotações em dólar (US$). Clique no código para abrir.{loading ? " Valor de mercado e indicadores estão sendo carregados da SEC (primeira vez leva alguns minutos): atualize a página em instantes." : ""}</p>}
-        <div className="overflow-x-auto">
+        <div className="space-y-2 md:hidden">
+          {rows.map((r) => (
+            <Link key={r.symbol} href={`/painel/ativo-us/${r.symbol}?de=${reits ? "fiis" : "acoes"}`} className="block rounded-lg border border-line bg-panel-2 p-3 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-gold-soft"><TickerLogo src={usLogo(r.symbol)} symbol={r.symbol} /><span>{r.symbol}</span><span className="truncate text-xs font-normal text-muted">{r.name}</span></span>
+                <span className="shrink-0 text-sm font-semibold">{usd(r.price)} <Change value={r.changePct} /></span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2 text-muted"><span className="min-w-0 truncate">{r.sector}</span><AttentionBall a={extra.get(r.symbol)?.a ?? null} /></div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-muted"><div><p className="text-[10px] uppercase">Volume</p><p className="text-white">{r.volume === null ? "—" : r.volume.toLocaleString("en-US")}</p></div><div><p className="text-[10px] uppercase">Valor de mercado</p><p className="text-white">{extra.get(r.symbol)?.mc ? usdCompact(extra.get(r.symbol)!.mc) : "—"}</p></div></div>
+            </Link>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="data fit">
             <thead><tr><th className="w-[15%]">Código</th><th className="w-[19%]">Nome</th><th className="w-[16%]">{reits ? "Segmento" : "Setor"}</th><th className="num w-[11%]">Preço</th><th className="num w-[9%]">Dia</th><th className="num w-[12%]">Volume</th><th className="num w-[11%]">Valor de mercado</th><th className="num w-[7%]">Indic.</th></tr></thead>
             <tbody>{rows.map((r) => (
