@@ -6,7 +6,7 @@ import { applyDec, parseDec, type DecResult } from "@/lib/irpf-dec";
 import { deviceSupported, forgetDevice, hasDevicePhrase, quickUnlock, saveDevicePhrase } from "@/lib/irpf-device";
 import { decryptVault, encryptVault, isValidPhrase, newPhrase, normalizePhrase, pickChecks, type VaultFile } from "@/lib/irpf-crypto";
 import {
-  PROV_INFO, buildBens, fmtField, programCode, buildProventos, emptyWorkspace, parseNum, rollover, roteiro, snapshotOf, totalsByType,
+  PROV_INFO, type ProvEdit, buildBens, fmtField, programCode, buildProventos, emptyWorkspace, parseNum, rollover, roteiro, snapshotOf, totalsByType,
   type CustomBem, type PortfolioItem, type PrevBem, type ProvType, type Workspace,
 } from "@/lib/irpf";
 
@@ -15,7 +15,27 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const usd = (v: number) => v.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 type Stage = "gate" | "new" | "check" | "open" | "work";
-type Tab = "guia" | "bens" | "rend" | "salvar";
+type Tab = "inicio" | "guia" | "importar" | "bens" | "isentos" | "exclusivos" | "exterior" | "salvar";
+/** Telas do programa da Receita, nos mesmos nomes e na mesma ordem da tela inicial dele. */
+const FICHAS: { tab: Tab | null; nome: string; icon: string }[] = [
+  { tab: null, nome: "Identificação do Contribuinte", icon: "🪪" },
+  { tab: null, nome: "Rendimentos Tributáveis Recebidos de PJ", icon: "💼" },
+  { tab: null, nome: "Rendimentos Tributáveis Recebidos de PF e do Exterior", icon: "🌐" },
+  { tab: "isentos", nome: "Rendimentos Isentos e Não Tributáveis", icon: "✅" },
+  { tab: "exclusivos", nome: "Rendimentos Sujeitos à Tributação Exclusiva/Definitiva", icon: "⚠️" },
+  { tab: null, nome: "Imposto Pago/Retido", icon: "💲" },
+  { tab: null, nome: "Pagamentos Efetuados", icon: "💳" },
+  { tab: "bens", nome: "Bens e Direitos", icon: "🏠" },
+  { tab: null, nome: "Dívidas e Ônus Reais", icon: "⬇️" },
+  { tab: null, nome: "Renda Variável - Operações", icon: "📈" },
+  { tab: null, nome: "Cálculo do Imposto", icon: "🧮" },
+];
+const PROV_PROGRAM: Record<ProvType, { codigo: string; nome: string }> = {
+  dividendos: { codigo: "09", nome: "Lucros e dividendos recebidos" },
+  fii: { codigo: "26", nome: "Outros" },
+  jcp: { codigo: "10", nome: "Juros sobre capital próprio" },
+  exterior: { codigo: "—", nome: "Lucros e dividendos de ativos no exterior" },
+};
 
 const CUSTOM_PRESETS: { label: string; grupo: string; codigo: string }[] = [
   { label: "Imóvel: apartamento", grupo: "01", codigo: "11" },
@@ -31,7 +51,8 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const [stage, setStage] = useState<Stage>("gate");
   const [phrase, setPhrase] = useState("");
   const [ws, setWs] = useState<Workspace | null>(null);
-  const [tab, setTab] = useState<Tab>("guia");
+  const [tab, setTab] = useState<Tab>("inicio");
+  const [openBem, setOpenBem] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -79,7 +100,7 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const confirmWords = () => {
     const list = words.split(" ");
     if (checks.some((n) => (answers[n] ?? "").trim().toLowerCase() !== list[n - 1])) { setMsg("As palavras não conferem. Olhe o papel onde anotou e tente de novo."); return; }
-    setPhrase(words); setWords(""); setWs(emptyWorkspace(year)); setStage("work"); setTab("guia"); setMsg(null); setDirty(true);
+    setPhrase(words); setWords(""); setWs(emptyWorkspace(year)); setStage("work"); setTab("inicio"); setMsg(null); setDirty(true);
   };
   const pickFile = async (f: File | null) => {
     setFile(null); setFileName(""); setOpenMsg(null);
@@ -107,7 +128,7 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
       const full: Workspace = { ...emptyWorkspace(w.year), ...w };
       if (!viaQuick && remember && deviceSupported()) { try { await saveDevicePhrase(normalizePhrase(ph)); } catch { /* sem armazenamento: segue sem lembrar */ } }
       setPhrase(normalizePhrase(ph)); setOpenPhrase(""); setQuickAns({});
-      if (full.year < year) { setOpened(full); setStage("open"); } else { setWs(full); setStage("work"); setTab("bens"); }
+      if (full.year < year) { setOpened(full); setStage("open"); } else { setWs(full); setStage("work"); setTab("inicio"); }
     } catch (e) { setOpenMsg(e instanceof Error ? e.message : "Não foi possível abrir."); }
     setBusy(false);
   };
@@ -220,8 +241,8 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
       <h2 className="font-display text-lg font-bold text-gold-soft">Cofre de {opened.year} aberto</h2>
       <p className="mt-2 text-sm text-muted">Este arquivo é da declaração de {opened.year + 1} (ano-calendário {opened.year}). Para a de {year + 1}, atualizamos tudo: o que você tinha em 31/12/{opened.year} vira a &quot;situação anterior&quot;, e corretoras, CNPJs e bens extras (imóvel, veículo) são mantidos.</p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" className="btn btn-gold" onClick={() => { setWs(rollover(opened, year)); setOpened(null); setStage("work"); setTab("bens"); setDirty(true); }}>Atualizar para {year}</button>
-        <button type="button" className="btn btn-ghost" onClick={() => { setWs(opened); setOpened(null); setStage("work"); setTab("bens"); }}>Só ver/editar o de {opened.year}</button>
+        <button type="button" className="btn btn-gold" onClick={() => { setWs(rollover(opened, year)); setOpened(null); setStage("work"); setTab("inicio"); setDirty(true); }}>Atualizar para {year}</button>
+        <button type="button" className="btn btn-ghost" onClick={() => { setWs(opened); setOpened(null); setStage("work"); setTab("inicio"); }}>Só ver/editar o de {opened.year}</button>
       </div>
     </section>
   );
@@ -234,16 +255,40 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
         <span className="flex items-center gap-2 text-up"><span aria-hidden>🔒</span> Cofre aberto · ano-calendário {ws.year} · só no seu navegador{dirty ? " · alterações não salvas" : ""}</span>
         <span className="flex gap-2">{quick && <button type="button" className="btn btn-ghost !py-1 text-xs" onClick={() => void forgetDevice().then(() => { setQuick(false); setMsg("Este aparelho foi esquecido: na próxima vez, só com as 24 palavras."); })}>Esquecer este aparelho</button>}<button type="button" className="btn btn-ghost !py-1 text-xs" onClick={() => lock("Cofre travado. Seus dados foram apagados da tela.")}>Travar e limpar a tela</button></span>
       </div>
-      <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-line" aria-label="Etapas">
-        {([["guia", "Passo a passo"], ["bens", `Bens e Direitos${warnCount ? ` (${warnCount} avisos)` : ""}`], ["rend", "Rendimentos"], ["salvar", "Salvar e baixar"]] as [Tab, string][]).map(([k, l]) => (
-          <button key={k} type="button" onClick={() => setTab(k)} aria-current={tab === k ? "page" : undefined} className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium ${tab === k ? "border-gold text-gold-soft" : "border-transparent text-muted"}`}>{l}</button>
-        ))}
-      </nav>
+      {tab !== "inicio" && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <button type="button" className="btn btn-ghost !py-1" onClick={() => { setTab("inicio"); setOpenBem(null); }}>‹ Fichas da Declaração</button>
+          <span className="text-muted">/ {tab === "guia" ? "Passo a passo" : tab === "importar" ? "Importações" : tab === "bens" ? "Bens e Direitos" : tab === "isentos" ? "Rendimentos Isentos e Não Tributáveis" : tab === "exclusivos" ? "Rendimentos Sujeitos à Tributação Exclusiva/Definitiva" : tab === "exterior" ? "Ativos no exterior" : "Salvar e baixar"}</span>
+        </div>
+      )}
       {msg && <p role="status" className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold-soft">{msg}</p>}
+
+      {tab === "inicio" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted">Esta tela é igual à tela inicial do programa <strong className="text-white">IRPF {ws.year + 1}</strong> da Receita. Os nomes das fichas são os mesmos. As fichas em destaque o Niza já deixa pronta para você copiar e colar no programa. As apagadas você preenche direto no programa.</p>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {FICHAS.map((f) => (
+              <button key={f.nome} type="button" disabled={!f.tab} onClick={() => f.tab && setTab(f.tab)} className={`card flex min-h-[7rem] flex-col items-center justify-center gap-2 p-3 text-center text-xs ${f.tab ? "border-gold/50 text-white hover:border-gold" : "cursor-not-allowed opacity-40"}`}>
+                <span className="text-2xl" aria-hidden>{f.icon}</span>
+                <span>{f.nome}</span>
+                {f.tab === "bens" && warnCount > 0 && <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] text-yellow-300">{warnCount} avisos</span>}
+                {!f.tab && <span className="text-[10px]">preencha no programa</span>}
+              </button>
+            ))}
+          </div>
+          <h3 className="pt-2 text-sm font-semibold text-gold-soft">Ferramentas do Niza</h3>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {([["importar", "📥", "Importações (.DEC do ano passado)"], ["guia", "📖", "Passo a passo"], ["salvar", "💾", "Salvar e baixar (cofre e PDF)"]] as [Tab, string, string][]).map(([k, ic, nm]) => (
+              <button key={k} type="button" onClick={() => setTab(k)} className="card flex min-h-[6rem] flex-col items-center justify-center gap-2 p-3 text-center text-xs hover:border-gold"><span className="text-2xl" aria-hidden>{ic}</span><span>{nm}</span></button>
+            ))}
+            {items.some((i) => i.kind === "acao_us") && <button type="button" onClick={() => setTab("exterior")} className="card flex min-h-[6rem] flex-col items-center justify-center gap-2 p-3 text-center text-xs hover:border-gold"><span className="text-2xl" aria-hidden>🇺🇸</span><span>Ativos no exterior (EUA)</span></button>}
+          </div>
+        </div>
+      )}
 
       {tab === "guia" && <Guide year={ws.year} hasPrev={ws.previous.length > 0} />}
 
-      {tab === "bens" && (
+      {tab === "importar" && (
         <div className="space-y-4">
           <section className="card border-gold/30 p-4">
             <h3 className="font-semibold">Importar a declaração do ano passado (.DEC)</h3>
@@ -266,8 +311,15 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
               </div>
             )}
           </section>
-          <p className="text-sm text-muted">Os ativos da sua carteira já vieram preenchidos. Na declaração, ações, FIIs e cripto entram pelo <strong className="text-white">custo de aquisição</strong> (quantidade × preço médio), não pelo valor de hoje. Confira se a quantidade é a que você tinha em <strong className="text-white">31/12/{ws.year}</strong>.</p>
-          {bens.length === 0 && <p className="card p-4 text-sm text-muted">Nenhum ativo na carteira. Cadastre em Portfólio ou adicione bens abaixo.</p>}
+        </div>
+      )}
+
+      {tab === "bens" && (
+        <div className="space-y-4">
+          {openBem === null ? (
+            <>
+              <p className="text-sm text-muted">Esta é a lista da ficha <strong className="text-white">Bens e Direitos</strong>, como no programa. Na declaração, ações, FIIs e cripto entram pelo <strong className="text-white">custo de aquisição</strong> (quantidade × preço médio), não pelo valor de hoje. Toque em um bem para ver os campos na ordem do programa.</p>
+              {bens.length === 0 && <p className="card p-4 text-sm text-muted">Nenhum ativo na carteira. Cadastre em Portfólio ou adicione bens abaixo.</p>}
           {pushable.length > 0 && (
             <section className="card border-up/30 p-4 text-sm">
               <h3 className="font-semibold">Ligação com o Portfólio</h3>
@@ -276,91 +328,128 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
               <button type="button" disabled={busy} className="btn btn-ghost mt-2" onClick={() => void syncPortfolio()}>{busy ? "Atualizando…" : `Atualizar o preço médio no Portfólio (${pushable.length})`}</button>
             </section>
           )}
-          {bens.map((b, idx) => {
+              <div className="space-y-2">
+                {bens.map((b, idx) => (
+                  <button key={b.key} type="button" onClick={() => setOpenBem(b.key)} className="card flex w-full items-center justify-between gap-3 p-3 text-left text-sm hover:border-gold">
+                    <span className="min-w-0"><span className="block font-semibold">{idx + 1}. {b.item.ticker ?? b.item.label} <span className="text-xs font-normal text-muted">· {b.code.grupo}-{b.code.codigo}</span></span><span className="block truncate text-xs text-muted">{b.text}</span></span>
+                    <span className="shrink-0 text-right"><span className="block text-xs text-muted">31/12/{ws.year}</span><span className="font-semibold">{b.total !== null ? fmtField(b.total) : "—"}</span>{b.warnings.length > 0 && <span className="block text-[11px] text-yellow-300">{b.warnings.length} aviso(s)</span>}</span>
+                  </button>
+                ))}
+              </div>
+              {Object.entries(ws.edits).some(([, e]) => e.skip) && (
+                <p className="text-xs text-muted">Fora da declaração: {Object.entries(ws.edits).filter(([, e]) => e.skip).map(([k]) => items.find((i) => i.key === k)?.ticker ?? k).join(", ")}. <button type="button" className="text-gold-soft underline" onClick={() => update((w) => ({ ...w, edits: Object.fromEntries(Object.entries(w.edits).map(([k, e]) => [k, { ...e, skip: false }])) }))}>incluir de novo</button></p>
+              )}
+              <CustomBens ws={ws} update={update} />
+              <PrevBens ws={ws} update={update} />
+            </>
+          ) : (() => {
+            const idx = bens.findIndex((x) => x.key === openBem);
+            const b = bens[idx];
+            if (!b) return <button type="button" className="btn btn-ghost" onClick={() => setOpenBem(null)}>‹ Voltar à lista</button>;
             const pc = programCode(b.code.grupo, b.code.codigo);
             const needsCnpj = b.item.kind === "acao" || b.item.kind === "fii";
             const e = ws.edits[b.item.key];
             const setE = (patch: Partial<NonNullable<typeof e>>) => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], ...patch } } }));
             const tag = (from: string | null) => (from ? <span className="ml-1 rounded bg-panel-2 px-1.5 py-0.5 text-[10px] text-muted">{from === "você" ? "digitado" : `do ${from}`}</span> : null);
             return (
-              <section key={b.key} className="card p-4">
+              <section className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="font-semibold">Bem {idx + 1}: {b.item.ticker ?? b.item.label} <span className="text-xs font-normal text-muted">· {b.item.label}</span></h3>
-                  <span className={`rounded-full border px-2.5 py-0.5 text-[11px] ${b.source === "dec" ? "border-up/50 text-up" : "border-line text-muted"}`}>{b.source === "dec" ? "texto do .DEC (ano passado)" : b.source === "editado" ? "texto editado por você" : "texto automático"}</span>
+                  <button type="button" className="btn btn-ghost !py-1" onClick={() => setOpenBem(null)}>‹ Voltar à lista</button>
+                  <span className="flex gap-2">
+                    <button type="button" className="btn btn-ghost !py-1" disabled={idx === 0} onClick={() => setOpenBem(bens[idx - 1].key)}>‹ Anterior</button>
+                    <button type="button" className="btn btn-ghost !py-1" disabled={idx === bens.length - 1} onClick={() => setOpenBem(bens[idx + 1].key)}>Próximo ›</button>
+                  </span>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div><label className="label">Quantidade em 31/12{tag(b.qtyFrom)}</label><input className="input w-full" inputMode="decimal" autoComplete="off" value={b.qty === null ? "" : String(b.qty).replace(".", ",")} onChange={(ev) => setE({ qty: parseNum(ev.target.value) })} /></div>
-                  <div><label className="label">{b.item.kind === "acao_us" ? "Preço médio (US$)" : "Preço médio (R$)"}{tag(b.avgFrom)}</label><input className="input w-full" inputMode="decimal" autoComplete="off" value={b.avg === null ? "" : String(Math.round(b.avg * 1e6) / 1e6).replace(".", ",")} onChange={(ev) => setE({ avg: parseNum(ev.target.value) })} /></div>
-                  <Field label="Corretora / exchange" value={b.custody} text onChange={(v) => setE({ custody: v })} />
-                  {needsCnpj ? <Field label="CNPJ" value={b.cnpj} text onChange={(v) => setE({ cnpj: v })} /> : <div />}
+                <h3 className="font-display text-lg font-bold">Bem {idx + 1} de {bens.length}: {b.item.ticker ?? b.item.label}</h3>
+
+                <div className="card p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">Passo 1 · No Niza: confira estes dados (não existem no programa)</p>
+                  <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <div><label className="label">Quantidade em 31/12{tag(b.qtyFrom)}</label><input className="input w-full" inputMode="decimal" autoComplete="off" value={b.qty === null ? "" : String(b.qty).replace(".", ",")} onChange={(ev) => setE({ qty: parseNum(ev.target.value) })} /></div>
+                    <div><label className="label">{b.item.kind === "acao_us" ? "Preço médio (US$)" : "Preço médio (R$)"}{tag(b.avgFrom)}</label><input className="input w-full" inputMode="decimal" autoComplete="off" value={b.avg === null ? "" : String(Math.round(b.avg * 1e6) / 1e6).replace(".", ",")} onChange={(ev) => setE({ avg: parseNum(ev.target.value) })} /></div>
+                    <Field label="Corretora / exchange" value={b.custody} text onChange={(v) => setE({ custody: v })} />
+                    {needsCnpj ? <Field label="CNPJ" value={b.cnpj} text onChange={(v) => setE({ cnpj: v })} /> : <div />}
+                  </div>
+                  {b.warnings.length > 0 && <ul className="mt-3 space-y-1 text-xs text-yellow-300">{b.warnings.map((x) => <li key={x}>● {x}</li>)}</ul>}
                 </div>
 
-                <div className="mt-4 rounded-xl border border-gold/30 bg-black/20 p-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold-soft">Como aparece no programa da Receita: Bens e Direitos &gt; Novo</p>
+                <div className="rounded-xl border border-gold/40 bg-black/20 p-4">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gold-soft">Passo 2 · No programa da Receita: Bens e Direitos › Novo</p>
+                  <p className="mb-2 text-xs text-muted">Os campos abaixo estão na ordem do programa. Toque em <strong className="text-white">Copiar</strong> e cole no campo igual.</p>
                   <Mirror label="Grupo" value={pc.grupo} />
                   <Mirror label="Código" value={pc.codigo} />
                   <Mirror label="Localização (País)" value={`${b.pais.codigo} - ${b.pais.nome}`} />
-                  {needsCnpj && <Mirror label="CNPJ" value={b.cnpj} empty="Preencha o CNPJ acima" />}
+                  {needsCnpj && <Mirror label="CNPJ" value={b.cnpj} empty="Preencha o CNPJ no Passo 1" />}
                   <div className="border-t border-line/60 py-2">
-                    <div className="flex items-center justify-between gap-2"><span className="text-xs text-muted">Discriminação</span><span className={`text-[10px] ${b.text.length > 512 ? "text-down" : "text-muted"}`}>{b.text.length}/512 caracteres</span></div>
+                    <div className="flex items-center justify-between gap-2"><span className="text-xs text-muted">Discriminação <span className="rounded bg-panel-2 px-1.5 py-0.5 text-[10px]">{b.source === "dec" ? "texto do .DEC" : b.source === "editado" ? "editado por você" : "automático"}</span></span><span className={`text-[10px] ${b.text.length > 512 ? "text-down" : "text-muted"}`}>{b.text.length}/512</span></div>
                     <textarea aria-label="Discriminação" className="input mt-1 w-full text-sm" rows={4} value={b.text} spellCheck={false} onChange={(ev) => setE({ text: ev.target.value })} />
                     <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                      <button type="button" className="btn btn-ghost !py-1" onClick={() => void navigator.clipboard.writeText(b.text).then(() => setMsg("Discriminação copiada. Cole no campo Discriminação do programa."))}>Copiar discriminação</button>
-                      {e?.text !== undefined && <button type="button" className="btn btn-ghost !py-1" onClick={() => setE({ text: undefined })}>Voltar ao texto {b.source === "dec" || (e?.text !== undefined && b.autoText) ? "original" : "automático"}</button>}
+                      <button type="button" className="btn btn-ghost !py-1" onClick={() => void navigator.clipboard.writeText(b.text).then(() => setMsg("Discriminação copiada. Cole no campo Discriminação do programa."))}>Copiar</button>
+                      {e?.text !== undefined && <button type="button" className="btn btn-ghost !py-1" onClick={() => setE({ text: undefined })}>Desfazer minha edição</button>}
                     </div>
                   </div>
-                  <Mirror label={`Situação em 31/12/${ws.year - 1} (R$)`} value={b.prev !== null ? fmtField(b.prev) : ""} empty="Sem valor anterior (bem novo ou .DEC não importado)" />
-                  <Mirror label={`Situação em 31/12/${ws.year} (R$)`} value={b.total !== null ? fmtField(b.total) : ""} empty="Informe quantidade e preço médio" note={b.foreign ? "Ativo no exterior: converta para reais pela PTAX da compra." : undefined} />
+                  <Mirror label={`Situação em 31/12/${ws.year - 1}`} value={b.prev !== null ? fmtField(b.prev) : ""} empty="Sem valor (bem novo ou .DEC não importado)" />
+                  <Mirror label={`Situação em 31/12/${ws.year}`} value={b.total !== null ? fmtField(b.total) : ""} empty="Informe quantidade e preço médio" note={b.foreign ? "Ativo no exterior: converta para reais pela PTAX da compra." : undefined} />
                 </div>
-                {b.warnings.length > 0 && <ul className="mt-3 space-y-1 text-xs text-yellow-300">{b.warnings.map((x) => <li key={x}>● {x}</li>)}</ul>}
-                <div className="mt-3 text-xs"><button type="button" className="btn btn-ghost !py-1" onClick={() => setE({ skip: true })}>Não incluir (já vendi)</button></div>
+                <button type="button" className="btn btn-ghost !py-1 text-xs" onClick={() => { setE({ skip: true }); setOpenBem(null); }}>Não incluir na declaração (já vendi)</button>
               </section>
             );
-          })}
-          {Object.entries(ws.edits).some(([, e]) => e.skip) && (
-            <p className="text-xs text-muted">Fora da declaração: {Object.entries(ws.edits).filter(([, e]) => e.skip).map(([k]) => items.find((i) => i.key === k)?.ticker ?? k).join(", ")}. <button type="button" className="text-gold-soft underline" onClick={() => update((w) => ({ ...w, edits: Object.fromEntries(Object.entries(w.edits).map(([k, e]) => [k, { ...e, skip: false }])) }))}>incluir de novo</button></p>
-          )}
-          <CustomBens ws={ws} update={update} />
-          <PrevBens ws={ws} update={update} />
+          })()}
         </div>
       )}
 
-      {tab === "rend" && (
-        <div className="space-y-4">
-          <p role="note" className="rounded-lg border border-yellow-400/40 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200">Os valores abaixo são <strong>estimativas</strong>: somamos os proventos do ano (data com) × a quantidade que você tem hoje, sem saber quando você comprou ou vendeu. O número oficial está no <strong>informe de rendimentos</strong> da sua corretora (disponível em fevereiro). Ajuste cada valor para bater com ele.</p>
-          {ws.lastYear && (
-            <p className="card p-4 text-sm text-muted">No ano passado ({ws.lastYear.anoBase ?? "?"}) você declarou: {[...Object.entries(ws.lastYear.isentos).map(([k, v]) => `isento ${k}: ${brl(v)}`), ...Object.entries(ws.lastYear.exclusivos).map(([k, v]) => `exclusivo ${k}: ${brl(v)}`)].join(" · ") || "nenhum rendimento isento ou exclusivo"}. Use como referência para conferir este ano.</p>
-          )}
-          {prov.length === 0 && <p className="card p-4 text-sm text-muted">Nenhuma ação ou FII com proventos na carteira.</p>}
-          {prov.map((p) => {
-            const info = PROV_INFO[p.type];
-            return (
-              <section key={p.key} className="card p-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="font-semibold">{p.item.ticker} <span className="text-xs font-normal text-muted">· {p.payer}</span></h3><span className="text-xs text-muted">{p.lines} provento(s) em {ws.year} · estimativa {p.currency === "USD" ? usd(p.estimated) : brl(p.estimated)}</span></div>
-                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
-                  <div><label className="label" htmlFor={`pt-${p.key}`}>Tipo</label>
-                    <select id={`pt-${p.key}`} className="input w-full" value={p.type} onChange={(e) => update((w) => ({ ...w, prov: { ...w.prov, [p.item.key]: { ...w.prov[p.item.key], type: e.target.value as ProvType, irrf: null } } }))}>
-                      {(["dividendos", "jcp", "fii", "exterior"] as ProvType[]).filter((t) => (p.item.kind === "acao_us" ? t === "exterior" : p.item.kind === "fii" ? t === "fii" : t === "dividendos" || t === "jcp")).map((t) => <option key={t} value={t}>{PROV_INFO[t].titulo}</option>)}
-                    </select></div>
-                  <Field label={`Valor ${p.type === "jcp" ? "bruto " : ""}recebido no ano (${p.currency === "USD" ? "US$" : "R$"})`} value={String(p.gross).replace(".", ",")} onChange={(v) => update((w) => ({ ...w, prov: { ...w.prov, [p.item.key]: { ...w.prov[p.item.key], gross: parseNum(v) ?? 0 } } }))} />
-                  {p.type === "jcp" && <Field label="IR retido na fonte (R$)" value={String(p.irrf).replace(".", ",")} onChange={(v) => update((w) => ({ ...w, prov: { ...w.prov, [p.item.key]: { ...w.prov[p.item.key], irrf: parseNum(v) ?? 0 } } }))} />}
-                </div>
-                <p className="mt-2 text-xs text-muted">Vai em: <strong className="text-white">{info.ficha}</strong>{info.codigo !== "—" ? ` · código ${info.codigo}` : ""}. Fonte pagadora: {p.payer}{p.cnpj ? ` (CNPJ ${p.cnpj})` : ""}. {info.dica}</p>
-              </section>
-            );
-          })}
-          <section className="card p-4 text-sm">
-            <h3 className="font-semibold">Resumo do que vai em cada ficha</h3>
-            <ul className="mt-2 space-y-1 text-muted">
-              <li>Isentos · código 09 (dividendos): <strong className="text-white">{brl(totals.dividendos)}</strong></li>
-              <li>Isentos · código 26 (FII/Fiagro): <strong className="text-white">{brl(totals.fii)}</strong></li>
-              <li>Exclusiva/definitiva · código 10 (JCP bruto): <strong className="text-white">{brl(totals.jcp)}</strong></li>
-              <li>Exterior (dividendos dos EUA, em US$): <strong className="text-white">{usd(totals.exterior)}</strong></li>
-            </ul>
-            <p className="mt-3 text-xs text-muted">Regra nova (Lei 15.270/2025): desde 1/1/2026, dividendos acima de R$ 50 mil por mês, de uma mesma empresa para você, sofrem 10% de imposto retido na fonte; e há tributação mínima para rendas muito altas. Se isso acontecer, o informe de rendimentos mostra o valor e o programa da Receita indica onde lançar. Confirme com um contador.</p>
-          </section>
-        </div>
-      )}
+      {(tab === "isentos" || tab === "exclusivos" || tab === "exterior") && (() => {
+        const want: ProvType[] = tab === "isentos" ? ["dividendos", "fii"] : tab === "exclusivos" ? ["jcp"] : ["exterior"];
+        const rows = prov.filter((p) => want.includes(p.type));
+        const others = prov.filter((p) => !want.includes(p.type));
+        const ficha = tab === "isentos" ? "Rendimentos Isentos e Não Tributáveis" : tab === "exclusivos" ? "Rendimentos Sujeitos à Tributação Exclusiva/Definitiva" : "Ativos no exterior (dividendos dos EUA)";
+        const sum = rows.reduce((a, r) => a + (r.type === "jcp" ? r.gross - r.irrf : r.gross), 0);
+        return (
+          <div className="space-y-4">
+            <p role="note" className="rounded-lg border border-yellow-400/40 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200">Os valores são <strong>estimativas</strong> (proventos do ano × quantidade de hoje). O número oficial está no <strong>informe de rendimentos</strong> da corretora (sai em fevereiro). Ajuste cada valor para bater com ele.</p>
+            {tab === "exterior" && <p className="card p-4 text-sm text-muted">Dividendos de ações dos EUA seguem a Lei 14.754 (15%) e ficam em ficha própria do programa. Não vi essa ficha no print do seu programa, então procure pelo nome &quot;exterior&quot; no menu Fichas. Converta para reais pela cotação do dólar de cada recebimento e confira com um contador.</p>}
+            {ws.lastYear && tab !== "exterior" && (
+              <p className="card p-4 text-sm text-muted">No ano passado ({ws.lastYear.anoBase ?? "?"}) você declarou nesta ficha: {Object.entries(tab === "isentos" ? ws.lastYear.isentos : ws.lastYear.exclusivos).map(([k, v]) => `código ${k}: ${brl(v)}`).join(" · ") || "nada"}. Use como referência.</p>
+            )}
+            {rows.length === 0 && <p className="card p-4 text-sm text-muted">Nada a lançar nesta ficha com os ativos da carteira.</p>}
+            {rows.map((p) => {
+              const pg = PROV_PROGRAM[p.type];
+              const valor = p.type === "jcp" ? p.gross - p.irrf : p.gross;
+              const setP = (patch: Partial<ProvEdit>) => update((w) => ({ ...w, prov: { ...w.prov, [p.item.key]: { ...w.prov[p.item.key], ...patch } } }));
+              return (
+                <section key={p.key} className="space-y-3">
+                  <h3 className="font-semibold">{p.item.ticker} <span className="text-xs font-normal text-muted">· {p.payer} · {p.lines} provento(s) em {ws.year}</span></h3>
+                  <div className="card p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted">Passo 1 · No Niza: confira</p>
+                    <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
+                      <div><label className="label" htmlFor={`pt-${p.key}`}>Tipo</label>
+                        <select id={`pt-${p.key}`} className="input w-full" value={p.type} onChange={(e) => setP({ type: e.target.value as ProvType, irrf: null })}>
+                          {(["dividendos", "jcp", "fii", "exterior"] as ProvType[]).filter((t) => (p.item.kind === "acao_us" ? t === "exterior" : p.item.kind === "fii" ? t === "fii" : t === "dividendos" || t === "jcp")).map((t) => <option key={t} value={t}>{PROV_INFO[t].titulo}</option>)}
+                        </select></div>
+                      <Field label={`Valor ${p.type === "jcp" ? "bruto " : ""}recebido no ano (${p.currency === "USD" ? "US$" : "R$"})`} value={String(p.gross).replace(".", ",")} onChange={(v) => setP({ gross: parseNum(v) ?? 0 })} />
+                      {p.type === "jcp" && <Field label="IR retido na fonte (R$)" value={String(p.irrf).replace(".", ",")} onChange={(v) => setP({ irrf: parseNum(v) ?? 0 })} />}
+                    </div>
+                    <p className="mt-2 text-xs text-muted">{PROV_INFO[p.type].dica}</p>
+                  </div>
+                  {p.type !== "exterior" && (
+                    <div className="rounded-xl border border-gold/40 bg-black/20 p-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold-soft">Passo 2 · No programa da Receita: {ficha} › Novo</p>
+                      <Mirror label="Tipo de Rendimento" value={`${pg.codigo} - ${pg.nome}`} />
+                      <Mirror label="Beneficiário" value="Titular" />
+                      <Mirror label="CNPJ da Fonte Pagadora" value={p.cnpj} empty="Sem CNPJ: veja no informe de rendimentos" />
+                      <Mirror label="Nome da Fonte Pagadora" value={p.payer} />
+                      <Mirror label={p.type === "jcp" ? "Valor (líquido, já sem os 15%)" : "Valor"} value={fmtField(valor)} note={p.type === "jcp" ? "No informe de rendimentos, use o valor líquido de JCP. Confirme lá." : undefined} />
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+            {rows.length > 0 && <p className="text-sm text-muted">Total desta ficha: <strong className="text-white">{tab === "exterior" ? usd(sum) : brl(sum)}</strong></p>}
+            {others.length > 0 && <p className="text-xs text-muted">Os demais proventos estão nas outras fichas, na tela inicial.</p>}
+            <p className="text-xs text-muted">Regra nova (Lei 15.270/2025): desde 1/1/2026, dividendos acima de R$ 50 mil por mês de uma mesma empresa para você têm 10% retidos na fonte. Se acontecer, o informe mostra o valor. Confirme com um contador.</p>
+          </div>
+        );
+      })()}
 
       {tab === "salvar" && (
         <div className="space-y-4">
