@@ -39,7 +39,7 @@ function Attn({ a }: { a: PositionRowData["attn"] }) {
   return (
     <span
       title={`Pontos de atenção: ${a.points} de ${a.total}`} aria-label={`Pontos de atenção: ${a.points} de ${a.total}`}
-      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none text-white"
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[8px] tracking-tight font-bold leading-none text-white"
       style={{ background: c.bg, boxShadow: `inset 0 -3px 5px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.55), 0 3px 8px ${c.glow}, 0 1px 2px rgba(0,0,0,.6)`, textShadow: "0 1px 2px rgba(0,0,0,.7)" }}
     >{a.points}/{a.total}</span>
   );

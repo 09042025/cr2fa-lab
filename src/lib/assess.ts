@@ -7,7 +7,7 @@ import { analyzeFii, analyzeStock, type Indicator, type Status } from "./indicat
 import { companyByName, companyOf, getCvmData, getFiiData } from "./cvm";
 import { getQuote, monthsPaid, sumBetween, type Quote } from "./dividends";
 import { getAssetDetail, getCoinDetail } from "./market";
-import { coinIdOf, isCryptoHolding } from "./cryptoquote";
+import { coinIdOf, isCryptoHolding, isUsStock } from "./cryptoquote";
 
 export interface Assessment {
   kind: "acao" | "fii" | "cripto";
@@ -120,6 +120,7 @@ export async function assessCrypto(symbol: string): Promise<Assessment> {
 export function assessHolding(h: { block: string; ticker: string | null; label: string }): Promise<Assessment | null> {
   if (!h.ticker) return Promise.resolve(null);
   if (isCryptoHolding(h)) return assessCrypto(h.ticker);
+  if (isUsStock(h)) return Promise.resolve(null);
   if (h.block === "fiis") return assessStockOrFii(h.ticker, true);
   if (h.block === "acoes") return assessStockOrFii(h.ticker, isFiiTicker(h.ticker));
   return Promise.resolve(null);

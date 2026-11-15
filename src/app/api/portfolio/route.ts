@@ -8,7 +8,7 @@ const addSchema = z.object({
   block: z.enum(["cripto", "fiis", "acoes", "renda_fixa", "oportunidades"]),
   label: z.string().trim().min(1).max(60),
   value: z.number().min(0).max(1_000_000_000),
-  ticker: z.string().trim().toUpperCase().regex(/^([A-Z]{4}\d{1,2}|[A-Z]{2,10})$/).optional(),
+  ticker: z.string().trim().toUpperCase().regex(/^([A-Z]{4}\d{1,2}|[A-Z]{1,10})$/).optional(),
   qty: z.number().positive().max(1_000_000_000).optional(),
   avgPrice: z.number().positive().max(1_000_000).optional(),
 });
