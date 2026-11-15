@@ -159,7 +159,7 @@ export interface CvmData {
 /** Lê um CSV de demonstração (DRE/BPA/BPP consolidada) e acumula nas empresas. Mantém a maior VERSAO por linha. */
 const rowPos = new WeakMap<object, Map<string, number>>();
 
-export function ingestStatement(t: Table, stmt: "DRE" | "BPA" | "BPP", acc: Map<string, CvmCompany & { ver: Map<string, number> }>) {
+export function ingestStatement(t: Table, stmt: "DRE" | "BPA" | "BPP", acc: Map<string, CvmCompany & { ver: Map<string, number> }>, skip?: (cnpj: string) => boolean) {
   const iC = col(t, /^CNPJ_CIA$/i), iN = col(t, /^DENOM_CIA$/i), iCd = col(t, /^CD_CVM$/i), iV = col(t, /^VERSAO$/i);
   const iEsc = col(t, /^ESCALA_MOEDA$/i), iOrd = col(t, /^ORDEM_EXERC/i), iIni = col(t, /^DT_INI_EXERC$/i), iFim = col(t, /^DT_FIM_EXERC$/i);
   const iCode = col(t, /^CD_CONTA$/i), iDesc = col(t, /^DS_CONTA$/i), iVal = col(t, /^VL_CONTA$/i);
@@ -169,7 +169,7 @@ export function ingestStatement(t: Table, stmt: "DRE" | "BPA" | "BPP", acc: Map<
     const k = canonAccount(stmt, r[iCode], r[iDesc] ?? "");
     if (!k) continue;
     const cnpj = digits(r[iC]);
-    if (!cnpj) continue;
+    if (!cnpj || skip?.(cnpj)) continue;
     const mult = iEsc >= 0 && /mil/i.test(r[iEsc] ?? "") ? 1000 : 1;
     const v = Number((r[iVal] ?? "").replace(",", ".")) * mult;
     if (!Number.isFinite(v)) continue;
@@ -310,6 +310,30 @@ async function buildCvmData(): Promise<CvmData> {
   return { loadedAt: Math.floor(Date.now() / 1000), year, companies, tickers, diag: `${Object.keys(tickers).length} tickers; ${diag.join(" ; ")}`.slice(0, 1500) };
 }
 
+/** Empresas que só publicam demonstração individual (ex.: holdings como a Bradespar). Lido à parte, só para quem não está na base consolidada. */
+async function buildCvmInd(): Promise<CvmData> {
+  const base = getCvmData().data;
+  if (!base) throw new Error("base consolidada da CVM ainda não carregada");
+  const year = new Date().getFullYear();
+  const acc = new Map<string, CvmCompany & { ver: Map<string, number> }>();
+  const skip = (cnpj: string) => !!base.companies[cnpj]?.rows.length;
+  const jobs: { kind: "itr" | "dfp"; y: number }[] = [{ kind: "dfp", y: year - 1 }, { kind: "dfp", y: year - 2 }, { kind: "itr", y: year }];
+  for (const j of jobs) {
+    try {
+      const zip = await download(`${BASE}/CIA_ABERTA/DOC/${j.kind.toUpperCase()}/DADOS/${j.kind}_cia_aberta_${j.y}.zip`);
+      for (const [name, buf] of unzipIter(zip, (n) => /_(DRE|BPA|BPP)_ind_/i.test(n))) {
+        const m = /_(DRE|BPA|BPP)_ind_/i.exec(name);
+        if (!m) continue;
+        ingestStatement(parseCsv(buf), m[1].toUpperCase() as "DRE" | "BPA" | "BPP", acc, skip);
+        await new Promise((r) => setImmediate(r));
+      }
+    } catch { /* ano sem arquivo: segue */ }
+  }
+  const companies: Record<string, CvmCompany> = {};
+  for (const [cnpj, c] of acc) companies[cnpj] = { name: c.name, cd: c.cd, bank: c.bank, rows: c.rows };
+  return { loadedAt: Math.floor(Date.now() / 1000), year, companies, tickers: {}, diag: `${Object.keys(companies).length} empresas só com demonstração individual` };
+}
+
 /* ------------------------------ FII (informe mensal) ------------------------------ */
 
 export interface FiiRecord { cnpj?: string; name: string; isin: string; date: string; vpa: number | null; patrimonio: number | null; cotistas: number | null; taxaAdm: number | null }
@@ -406,6 +430,7 @@ function get<T>(key: string, build: () => Promise<T>): Loaded<T> {
 const failedAtMap = new Map<string, number>();
 
 export const getCvmData = () => get<CvmData>("cvm:acoes:v3", buildCvmData);
+export const getCvmInd = () => get<CvmData>("cvm:ind:v1", buildCvmInd);
 export const getFiiData = () => get<FiiData>("cvm:fii:v2", buildFiiData);
 
 /* ------------------- FII: número de imóveis (informe trimestral) ------------------- */
@@ -456,4 +481,12 @@ export function companyOf(d: CvmData, ticker: string): { cnpj: string; company: 
   }
   const company = cnpj ? d.companies[cnpj] : undefined;
   return company ? { cnpj, company } : null;
+}
+
+/** Procura a empresa na base individual (só para quem não tem consolidada), usando os tickers da base principal. */
+export function companyInd(base: CvmData, ind: CvmData | null, ticker: string, name?: string | null, alias?: string): { cnpj: string; company: CvmCompany } | null {
+  if (!ind) return null;
+  const viaTicker = companyOf({ ...ind, tickers: base.tickers }, ticker);
+  if (viaTicker) return viaTicker;
+  return (name ? companyByName(ind, name) : null) ?? (alias ? companyByName(ind, alias) : null);
 }
