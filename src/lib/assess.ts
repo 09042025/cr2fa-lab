@@ -28,6 +28,14 @@ export interface Assessment {
   coinId: string | null;
 }
 
+/** Nomes na CVM de empresas grandes cujo nome na fonte de cotação costuma não bater. */
+const CVM_ALIAS: Record<string, string> = {
+  PETR: "Petróleo Brasileiro Petrobras", BRAP: "Bradespar", VALE: "Vale", ITUB: "Itaú Unibanco Holding", BBDC: "Banco Bradesco", BBAS: "Banco do Brasil",
+  ABEV: "Ambev", WEGE: "WEG", SUZB: "Suzano", GGBR: "Gerdau", GOAU: "Metalúrgica Gerdau", CMIG: "Companhia Energética de Minas Gerais Cemig",
+  ELET: "Centrais Elétricas Brasileiras Eletrobras", SANB: "Banco Santander Brasil", BBSE: "BB Seguridade", PSSA: "Porto Seguro", ISAE: "ISA Energia Brasil",
+  BRSR: "Banco do Estado do Rio Grande do Sul Banrisul", RENT: "Localiza", RADL: "Raia Drogasil", LREN: "Lojas Renner", EQTL: "Equatorial", SBSP: "Sabesp",
+};
+
 export const isFiiTicker = (t: string) => /11$/.test(t);
 
 export function summarize(list: Indicator[]) {
@@ -70,7 +78,8 @@ export async function assessStockOrFii(ticker: string, isFii: boolean, hint?: { 
     else if (!rec) notice = "Não encontramos este fundo no informe mensal da CVM; P/VP, patrimônio e cotistas ficam sem valor.";
   } else {
     const cvm = getCvmData();
-    const found = cvm.data ? (companyOf(cvm.data, ticker) ?? (name ? companyByName(cvm.data, name) : null)) : null;
+    const alias = CVM_ALIAS[ticker.slice(0, 4)];
+    const found = cvm.data ? (companyOf(cvm.data, ticker) ?? (name ? companyByName(cvm.data, name) : null) ?? (alias ? companyByName(cvm.data, alias) : null)) : null;
     if (found) {
       const a = analyzeStock({ rows: found.company.rows, bank: found.company.bank, price, marketCap, dividends12m: quote ? div12 : null });
       indicators = a.indicators;

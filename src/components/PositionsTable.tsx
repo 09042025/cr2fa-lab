@@ -6,7 +6,7 @@ export interface PositionRowData {
   block: string;
   label: string;
   symbol: string;
-  logo: string | null;
+  logo: string | string[] | null;
   /** Ícone de reserva quando não há logo (ex.: renda fixa). */
   icon?: string | null;
   b3: boolean;
@@ -34,7 +34,7 @@ const BALL = {
 
 /** Bolinha em alto relevo com "pontos/total" (ex.: 5/13). Vermelha: mais da metade ruim; amarela: há pontos; verde: nenhum. */
 function Attn({ a }: { a: PositionRowData["attn"] }) {
-  if (!a || a.total === 0) return <span className="text-[10px] text-muted" title="Sem indicadores">—</span>;
+  if (!a || a.total === 0) return <span title="Sem indicadores disponíveis para este ativo" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-panel text-[9px] font-bold text-muted" style={{ boxShadow: "inset 0 -2px 4px rgba(0,0,0,.5), inset 0 1px 2px rgba(255,255,255,.18)" }}>?</span>;
   const c = BALL[a.critical ? "red" : a.points > 0 ? "yellow" : "green"];
   return (
     <span

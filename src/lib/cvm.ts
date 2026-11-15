@@ -192,6 +192,21 @@ export function companyByName(d: CvmData, name: string): { cnpj: string; company
     // várias candidatas (ex.: "banco bradesco" e "banco bradesco financiamentos"): fica com a de nome mais curto
     if (cands.length) hit = cands.sort((a, b) => normName(a[1].name).length - normName(b[1].name).length)[0];
   }
+  if (!hit) {
+    // nomes com palavras a mais ou a menos (ex.: "petroleo brasileiro petrobras" x "petroleo brasileiro"): todas as palavras do menor estão no maior
+    const nt = n.split(" ");
+    let best: { e: [string, CvmCompany]; extra: number } | null = null;
+    for (const e of Object.entries(d.companies)) {
+      const mt = normName(e[1].name).split(" ").filter(Boolean);
+      if (!mt.length) continue;
+      const [small, big] = nt.length <= mt.length ? [nt, mt] : [mt, nt];
+      if (small.length < 2 && (small[0]?.length ?? 0) < 5) continue;
+      if (!small.every((w) => big.includes(w))) continue;
+      const extra = big.length - small.length;
+      if (!best || extra < best.extra) best = { e, extra };
+    }
+    if (best && best.extra <= 3) hit = best.e;
+  }
   return hit ? { cnpj: hit[0], company: hit[1] } : null;
 }
 
