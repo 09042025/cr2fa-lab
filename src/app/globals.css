@@ -109,10 +109,15 @@ table.data td {
 table.data tr:hover td {
   background: rgba(255, 255, 255, 0.02);
 }
-.num {
+.num,
+table.data th.num,
+table.data td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+table.data.fit { table-layout: fixed; width: 100%; font-size: 0.78rem; }
+table.data.fit th, table.data.fit td { padding-left: 0.4rem; padding-right: 0.4rem; overflow: hidden; text-overflow: ellipsis; }
+table.data.fit th { white-space: normal; font-size: 0.65rem; vertical-align: bottom; }
 
 @keyframes float-slow {
   0%, 100% { transform: translateY(0); }
