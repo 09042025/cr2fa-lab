@@ -129,7 +129,14 @@ export async function assessCrypto(symbol: string): Promise<Assessment> {
 export function assessHolding(h: { block: string; ticker: string | null; label: string }): Promise<Assessment | null> {
   if (!h.ticker) return Promise.resolve(null);
   if (isCryptoHolding(h)) return assessCrypto(h.ticker);
-  if (isUsStock(h)) return Promise.resolve(null);
+  if (isUsStock(h)) {
+    const t = h.ticker;
+    return (async () => {
+      const [{ getFund }, { getUsQuote, US_REITS }, { buildUsAssessment }] = await Promise.all([import("./sec"), import("./usmarket"), import("./usassess")]);
+      const [f, q] = await Promise.all([getFund(t), getUsQuote(t)]);
+      return buildUsAssessment(t, US_REITS.some((a) => a.symbol === t), f.data, q.data, null);
+    })();
+  }
   if (h.block === "fiis") return assessStockOrFii(h.ticker, true);
   if (h.block === "acoes") return assessStockOrFii(h.ticker, isFiiTicker(h.ticker));
   return Promise.resolve(null);

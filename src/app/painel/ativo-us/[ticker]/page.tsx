@@ -6,7 +6,12 @@ import { monthCalendar, nextEstimate, sumBetween } from "@/lib/dividends";
 import { usLogo } from "@/lib/cryptoquote";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
-import { pct, usd } from "@/lib/format";
+import { pct, usd, usdCompact } from "@/lib/format";
+import { getFund } from "@/lib/sec";
+import { buildUsAssessment, marketCapOf } from "@/lib/usassess";
+import { isCritical } from "@/lib/assess";
+import { attentionPoints } from "@/lib/indicators";
+import { IndicatorCard } from "@/components/AssetAnalysis";
 
 export const dynamic = "force-dynamic";
 const brDate = (s: string) => s.split("-").reverse().join("/");
@@ -21,12 +26,16 @@ export default async function UsAssetPage({ params, searchParams }: { params: Pr
   const meta = [...US_STOCKS, ...US_REITS].find((a) => a.symbol === ticker);
   const reit = US_REITS.some((a) => a.symbol === ticker) || sp.de === "fiis";
   const back = reit ? "/painel/fiis?pais=us" : "/painel/acoes?pais=us";
-  const q = await getUsQuote(ticker);
+  const [q, fd] = await Promise.all([getUsQuote(ticker), getFund(ticker)]);
   const d = q.data;
+  const fund = fd.data;
   const today = new Date().toISOString().slice(0, 10);
   const div12 = d ? sumBetween(d.dividends, new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10), today) : 0;
   const cal = d ? monthCalendar(d.dividends, today) : null;
   const next = d ? nextEstimate(d.dividends, today) : null;
+  const a = d ? buildUsAssessment(ticker, reit, fund, d, meta?.name ?? null, today) : null;
+  const mc = d ? marketCapOf(d.price, fund) : null;
+  const { bad, warn } = a ? attentionPoints(a.indicators) : { bad: [], warn: [] };
 
   return (
     <>
@@ -37,11 +46,29 @@ export default async function UsAssetPage({ params, searchParams }: { params: Pr
       </div>
       {!d ? <p className="card p-4 text-sm text-muted">Cotação indisponível agora{q.error ? ` (${q.error})` : ""}. Confira o código ou tente de novo em instantes.</p> : (
         <>
-          <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {[["Preço", usd(d.price)], ["Proventos em 12 meses", usd(div12)], ["Dividend yield (12m)", d.price && div12 ? pct((div12 / d.price) * 100, 2) : "—"], ["Pagamentos em 12 meses", String(d.dividends.filter((x) => x.date > new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)).length)]].map(([l, v]) => (
+          <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {[["Preço", usd(d.price)], ["Valor de mercado", mc ? usdCompact(mc) : "—"], ["Proventos em 12 meses", usd(div12)], ["Dividend yield (12m)", d.price && div12 ? pct((div12 / d.price) * 100, 2) : "—"], ["Pagamentos em 12 meses", String(d.dividends.filter((x) => x.date > new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)).length)]].map(([l, v]) => (
               <div key={l} className="rounded-lg border border-line bg-panel-2 p-3"><p className="text-xs text-muted">{l}</p><p className="mt-1 text-lg font-semibold">{v}</p></div>
             ))}
           </section>
+          {a && a.indicators.length > 0 && !isPro && <div className="mb-4"><Locked feature="Indicadores e pontos de atenção" /></div>}
+          {a && a.indicators.length > 0 && isPro && (
+            <>
+              <div className={`mb-4 rounded-xl border p-4 ${isCritical(a) ? "border-red-500/50 bg-red-500/10" : "border-line bg-panel-2"}`}>
+                <p className="text-xs uppercase tracking-wider text-muted">Pontos de atenção</p>
+                <p className="mt-1 text-2xl font-bold">{a.bad + a.warn} <span className="text-base font-normal text-muted">de {a.total} indicadores</span></p>
+                <p className="mt-1 text-xs text-muted"><span className="text-red-400">{a.bad} ruim</span> · <span className="text-yellow-300">{a.warn} atenção</span> · <span className="text-green-400">{a.good} bom</span></p>
+              </div>
+              <h2 className="mb-1 font-display text-xl font-bold text-gold-soft">Indicadores</h2>
+              <p className="mb-3 text-xs text-muted">{a.period ? `Último exercício considerado: ${brDate(a.period)}. ` : ""}Fonte: {a.source}. Selos por critérios gerais e fixos, informativos, não recomendação de investimento.{a.notice ? ` ${a.notice}` : ""}</p>
+              <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{a.indicators.map((i) => <IndicatorCard key={i.id} i={i} />)}</section>
+              {bad.length + warn.length > 0 && (
+                <div className="card mt-4 p-4"><h3 className="mb-2 font-semibold">Pontos de atenção</h3>
+                  <ul className="space-y-1.5 text-sm">{bad.map((t) => <li key={t} className="flex gap-2"><span className="text-red-400">●</span><span>{t}</span></li>)}{warn.map((t) => <li key={t} className="flex gap-2"><span className="text-yellow-300">●</span><span>{t}</span></li>)}</ul>
+                </div>
+              )}
+            </>
+          )}
           {!isPro ? <Locked feature="Calendário de proventos" /> : (
             <>
               <h2 className="mb-3 mt-6 font-display text-xl font-bold text-gold-soft">Calendário de proventos</h2>
@@ -54,7 +81,7 @@ export default async function UsAssetPage({ params, searchParams }: { params: Pr
               {d.dividends.length === 0 && <p className="card p-4 text-sm text-muted">Sem proventos registrados nos últimos 5 anos.</p>}
             </>
           )}
-          <p className="mt-4 text-xs text-muted">Valores em dólar (US$), cotação da Yahoo Finance. Os indicadores de balanço (Bom / Atenção / Ruim) usam dados da CVM e existem só para empresas e fundos brasileiros.</p>
+          <p className="mt-4 text-xs text-muted">Valores em dólar (US$), cotação da Yahoo Finance. Indicadores de balanço pelos dados abertos da SEC (último relatório anual).</p>
         </>
       )}
       <Disclaimer />
