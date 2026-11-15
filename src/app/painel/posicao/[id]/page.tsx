@@ -17,6 +17,8 @@ import { PrivacyEye } from "@/components/PrivacyEye";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { brl, pct } from "@/lib/format";
+import { getBenchmarks } from "@/lib/benchmarks";
+import { RfBenchmarks } from "@/components/RfBenchmarks";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
   const { bad, warn } = a ? attentionPoints(a.indicators) : { bad: [], warn: [] };
   const logo = a?.logo ?? detail?.logo ?? (h.ticker && isUsStock(h) ? usLogo(h.ticker) : h.ticker && !crypto ? `https://icons.brapi.dev/icons/${h.ticker}.svg` : null);
   const canTrade = !!h.qty;
+  const bench = h.block === "renda_fixa" ? await getBenchmarks() : null;
 
   return (
     <>
@@ -87,6 +90,8 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
         </div>
         <p className="mt-2 text-xs text-muted">Compra recalcula o preço médio (método da B3); venda reduz a quantidade e não muda o preço médio.</p>
       </section>
+
+      {h.block === "renda_fixa" && (bench?.data ? <RfBenchmarks points={bench.data.points} /> : <p className="card mb-6 p-4 text-sm text-muted">O comparativo com CDI, IPCA e Ibovespa não pôde ser carregado agora (Banco Central ou Yahoo fora do ar). Tente de novo em instantes.</p>)}
 
       {h.ticker && !crypto && !isUsStock(h) && (
         <AssetAnalysis ticker={h.ticker} isFii={h.block === "fiis" || isFiiTicker(h.ticker)} marketCap={detail?.marketCap ?? null} brapiPrice={detail?.price ?? null} name={detail?.name ?? null} />
