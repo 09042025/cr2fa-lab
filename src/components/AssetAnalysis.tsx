@@ -1,6 +1,6 @@
-import { analyzeFii, analyzeStock, attentionPoints, type Indicator, type Status } from "@/lib/indicators";
-import { companyByName, companyOf, getCvmData, getFiiData } from "@/lib/cvm";
-import { getQuote, monthCalendar, monthsPaid, nextEstimate, sumBetween } from "@/lib/dividends";
+import { attentionPoints, type Indicator, type Status } from "@/lib/indicators";
+import { assessStockOrFii } from "@/lib/assess";
+import { monthCalendar, nextEstimate } from "@/lib/dividends";
 import { brl } from "@/lib/format";
 
 const BADGE: Record<Status, { text: string; cls: string }> = {
@@ -12,7 +12,7 @@ const BADGE: Record<Status, { text: string; cls: string }> = {
 
 const brDate = (s: string) => s.split("-").reverse().join("/");
 
-function IndicatorCard({ i }: { i: Indicator }) {
+export function IndicatorCard({ i }: { i: Indicator }) {
   const b = BADGE[i.status];
   return (
     <div className="rounded-lg border border-line bg-panel-2 p-3">
@@ -32,44 +32,9 @@ function Notice({ children }: { children: React.ReactNode }) {
 
 export async function AssetAnalysis({ ticker, isFii, marketCap, brapiPrice, name }: { ticker: string; isFii: boolean; name?: string | null; marketCap: number | null; brapiPrice: number | null }) {
   const today = new Date().toISOString().slice(0, 10);
-  const q = await getQuote(ticker);
-  const quote = q.data;
-  const price = quote?.price ?? brapiPrice;
-  const from12 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
-  const from24 = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10);
-  const div12 = quote ? sumBetween(quote.dividends, from12, today) : null;
-  const div12Prev = quote ? sumBetween(quote.dividends, from24, from12) : null;
-
-  let indicators: Indicator[] = [];
-  let period: string | null = null;
-  let notice: string | null = null;
-  let source = "";
-
-  if (isFii) {
-    const fii = getFiiData();
-    const rec = fii.data?.byPrefix[ticker.slice(0, 4)] ?? null;
-    indicators = analyzeFii({
-      price, dividends12m: quote ? div12 : null, vpa: rec?.vpa ?? null, patrimonio: rec?.patrimonio ?? null, cotistas: rec?.cotistas ?? null,
-      taxaAdm: rec?.taxaAdm ?? null, div12mPrev: div12Prev, monthsPaid: quote ? monthsPaid(quote.dividends, today) : 0, avgDailyVolume: quote?.avgDailyVolume ?? null,
-    });
-    period = rec?.date ?? null;
-    source = "Informe mensal de FII da CVM (dados abertos), proventos e cotação da Yahoo Finance";
-    if (!fii.data) notice = fii.loading ? "Estamos baixando o informe mensal da CVM (patrimônio, valor patrimonial, cotistas). Volte em alguns minutos." : `Informe mensal da CVM indisponível agora${fii.error ? ` (${fii.error})` : ""}. Mostramos só o que vem dos proventos e da cotação.`;
-    else if (!rec) notice = "Não encontramos este fundo no informe mensal da CVM; P/VP, patrimônio e cotistas ficam sem valor.";
-  } else {
-    const cvm = getCvmData();
-    const found = cvm.data ? (companyOf(cvm.data, ticker) ?? (name ? companyByName(cvm.data, name) : null)) : null;
-    if (found) {
-      const a = analyzeStock({ rows: found.company.rows, bank: found.company.bank, price, marketCap, dividends12m: quote ? div12 : null });
-      indicators = a.indicators;
-      period = a.period;
-      if (!a.indicators.length) notice = `Encontramos a empresa na CVM (${found.company.name}), mas não conseguimos ler o lucro consolidado dela. Contas lidas: ${[...new Set(found.company.rows.map((r) => r.k))].join(", ") || "nenhuma"}.`;
-    } else if (!cvm.data) {
-      notice = cvm.loading ? "Estamos baixando as demonstrações financeiras da CVM (leva alguns minutos na primeira vez). Volte em alguns minutos." : `Demonstrações da CVM indisponíveis agora${cvm.error ? ` (${cvm.error})` : ""}. Tentaremos de novo automaticamente.`;
-    } else notice = "Não encontramos este ticker nos dados abertos da CVM (empresa sem demonstrações consolidadas ou ticker novo)." + (cvm.data.diag ? ` [diagnóstico: ${cvm.data.diag}]` : "");
-    source = "Demonstrações financeiras ITR/DFP da CVM (dados abertos), proventos e cotação da Yahoo Finance";
-  }
-
+  const a = await assessStockOrFii(ticker, isFii, { name, marketCap, price: brapiPrice });
+  const { indicators, period, notice, source, quote } = a;
+  const q = { error: a.quoteError };
   const { bad, warn } = attentionPoints(indicators);
   const cal = quote ? monthCalendar(quote.dividends, today) : null;
   const next = quote ? nextEstimate(quote.dividends, today) : null;

@@ -2,13 +2,14 @@
 
 import { useRouter } from "next/navigation";
 
-export function DeleteHolding({ id }: { id: number }) {
+export function DeleteHolding({ id, redirectTo }: { id: number; redirectTo?: string }) {
   const router = useRouter();
   return (
     <button
       className="text-xs text-down underline"
       onClick={async () => {
         await fetch(`/api/portfolio?id=${id}`, { method: "DELETE" });
+        if (redirectTo) router.push(redirectTo);
         router.refresh();
       }}
     >

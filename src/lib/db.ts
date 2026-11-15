@@ -107,6 +107,9 @@ function migrate(db: Database.Database) {
   if (!cols.some((c) => c.name === "ticker")) db.exec("ALTER TABLE holdings ADD COLUMN ticker TEXT");
   if (!cols.some((c) => c.name === "qty")) db.exec("ALTER TABLE holdings ADD COLUMN qty REAL");
   if (!cols.some((c) => c.name === "avg_price")) db.exec("ALTER TABLE holdings ADD COLUMN avg_price REAL");
+  // Alerta diário de pontos de atenção: "ciente" silencia os e-mails enquanto o ativo continuar ruim.
+  if (!cols.some((c) => c.name === "ack_at")) db.exec("ALTER TABLE holdings ADD COLUMN ack_at INTEGER");
+  db.exec("CREATE TABLE IF NOT EXISTS job_runs (name TEXT PRIMARY KEY, day TEXT NOT NULL)");
   // Controle dos lembretes de renovação: para qual vencimento já avisamos e em que etapa (1 = 7 dias antes, 2 = 1 dia antes).
   const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
   const orderCols = db.prepare("PRAGMA table_info(orders)").all() as { name: string }[];

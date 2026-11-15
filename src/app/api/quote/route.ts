@@ -1,37 +1,8 @@
 import { getUser } from "@/lib/auth";
 import { fail, json } from "@/lib/http";
 import { getQuote } from "@/lib/dividends";
-import { cached, fetchJson, getAssetDetail } from "@/lib/market";
-
-interface Chart { chart?: { result?: { meta?: { regularMarketPrice?: number } }[] } }
-
-/** Preço em R$ pelo gráfico público do Yahoo (leve: 5 dias). */
-async function yahooPrice(symbol: string): Promise<number | null> {
-  for (const host of ["query1", "query2"]) {
-    try {
-      const j = await fetchJson<Chart>(`https://${host}.finance.yahoo.com/v8/finance/chart/${symbol}?range=5d&interval=1d`, {}, 12000);
-      const p = j.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (typeof p === "number" && p > 0) return p;
-    } catch { /* tenta o próximo */ }
-  }
-  return null;
-}
-
-/** Cripto em R$: Yahoo (BTC-BRL) e, se falhar, CoinGecko (busca pelo símbolo). */
-async function cryptoPrice(sym: string): Promise<{ price: number; name: string | null } | null> {
-  const y = await yahooPrice(`${sym}-BRL`);
-  if (y) return { price: y, name: null };
-  try {
-    const s = await cached<{ coins?: { id: string; name: string; symbol: string }[] }>(`gecko:search:${sym}`, 24 * 3600, () =>
-      fetchJson(`https://api.coingecko.com/api/v3/search?query=${sym}`, {}, 12000));
-    const coin = s.data?.coins?.find((c) => c.symbol.toUpperCase() === sym) ?? null;
-    if (!coin) return null;
-    const p = await cached<Record<string, { brl: number }>>(`gecko:brl:${coin.id}`, 60, () =>
-      fetchJson(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=brl`, {}, 12000));
-    const price = p.data?.[coin.id]?.brl;
-    return price ? { price, name: coin.name } : null;
-  } catch { return null; }
-}
+import { getAssetDetail } from "@/lib/market";
+import { cryptoPrice, yahooPrice } from "@/lib/cryptoquote";
 
 /** Preço atual de ação/FII da B3 ou de cripto (BTC, ETH, SOL…), usado ao cadastrar posição. Premium. */
 export async function GET(req: Request) {

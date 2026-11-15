@@ -14,6 +14,12 @@ export async function register() {
       console.error("[lembrete] Falha ao iniciar os lembretes:", e);
     }
     try {
+      const { startAttentionJob } = await import("./lib/attention-alerts");
+      startAttentionJob();
+    } catch (e) {
+      console.error("[atenção] Falha ao iniciar os alertas de atenção:", e);
+    }
+    try {
       const { startAgendaMailJob } = await import("./lib/agenda");
       startAgendaMailJob();
     } catch (e) {
