@@ -157,6 +157,8 @@ export interface CvmData {
 }
 
 /** Lê um CSV de demonstração (DRE/BPA/BPP consolidada) e acumula nas empresas. Mantém a maior VERSAO por linha. */
+const rowPos = new WeakMap<object, Map<string, number>>();
+
 export function ingestStatement(t: Table, stmt: "DRE" | "BPA" | "BPP", acc: Map<string, CvmCompany & { ver: Map<string, number> }>) {
   const iC = col(t, /^CNPJ_CIA$/i), iN = col(t, /^DENOM_CIA$/i), iCd = col(t, /^CD_CVM$/i), iV = col(t, /^VERSAO$/i);
   const iEsc = col(t, /^ESCALA_MOEDA$/i), iOrd = col(t, /^ORDEM_EXERC/i), iIni = col(t, /^DT_INI_EXERC$/i), iFim = col(t, /^DT_FIM_EXERC$/i);
@@ -181,8 +183,12 @@ export function ingestStatement(t: Table, stmt: "DRE" | "BPA" | "BPP", acc: Map<
     const prev = c.ver.get(key);
     if (prev !== undefined && prev >= ver) continue;
     c.ver.set(key, ver);
-    c.rows = c.rows.filter((x) => !(x.k === k && x.i === ini && x.f === fim));
-    c.rows.push({ k, i: ini, f: fim, v });
+    // posição da linha já guardada (troca no lugar, sem varrer a lista inteira: era o que travava o servidor)
+    let pos = rowPos.get(c);
+    if (!pos) { pos = new Map(); rowPos.set(c, pos); }
+    const at = pos.get(key);
+    if (at !== undefined) c.rows[at] = { k, i: ini, f: fim, v };
+    else { pos.set(key, c.rows.length); c.rows.push({ k, i: ini, f: fim, v }); }
   }
 }
 
