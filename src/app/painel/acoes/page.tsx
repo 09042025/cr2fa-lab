@@ -7,11 +7,12 @@ import { CountryTabs } from "@/components/CountryTabs";
 import { UsMarket } from "@/components/UsMarket";
 import { QuotesTable } from "@/components/QuotesTable";
 import { brExtras, warmBr } from "@/lib/brlist";
+import { SORT_OPTIONS, sortRows, validOrdem } from "@/lib/sortlist";
 import { FREE_LIMITS } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ pais?: string; setor?: string; q?: string; aba?: string; mes?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ pais?: string; setor?: string; q?: string; aba?: string; mes?: string; ordem?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const isPro = user.plan === "pro";
@@ -23,16 +24,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   const term = (sp.q || "").trim().toUpperCase().slice(0, 30);
   const bySector = isPro && sp.setor ? all.filter((q) => q.sector === sp.setor) : all;
   const filtered = isPro && term ? bySector.filter((q) => q.symbol.includes(term) || q.name.toUpperCase().includes(term)) : bySector;
-  const rows = isPro ? filtered : filtered.slice(0, FREE_LIMITS.stocks);
+  const sliced = isPro ? filtered : filtered.slice(0, FREE_LIMITS.stocks);
 
-  const extras = !us && isPro && !cal ? await brExtras(rows, false) : undefined;
+  const extras = !us && isPro && !cal ? await brExtras(sliced, false) : undefined;
+  const rows = isPro ? sortRows(sliced, validOrdem(sp.ordem), (x) => extras?.get(x)) : sliced;
   if (!us && isPro && !cal) warmBr(all);
   return (
     <>
       <PageTitle title="Ações" subtitle="Bloco de 20% do Protocolo: metade em ações brasileiras (dividida em energia, bancos, saneamento, telecom e seguros, 20% cada) e metade em ações internacionais." />
       <CountryTabs path="/painel/acoes" pais={us ? "us" : "br"} />
       {us ? (
-        <UsMarket kind="stocks" isPro={isPro} aba={sp.aba} setor={sp.setor} q={sp.q} mes={sp.mes} />
+        <UsMarket kind="stocks" isPro={isPro} aba={sp.aba} setor={sp.setor} q={sp.q} mes={sp.mes} ordem={sp.ordem} />
       ) : (
       <>
       <div className="mb-4 flex flex-wrap gap-2">
@@ -58,6 +60,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
               <div>
                 <label className="label" htmlFor="q">Buscar ativo</label>
                 <input id="q" name="q" defaultValue={sp.q || ""} placeholder="Ex.: KNCR11" className="input" maxLength={30} />
+              </div>
+              <div>
+                <label className="label" htmlFor="ordem">Ordenar por</label>
+                <select id="ordem" name="ordem" defaultValue={sp.ordem || ""} className="input">
+                  {SORT_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
               </div>
               <button className="btn btn-gold">Filtrar</button>
             </form>

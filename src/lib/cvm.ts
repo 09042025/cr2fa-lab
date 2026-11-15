@@ -221,6 +221,7 @@ async function loadZipCsvs(url: string, re: RegExp): Promise<Map<string, Table>>
 async function buildCvmData(): Promise<CvmData> {
   const year = new Date().getFullYear();
   const acc = new Map<string, CvmCompany & { ver: Map<string, number> }>();
+  const ind = new Map<string, CvmCompany & { ver: Map<string, number> }>();
   const tickers: Record<string, string> = {};
   const jobs: { kind: "itr" | "dfp"; y: number }[] = [
     { kind: "dfp", y: year - 2 }, { kind: "dfp", y: year - 1 }, { kind: "dfp", y: year },
@@ -230,10 +231,11 @@ async function buildCvmData(): Promise<CvmData> {
   const diag: string[] = [];
   for (const j of jobs) {
     try {
-      const tabs = await loadZipCsvs(`${BASE}/CIA_ABERTA/DOC/${j.kind.toUpperCase()}/DADOS/${j.kind}_cia_aberta_${j.y}.zip`, /_(DRE|BPA|BPP)_con_/i);
+      const tabs = await loadZipCsvs(`${BASE}/CIA_ABERTA/DOC/${j.kind.toUpperCase()}/DADOS/${j.kind}_cia_aberta_${j.y}.zip`, /_(DRE|BPA|BPP)_(con|ind)_/i);
       for (const [name, t] of tabs) {
-        const s = /_(DRE|BPA|BPP)_con_/i.exec(name)?.[1].toUpperCase() as "DRE" | "BPA" | "BPP";
-        ingestStatement(t, s, acc);
+        const m = /_(DRE|BPA|BPP)_(con|ind)_/i.exec(name);
+        if (!m) continue;
+        ingestStatement(t, m[1].toUpperCase() as "DRE" | "BPA" | "BPP", m[2].toLowerCase() === "con" ? acc : ind);
       }
       ok++;
     } catch (e) {
@@ -258,6 +260,8 @@ async function buildCvmData(): Promise<CvmData> {
       if (Object.keys(tickers).length) break;
     } catch (e) { diag.push(`fre${y}: ${e instanceof Error ? e.message : "erro"}`); }
   }
+  // empresas sem demonstração consolidada (ex.: holdings como a Bradespar) usam a individual
+  for (const [cnpj, c] of ind) if (!acc.get(cnpj)?.rows.length) acc.set(cnpj, c);
   const companies: Record<string, CvmCompany> = {};
   for (const [cnpj, c] of acc) companies[cnpj] = { name: c.name, cd: c.cd, bank: c.bank, rows: c.rows };
   return { loadedAt: Math.floor(Date.now() / 1000), year, companies, tickers, diag: `${Object.keys(tickers).length} tickers; ${diag.join(" ; ")}`.slice(0, 1500) };
@@ -358,7 +362,7 @@ function get<T>(key: string, build: () => Promise<T>): Loaded<T> {
 }
 const failedAtMap = new Map<string, number>();
 
-export const getCvmData = () => get<CvmData>("cvm:acoes:v3", buildCvmData);
+export const getCvmData = () => get<CvmData>("cvm:acoes:v4", buildCvmData);
 export const getFiiData = () => get<FiiData>("cvm:fii:v2", buildFiiData);
 
 /* ------------------- FII: número de imóveis (informe trimestral) ------------------- */
