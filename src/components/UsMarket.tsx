@@ -7,12 +7,13 @@ import { usLogo } from "@/lib/cryptoquote";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Change, Locked, ProBadge } from "@/components/ui";
 import { FREE_LIMITS } from "@/lib/plans";
+import { SORT_OPTIONS, sortRows, validOrdem } from "@/lib/sortlist";
 import { pct, usd, usdCompact } from "@/lib/format";
 
 const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 /** Lista e calendário de dividendos do mercado americano (ações e REITs), com o mesmo formato do mercado brasileiro. */
-export async function UsMarket({ kind, isPro, aba, setor, q, mes }: { kind: UsKind; isPro: boolean; aba?: string; setor?: string; q?: string; mes?: string }) {
+export async function UsMarket({ kind, isPro, aba, setor, q, mes, ordem }: { kind: UsKind; isPro: boolean; aba?: string; setor?: string; q?: string; mes?: string; ordem?: string }) {
   const reits = kind === "reits";
   const path = reits ? "/painel/fiis" : "/painel/acoes";
   const cal = aba === "calendario";
@@ -82,7 +83,8 @@ export async function UsMarket({ kind, isPro, aba, setor, q, mes }: { kind: UsKi
   const term = (q || "").trim().toUpperCase().slice(0, 30);
   const bySector = isPro && setor ? rowsAll.filter((r) => r.sector === setor) : rowsAll;
   const filtered = isPro && term ? bySector.filter((r) => r.symbol.includes(term) || r.name.toUpperCase().includes(term)) : bySector;
-  const rows = isPro ? filtered : filtered.slice(0, reits ? FREE_LIMITS.fiis : FREE_LIMITS.stocks);
+  const sliced = isPro ? filtered : filtered.slice(0, reits ? FREE_LIMITS.fiis : FREE_LIMITS.stocks);
+  const rows = isPro ? sortRows(sliced, validOrdem(ordem), (x) => extra.get(x)) : sliced;
   return (
     <>
       {tabs}
@@ -92,6 +94,7 @@ export async function UsMarket({ kind, isPro, aba, setor, q, mes }: { kind: UsKi
             <input type="hidden" name="pais" value="us" />
             <div><label className="label" htmlFor="setor">Filtrar por {label}</label><select id="setor" name="setor" defaultValue={setor || ""} className="input"><option value="">Todos</option>{sectors.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
             <div><label className="label" htmlFor="q">Buscar ativo</label><input id="q" name="q" defaultValue={q || ""} placeholder={reits ? "Ex.: O, PLD" : "Ex.: AAPL"} className="input" maxLength={30} /></div>
+            <div><label className="label" htmlFor="ordem">Ordenar por</label><select id="ordem" name="ordem" defaultValue={ordem || ""} className="input">{SORT_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
             <button className="btn btn-gold">Filtrar</button>
           </form>
         ) : <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por {label} e busca no plano Premium.</div>}
