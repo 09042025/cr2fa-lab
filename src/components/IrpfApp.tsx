@@ -68,6 +68,7 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const [quickAns, setQuickAns] = useState<Record<number, string>>({});
   const [remember, setRemember] = useState(false);
   const [forceFull, setForceFull] = useState(false);
+  const [openMsg, setOpenMsg] = useState<string | null>(null);
   const [dec, setDec] = useState<DecResult | null>(null);
   const [decName, setDecName] = useState("");
   useEffect(() => { void hasDevicePhrase().then((v) => { setQuick(v); if (v) setQuickPos(pickChecks()); }); }, [stage]);
@@ -79,33 +80,33 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
     setPhrase(words); setWords(""); setWs(emptyWorkspace(year)); setStage("work"); setTab("guia"); setMsg(null); setDirty(true);
   };
   const pickFile = async (f: File | null) => {
-    setFile(null); setFileName(""); setMsg(null);
+    setFile(null); setFileName(""); setOpenMsg(null);
     if (!f) return;
-    if (f.size > 5_000_000) { setMsg("Arquivo grande demais para ser um cofre."); return; }
-    try { setFile(JSON.parse(await f.text()) as VaultFile); setFileName(f.name); } catch { setMsg("Esse arquivo não parece um cofre do Niza (.niza)."); }
+    if (f.size > 5_000_000) { setOpenMsg("Arquivo grande demais para ser um cofre."); return; }
+    try { setFile(JSON.parse(await f.text()) as VaultFile); setFileName(f.name); } catch { setOpenMsg("Esse arquivo não parece um cofre do Niza (.niza)."); }
   };
   const openVault = async (viaQuick = false) => {
-    if (!file) { setMsg("Escolha o arquivo do cofre (.niza)."); return; }
-    setBusy(true); setMsg(null);
+    if (!file) { setOpenMsg("Escolha o arquivo do cofre (.niza)."); return; }
+    setBusy(true); setOpenMsg(null);
     try {
       let ph = openPhrase;
       if (viaQuick) {
         const r = await quickUnlock(quickAns);
         if (!r.ok) {
           setQuickAns({}); setQuickPos(pickChecks());
-          if (r.wiped) { setQuick(false); setForceFull(true); setMsg("Palavras erradas 3 vezes. Por segurança, apagamos a lembrança deste aparelho: digite as 24 palavras."); }
-          else setMsg(`Palavras erradas. Você ainda tem ${r.left} tentativa(s) antes de pedirmos as 24.`);
+          if (r.wiped) { setQuick(false); setForceFull(true); setOpenMsg("Palavras erradas 3 vezes. Por segurança, apagamos a lembrança deste aparelho: digite as 24 palavras."); }
+          else setOpenMsg(`Palavras erradas. Você ainda tem ${r.left} tentativa(s) antes de pedirmos as 24.`);
           setBusy(false); return;
         }
         ph = r.phrase;
-      } else if (!isValidPhrase(ph)) { setMsg("As 24 palavras não são válidas. Confira a ordem e a grafia."); setBusy(false); return; }
+      } else if (!isValidPhrase(ph)) { setOpenMsg("As 24 palavras não são válidas. Confira a ordem e a grafia."); setBusy(false); return; }
       const w = await decryptVault<Workspace>(ph, file);
       if (!w || w.v !== 1 || typeof w.year !== "number") throw new Error("Conteúdo do cofre inesperado.");
       const full: Workspace = { ...emptyWorkspace(w.year), ...w };
       if (!viaQuick && remember && deviceSupported()) { try { await saveDevicePhrase(normalizePhrase(ph)); } catch { /* sem armazenamento: segue sem lembrar */ } }
       setPhrase(normalizePhrase(ph)); setOpenPhrase(""); setQuickAns({});
       if (full.year < year) { setOpened(full); setStage("open"); } else { setWs(full); setStage("work"); setTab("bens"); }
-    } catch (e) { setMsg(e instanceof Error ? e.message : "Não foi possível abrir."); }
+    } catch (e) { setOpenMsg(e instanceof Error ? e.message : "Não foi possível abrir."); }
     setBusy(false);
   };
 
@@ -175,6 +176,7 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
             </>
           )}
           {fileName && <p className="mt-2 text-xs text-muted">Arquivo: {fileName}</p>}
+          {openMsg && <p role="alert" className="mt-3 rounded-lg border border-down/40 bg-down/10 px-3 py-2 text-sm text-down">{openMsg}</p>}
         </section>
       </div>
     </>
