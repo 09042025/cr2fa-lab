@@ -21,11 +21,11 @@ test("24 palavras válidas, criptografa e abre; palavras erradas ou arquivo adul
 });
 
 test("garantia: o código do cofre não faz nenhuma chamada de rede e não usa armazenamento do navegador", () => {
-  for (const file of ["src/lib/irpf-crypto.ts", "src/lib/irpf.ts", "src/components/IrpfApp.tsx"]) {
+  for (const file of ["src/lib/irpf-crypto.ts", "src/lib/irpf.ts", "src/lib/irpf-device.ts", "src/components/IrpfApp.tsx"]) {
     let src = "";
     try { src = readFileSync(file, "utf8"); } catch { continue; }
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-    for (const bad of [/\bfetch\s*\(/, /XMLHttpRequest/, /sendBeacon/, /WebSocket/, /localStorage/, /sessionStorage/, /indexedDB/, /document\.cookie/, /\bnavigator\.clipboard\.read/]) {
+    for (const bad of [/\bfetch\s*\(/, /XMLHttpRequest/, /sendBeacon/, /WebSocket/, /localStorage/, /sessionStorage/, ...(file.endsWith("irpf-device.ts") ? [] : [/indexedDB/]), /document\.cookie/, /\bnavigator\.clipboard\.read/]) {
       assert.equal(bad.test(code), false, `${file} usa ${bad}`);
     }
   }

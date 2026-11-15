@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { deviceSupported, forgetDevice, hasDevicePhrase, quickUnlock, saveDevicePhrase } from "@/lib/irpf-device";
 import { decryptVault, encryptVault, isValidPhrase, newPhrase, normalizePhrase, pickChecks, type VaultFile } from "@/lib/irpf-crypto";
 import {
   PROV_INFO, buildBens, buildProventos, emptyWorkspace, parseNum, rollover, roteiro, snapshotOf, totalsByType,
@@ -61,6 +62,12 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const [file, setFile] = useState<VaultFile | null>(null);
   const [fileName, setFileName] = useState("");
   const [opened, setOpened] = useState<Workspace | null>(null);
+  const [quick, setQuick] = useState(false);
+  const [quickPos, setQuickPos] = useState<number[]>([]);
+  const [quickAns, setQuickAns] = useState<Record<number, string>>({});
+  const [remember, setRemember] = useState(false);
+  const [forceFull, setForceFull] = useState(false);
+  useEffect(() => { void hasDevicePhrase().then((v) => { setQuick(v); if (v) setQuickPos(pickChecks()); }); }, [stage]);
 
   const startNew = () => { setWords(newPhrase()); setChecks(pickChecks()); setAnswers({}); setStage("new"); setMsg(null); };
   const confirmWords = () => {
@@ -74,15 +81,26 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
     if (f.size > 5_000_000) { setMsg("Arquivo grande demais para ser um cofre."); return; }
     try { setFile(JSON.parse(await f.text()) as VaultFile); setFileName(f.name); } catch { setMsg("Esse arquivo não parece um cofre do Niza (.niza)."); }
   };
-  const openVault = async () => {
+  const openVault = async (viaQuick = false) => {
     if (!file) { setMsg("Escolha o arquivo do cofre (.niza)."); return; }
-    if (!isValidPhrase(openPhrase)) { setMsg("As 24 palavras não são válidas. Confira a ordem e a grafia."); return; }
     setBusy(true); setMsg(null);
     try {
-      const w = await decryptVault<Workspace>(openPhrase, file);
+      let ph = openPhrase;
+      if (viaQuick) {
+        const r = await quickUnlock(quickAns);
+        if (!r.ok) {
+          setQuickAns({}); setQuickPos(pickChecks());
+          if (r.wiped) { setQuick(false); setForceFull(true); setMsg("Palavras erradas 3 vezes. Por segurança, apagamos a lembrança deste aparelho: digite as 24 palavras."); }
+          else setMsg(`Palavras erradas. Você ainda tem ${r.left} tentativa(s) antes de pedirmos as 24.`);
+          setBusy(false); return;
+        }
+        ph = r.phrase;
+      } else if (!isValidPhrase(ph)) { setMsg("As 24 palavras não são válidas. Confira a ordem e a grafia."); setBusy(false); return; }
+      const w = await decryptVault<Workspace>(ph, file);
       if (!w || w.v !== 1 || typeof w.year !== "number") throw new Error("Conteúdo do cofre inesperado.");
       const full: Workspace = { ...emptyWorkspace(w.year), ...w };
-      setPhrase(normalizePhrase(openPhrase)); setOpenPhrase("");
+      if (!viaQuick && remember && deviceSupported()) { try { await saveDevicePhrase(normalizePhrase(ph)); } catch { /* sem armazenamento: segue sem lembrar */ } }
+      setPhrase(normalizePhrase(ph)); setOpenPhrase(""); setQuickAns({});
       if (full.year < year) { setOpened(full); setStage("open"); } else { setWs(full); setStage("work"); setTab("bens"); }
     } catch (e) { setMsg(e instanceof Error ? e.message : "Não foi possível abrir."); }
     setBusy(false);
@@ -123,9 +141,28 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
           <p className="mt-2 text-sm text-muted">Escolha o arquivo <strong className="text-white">.niza</strong> que você salvou e digite as 24 palavras. Serve também para atualizar a declaração de um ano para o outro.</p>
           <label className="label mt-3" htmlFor="vf">Arquivo do cofre</label>
           <input id="vf" type="file" accept=".niza,application/octet-stream" className="input w-full" onChange={(e) => void pickFile(e.target.files?.[0] ?? null)} />
-          <label className="label mt-3" htmlFor="ph">As 24 palavras</label>
-          <textarea id="ph" className="input w-full" rows={3} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} value={openPhrase} onChange={(e) => setOpenPhrase(e.target.value)} placeholder="palavra1 palavra2 palavra3 ..." />
-          <button type="button" disabled={busy} className="btn btn-gold mt-3" onClick={() => void openVault()}>{busy ? "Abrindo…" : "Abrir cofre"}</button>
+          {quick && !forceFull ? (
+            <>
+              <p className="mt-3 text-sm text-muted">Este aparelho já foi autorizado. Confirme só estas palavras das suas 24:</p>
+              <div className="mt-2 flex flex-wrap gap-3">
+                {quickPos.map((n) => <div key={n}><label className="label" htmlFor={`q${n}`}>Palavra nº {n}</label><input id={`q${n}`} className="input w-36" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} value={quickAns[n] ?? ""} onChange={(e) => setQuickAns((a) => ({ ...a, [n]: e.target.value }))} /></div>)}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button type="button" disabled={busy} className="btn btn-gold" onClick={() => void openVault(true)}>{busy ? "Abrindo…" : "Abrir cofre"}</button>
+                <button type="button" className="text-xs text-gold-soft underline" onClick={() => setForceFull(true)}>Usar as 24 palavras</button>
+              </div>
+              <p className="mt-2 text-xs text-muted">Errou 3 vezes? Apagamos a lembrança deste aparelho e pedimos as 24 palavras.</p>
+            </>
+          ) : (
+            <>
+              <label className="label mt-3" htmlFor="ph">As 24 palavras</label>
+              <textarea id="ph" className="input w-full" rows={3} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} value={openPhrase} onChange={(e) => setOpenPhrase(e.target.value)} placeholder="palavra1 palavra2 palavra3 ..." />
+              {deviceSupported() && (
+                <label className="mt-3 flex items-start gap-2 text-xs text-muted"><input type="checkbox" className="mt-0.5" checked={remember} onChange={(e) => setRemember(e.target.checked)} /><span>Lembrar neste aparelho: nas próximas vezes peço só 3 palavras. Marque apenas em aparelho seu, com bloqueio de tela. As palavras ficam criptografadas aqui e nunca vão para o servidor.</span></label>
+              )}
+              <button type="button" disabled={busy} className="btn btn-gold mt-3" onClick={() => void openVault()}>{busy ? "Abrindo…" : "Abrir cofre"}</button>
+            </>
+          )}
           {fileName && <p className="mt-2 text-xs text-muted">Arquivo: {fileName}</p>}
         </section>
       </div>
@@ -166,7 +203,7 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-up/40 bg-up/10 px-4 py-2.5 text-sm">
         <span className="flex items-center gap-2 text-up"><span aria-hidden>🔒</span> Cofre aberto · ano-calendário {ws.year} · só no seu navegador{dirty ? " · alterações não salvas" : ""}</span>
-        <button type="button" className="btn btn-ghost !py-1 text-xs" onClick={() => lock("Cofre travado. Seus dados foram apagados da tela.")}>Travar e limpar a tela</button>
+        <span className="flex gap-2">{quick && <button type="button" className="btn btn-ghost !py-1 text-xs" onClick={() => void forgetDevice().then(() => { setQuick(false); setMsg("Este aparelho foi esquecido: na próxima vez, só com as 24 palavras."); })}>Esquecer este aparelho</button>}<button type="button" className="btn btn-ghost !py-1 text-xs" onClick={() => lock("Cofre travado. Seus dados foram apagados da tela.")}>Travar e limpar a tela</button></span>
       </div>
       <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-line" aria-label="Etapas">
         {([["guia", "Passo a passo"], ["bens", `Bens e Direitos${warnCount ? ` (${warnCount} avisos)` : ""}`], ["rend", "Rendimentos"], ["salvar", "Salvar e baixar"]] as [Tab, string][]).map(([k, l]) => (
@@ -300,6 +337,7 @@ function Privacy() {
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
         <li>Tudo é calculado e criptografado <strong className="text-white">no seu aparelho</strong> (AES-256). Nenhum dado da declaração é enviado ou guardado em servidor, nem acessível ao administrador.</li>
         <li>A chave são <strong className="text-white">24 palavras</strong> (padrão de carteira cripto) que só você tem. Não existe recuperação: perdeu as palavras, perdeu o cofre.</li>
+        <li>Opcional: &quot;lembrar neste aparelho&quot; guarda as palavras criptografadas só aqui e passa a pedir 3 palavras; 3 erros apagam isso e voltam a pedir as 24.</li>
         <li>Você guarda o arquivo <strong className="text-white">.niza</strong> onde quiser. O cofre trava e apaga a tela sozinho depois de 10 minutos parado.</li>
         <li>A única coisa que vem do servidor é a sua carteira (que você já cadastrou no Portfólio) para preencher os bens automaticamente.</li>
         <li>Você pode conferir: abra as ferramentas do navegador (aba Rede) e veja que nada é enviado ao salvar, editar ou abrir o cofre.</li>
