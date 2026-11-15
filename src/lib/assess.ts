@@ -36,7 +36,9 @@ const CVM_ALIAS: Record<string, string> = {
   BRSR: "Banco do Estado do Rio Grande do Sul Banrisul", RENT: "Localiza", RADL: "Raia Drogasil", LREN: "Lojas Renner", EQTL: "Equatorial", SBSP: "Sabesp",
 };
 
-export const isFiiTicker = (t: string) => /11$/.test(t);
+/** Units de empresas (terminam em 11 como os FIIs, mas são ações). */
+const STOCK_UNITS = new Set(["TAEE11", "KLBN11", "SANB11", "BPAC11", "ALUP11", "SAPR11", "ENGI11", "CPLE11", "SULA11", "IGTI11", "BIDI11", "RNEW11", "TIET11", "BRBI11", "AZEV11", "MULT11", "ENEV11", "CSAN11", "ITSA11", "SMTO11", "LOGN11", "BMGB11", "PINE11", "OIBR11", "ELPL11", "ENBR11", "EQPA11", "CESP11", "TRPL11", "CEEB11", "GETT11", "AFLT11", "BRIV11", "ABCB11", "VIVT11"]);
+export const isFiiTicker = (t: string) => /11$/.test(t) && !STOCK_UNITS.has(t.toUpperCase());
 
 export function summarize(list: Indicator[]) {
   const rated = list.filter((i) => i.status !== "nd");

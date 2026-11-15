@@ -15,3 +15,11 @@ test("isCritical só quando MAIS de 50% está ruim", () => {
   assert.equal(isCritical({ total: 10, bad: 6 }), true);
   assert.equal(isCritical({ total: 0, bad: 0 }), false);
 });
+
+import { isFiiTicker } from "../src/lib/assess";
+test("units de empresas (TAEE11, KLBN11) não são tratadas como FII", () => {
+  assert.equal(isFiiTicker("TAEE11"), false);
+  assert.equal(isFiiTicker("KLBN11"), false);
+  assert.equal(isFiiTicker("KNRI11"), true);
+  assert.equal(isFiiTicker("PETR4"), false);
+});
