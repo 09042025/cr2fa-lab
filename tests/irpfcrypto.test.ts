@@ -46,7 +46,7 @@ test("bens: declara pelo custo, texto com CNPJ e avisos de campos faltando", () 
   const ws = emptyWorkspace(2026);
   const [b] = buildBens([item({})], ws);
   assert.equal(b.total, 3000);
-  assert.match(b.text, /100 ações de PETROLEO BRASILEIRO S\.A\. PETROBRAS \(PETR4\), CNPJ 33\.000\.167\/0001-01/);
+  assert.match(b.text, /^100 ACOES DA EMPRESA PETROLEO BRASILEIRO S\.A\. PETROBRAS, CODIGO DA BOLSA DE VALORES PETR4, AO PRECO MEDIO DE R\$ 30,00, TOTAL DE R\$ 3\.000,00 E ESTAO CUSTODIADAS NA CORRETORA/);
   assert.ok(b.warnings.some((w) => /corretora/i.test(w)));
   const [c] = buildBens([item({ avg: null })], ws);
   assert.equal(c.total, null);

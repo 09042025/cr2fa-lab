@@ -119,17 +119,27 @@ export function adaptDecText(text: string, newQty: number | null): { text: strin
   return { text: text.slice(0, q.index) + num(newQty) + text.slice(q.index + q.raw.length), change: { from: q.qty, to: newQty } };
 }
 
+/** Maiúsculas e sem acento: é o padrão do campo Discriminação (e da declaração entregue). */
+export const upNoAccent = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+/** Texto da Discriminação no mesmo padrão das declarações entregues (maiúsculas, sem acento). */
 export function bemText(i: PortfolioItem, qty: number | null, avg: number | null, custody: string, cnpj: string): string {
-  const total = qty && avg ? qty * avg : null;
-  const where = custody ? ` Mantido(a) em ${custody}.` : "";
-  const name = i.legalName ?? i.label;
-  const cost = avg ? ` Custo médio de aquisição ${i.kind === "acao_us" ? "(converter para R$ pela PTAX da data de cada compra)" : ""}: ${brl(avg)} por unidade; custo total: ${total ? brl(total) : "—"}.` : "";
+  const total = qty && avg ? Math.round(qty * avg * 100) / 100 : null;
+  const name = upNoAccent(i.legalName ?? i.label);
+  const tk = upNoAccent(i.ticker ?? "");
+  const q = qty ? num(qty) : "-";
+  const where = custody ? `NA ${upNoAccent(custody)}` : "NA CORRETORA";
+  const price = avg ? `, AO PRECO MEDIO DE R$ ${fmtField(avg)}, TOTAL DE R$ ${total ? fmtField(total) : "-"}` : "";
   switch (i.kind) {
-    case "acao": return `${qty ? num(qty) : "—"} ações de ${name} (${i.ticker})${cnpj ? `, CNPJ ${cnpj}` : ""}.${where}${cost}`;
-    case "fii": return `${qty ? num(qty) : "—"} cotas do ${name} (${i.ticker})${cnpj ? `, CNPJ ${cnpj}` : ""}.${where}${cost}`;
-    case "acao_us": return `${qty ? num(qty) : "—"} ações de ${i.label} (${i.ticker}), negociadas em bolsa dos Estados Unidos.${where}${cost}`;
-    case "cripto": return `${qty ? num(qty) : "—"} ${i.label} (${i.ticker}).${where}${avg ? ` Custo de aquisição: ${total ? brl(total) : "—"} (média de ${brl(avg)} por unidade).` : ""}`;
-    default: return `${i.label}.${where}${i.valueCents ? ` Valor: ${brl(i.valueCents / 100)}.` : ""}`;
+    case "acao": return `${q} ACOES DA EMPRESA ${name}, CODIGO DA BOLSA DE VALORES ${tk}${price} E ESTAO CUSTODIADAS ${where}`;
+    case "fii": return `${q} COTAS DO FUNDO IMOBILIARIO, ${name}, CODIGO DA BOLSA DE VALORES ${tk}${price} E ESTAO CUSTODIADAS ${where}`;
+    case "acao_us": return `${q} ACAO DE ${upNoAccent(i.label)} ADQUIRIDA PELO VALOR DE US$ ${total ? fmtField(total) : "-"} (TAXA DE R$ - ). ORIGEM EM MOEDA ESTRANGEIRA CUSTODIADAS ${where}.`;
+    case "cripto": {
+      const t = (i.ticker ?? "").toUpperCase();
+      const nome = t === "BTC" ? "BITCOINS" : `${t}`;
+      return `${q} ${nome} AO PRECO MEDIO DE R$ ${avg ? fmtField(avg) : "-"}, VALOR TOTAL DE R$ ${total ? fmtField(total) : "-"} E ESTAO CUSTODIADAS ${custody ? "NA " + upNoAccent(custody) : "NA CARTEIRA/EXCHANGE"}`;
+    }
+    default: return upNoAccent(`${i.label}.${custody ? ` Mantido(a) em ${custody}.` : ""}${i.valueCents ? ` Valor: R$ ${fmtField(i.valueCents / 100)}.` : ""}`);
   }
 }
 
