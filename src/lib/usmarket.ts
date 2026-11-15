@@ -4,6 +4,8 @@
  */
 import { cached, fetchJson } from "./market";
 import { parseYahoo, type Quote } from "./dividends";
+import { db } from "./db";
+import { fundKey, getFund, type Fund } from "./sec";
 
 export interface UsAsset { symbol: string; name: string; sector: string }
 export type UsKind = "stocks" | "reits";
@@ -69,4 +71,23 @@ export async function getUsRows(k: UsKind): Promise<UsRow[]> {
 /** Histórico de 5 anos com proventos (data ex), em dólar. */
 export function getUsQuote(sym: string) {
   return cached<Quote>(`yahoo:us:div:${sym}:v1`, 6 * 3600, async () => parseYahoo(await fetchJson(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=5y&interval=1d&events=div`, {}, 20000)));
+}
+
+/** Lê do cache sem buscar na rede (a lista não pode esperar dezenas de downloads). */
+export function peek<T>(key: string): T | null {
+  const row = db().prepare("SELECT value FROM cache WHERE key = ?").get(key) as { value: string } | undefined;
+  return row ? (JSON.parse(row.value) as T) : null;
+}
+export const peekQuote = (sym: string) => peek<Quote>(`yahoo:us:div:${sym}:v1`);
+export const peekFund = (sym: string) => peek<Fund>(fundKey(sym));
+
+const g = globalThis as unknown as { __usWarm?: boolean };
+/** Em segundo plano, baixa proventos e balanços que ainda não estão guardados (poucas conexões por vez, respeitando o limite da SEC). */
+export function warmUs(syms: string[]): void {
+  if (g.__usWarm) return;
+  const missing = syms.filter((s) => !peekQuote(s) || !peekFund(s));
+  if (!missing.length) return;
+  g.__usWarm = true;
+  void pool(missing, 3, async (s) => { try { await getUsQuote(s); await getFund(s); } catch { /* segue */ } })
+    .finally(() => { g.__usWarm = false; });
 }

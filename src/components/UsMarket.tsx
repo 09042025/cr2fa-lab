@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { getUsQuote, getUsRows, pool, usList, type UsKind } from "@/lib/usmarket";
+import { getUsQuote, getUsRows, peekFund, peekQuote, pool, usList, warmUs, type UsKind } from "@/lib/usmarket";
+import { buildUsAssessment, marketCapOf } from "@/lib/usassess";
+import { isCritical } from "@/lib/assess";
+import { AttentionBall } from "@/components/AttentionBall";
 import { usLogo } from "@/lib/cryptoquote";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Change, Locked, ProBadge } from "@/components/ui";
 import { FREE_LIMITS } from "@/lib/plans";
-import { pct, usd } from "@/lib/format";
+import { pct, usd, usdCompact } from "@/lib/format";
 
 const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -69,6 +72,13 @@ export async function UsMarket({ kind, isPro, aba, setor, q, mes }: { kind: UsKi
   }
 
   const rowsAll = await getUsRows(kind);
+  warmUs(rowsAll.map((r) => r.symbol));
+  const extra = new Map(rowsAll.map((r) => {
+    const f = peekFund(r.symbol), qd = peekQuote(r.symbol);
+    const a = f || qd ? buildUsAssessment(r.symbol, reits, f, qd ? { ...qd, price: r.price ?? qd.price } : null, r.name) : null;
+    return [r.symbol, { mc: marketCapOf(r.price, f), a: a && a.total > 0 ? { points: a.bad + a.warn, total: a.total, critical: isCritical(a) } : null, ready: !!f && !!qd }] as const;
+  }));
+  const loading = [...extra.values()].some((x) => !x.ready);
   const term = (q || "").trim().toUpperCase().slice(0, 30);
   const bySector = isPro && setor ? rowsAll.filter((r) => r.sector === setor) : rowsAll;
   const filtered = isPro && term ? bySector.filter((r) => r.symbol.includes(term) || r.name.toUpperCase().includes(term)) : bySector;
@@ -85,10 +95,10 @@ export async function UsMarket({ kind, isPro, aba, setor, q, mes }: { kind: UsKi
             <button className="btn btn-gold">Filtrar</button>
           </form>
         ) : <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por {label} e busca no plano Premium.</div>}
-        {isPro && <p className="mb-2 text-xs text-muted">{rows.length} de {rowsAll.length} ativos. Cotações em dólar (US$). Clique no código para abrir.</p>}
+        {isPro && <p className="mb-2 text-xs text-muted">{rows.length} de {rowsAll.length} ativos. Cotações em dólar (US$). Clique no código para abrir.{loading ? " Valor de mercado e indicadores estão sendo carregados da SEC (primeira vez leva alguns minutos): atualize a página em instantes." : ""}</p>}
         <div className="overflow-x-auto">
           <table className="data">
-            <thead><tr><th>Código</th><th>Nome</th><th>{reits ? "Segmento" : "Setor"}</th><th className="num">Preço</th><th className="num">Dia</th><th className="num">Volume</th></tr></thead>
+            <thead><tr><th>Código</th><th>Nome</th><th>{reits ? "Segmento" : "Setor"}</th><th className="num">Preço</th><th className="num">Dia</th><th className="num">Volume</th><th className="num">Valor de mercado</th><th className="num">Indic.</th></tr></thead>
             <tbody>{rows.map((r) => (
               <tr key={r.symbol}>
                 <td className="font-semibold"><Link href={`/painel/ativo-us/${r.symbol}?de=${reits ? "fiis" : "acoes"}`} className="text-gold-soft underline-offset-2 hover:underline"><span className="inline-flex items-center gap-2"><TickerLogo src={usLogo(r.symbol)} symbol={r.symbol} />{r.symbol} <span aria-hidden>📈</span></span></Link></td>
@@ -97,6 +107,8 @@ export async function UsMarket({ kind, isPro, aba, setor, q, mes }: { kind: UsKi
                 <td className="num">{usd(r.price)}</td>
                 <td className="num"><Change value={r.changePct} /></td>
                 <td className="num">{r.volume === null ? "—" : r.volume.toLocaleString("en-US")}</td>
+                <td className="num">{extra.get(r.symbol)?.mc ? usdCompact(extra.get(r.symbol)!.mc) : "—"}</td>
+                <td className="num"><AttentionBall a={extra.get(r.symbol)?.a ?? null} /></td>
               </tr>))}</tbody>
           </table>
         </div>
