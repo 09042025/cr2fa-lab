@@ -7,6 +7,8 @@ export interface PositionRowData {
   label: string;
   symbol: string;
   logo: string | null;
+  /** Ícone de reserva quando não há logo (ex.: renda fixa). */
+  icon?: string | null;
   b3: boolean;
   qty: string;
   avg: string | null;
@@ -17,6 +19,11 @@ export interface PositionRowData {
   value: string;
   /** Pontos de atenção: ruins + em atenção, de um total de indicadores avaliados. */
   attn: { points: number; total: number; critical: boolean } | null;
+}
+
+function Logo({ r, size }: { r: PositionRowData; size: number }) {
+  if (!r.logo && r.icon) return <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-full bg-panel text-[13px]" style={{ width: size, height: size }}>{r.icon}</span>;
+  return <TickerLogo src={r.logo} symbol={r.symbol} size={size} />;
 }
 
 const BALL = {
@@ -46,7 +53,7 @@ export function PositionsTable({ rows }: { rows: PositionRowData[] }) {
         {rows.map((r) => (
           <Link key={r.id} href={`/painel/posicao/${r.id}`} className="block rounded-lg border border-line bg-panel-2 p-3 text-xs">
             <div className="flex items-center justify-between gap-2">
-              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold"><TickerLogo src={r.logo} symbol={r.symbol} size={26} /><span className="truncate">{r.label}</span>{r.b3 && <span className="shrink-0 rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">B3</span>}</span>
+              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold"><Logo r={r} size={26} /><span className="truncate">{r.label}</span>{r.b3 && <span className="shrink-0 rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">B3</span>}</span>
               <span className="shrink-0 text-sm font-semibold">{r.value}</span>
             </div>
             <div className="mt-1 flex items-center justify-between gap-2"><span className="text-[11px] text-muted">{r.block}</span><Attn a={r.attn} /></div>
@@ -65,7 +72,7 @@ export function PositionsTable({ rows }: { rows: PositionRowData[] }) {
           {rows.map((r) => (
             <tr key={r.id} className="hover:bg-panel-2">
               <td>{r.block}</td>
-              <td className="font-semibold"><Link href={`/painel/posicao/${r.id}`} className="flex items-center gap-2 hover:underline"><TickerLogo src={r.logo} symbol={r.symbol} size={24} /><span className="break-words">{r.label}</span>{r.b3 && <span className="rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">B3</span>}</Link></td>
+              <td className="font-semibold"><Link href={`/painel/posicao/${r.id}`} className="flex items-center gap-2 hover:underline"><Logo r={r} size={24} /><span className="break-words">{r.label}</span>{r.b3 && <span className="rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">B3</span>}</Link></td>
               <td><Attn a={r.attn} /></td>
               <td className="num">{r.qty}</td>
               <td className="num">{r.avg ?? (r.needsAvg ? <span className="text-[10px] text-muted">abra e ajuste</span> : "—")}</td>

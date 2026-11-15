@@ -14,8 +14,20 @@ export async function yahooPrice(symbol: string): Promise<number | null> {
   return null;
 }
 
+/** Principais criptos: id e nome fixos (evita busca ambígua ou limite da API). */
+export const KNOWN_COINS: Record<string, { id: string; name: string }> = {
+  BTC: { id: "bitcoin", name: "Bitcoin" }, ETH: { id: "ethereum", name: "Ethereum" }, SOL: { id: "solana", name: "Solana" },
+  USDC: { id: "usd-coin", name: "USDC" }, USDT: { id: "tether", name: "Tether" }, BNB: { id: "binancecoin", name: "BNB" },
+  XRP: { id: "ripple", name: "XRP" }, ADA: { id: "cardano", name: "Cardano" }, DOGE: { id: "dogecoin", name: "Dogecoin" },
+};
+const NAME_TO_SYM: Record<string, string> = { BITCOIN: "BTC", ETHEREUM: "ETH", SOLANA: "SOL", "USD COIN": "USDC", TETHER: "USDT", XRP: "XRP", CARDANO: "ADA", DOGECOIN: "DOGE", BNB: "BNB" };
+
+/** Cripto na carteira: bloco Cripto, ou Reserva para oportunidades com código (ex.: USDC). */
+export const isCryptoHolding = (h: { block: string; ticker: string | null }) => h.block === "cripto" || (h.block === "oportunidades" && !!h.ticker);
+
 /** Id do CoinGecko a partir do símbolo (BTC → bitcoin). A busca já vem ordenada por valor de mercado. */
 export async function coinIdOf(sym: string): Promise<{ id: string; name: string } | null> {
+  if (KNOWN_COINS[sym]) return KNOWN_COINS[sym];
   const s = await cached<{ coins?: { id: string; name: string; symbol: string }[] }>(`gecko:search:${sym}`, 24 * 3600, () =>
     fetchJson(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(sym)}`, {}, 12000));
   const c = s.data?.coins?.find((x) => x.symbol.toUpperCase() === sym);
@@ -40,6 +52,8 @@ export async function cryptoPrice(sym: string): Promise<{ price: number; name: s
 export async function findCoin(query: string): Promise<{ id: string; name: string; symbol: string } | null> {
   const q = query.trim();
   if (!q) return null;
+  const known = KNOWN_COINS[q.toUpperCase()] ? q.toUpperCase() : NAME_TO_SYM[q.toUpperCase()];
+  if (known) return { ...KNOWN_COINS[known], symbol: known };
   const s = await cached<{ coins?: { id: string; name: string; symbol: string }[] }>(`gecko:search:${q.toLowerCase()}`, 24 * 3600, () =>
     fetchJson(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`, {}, 12000));
   const list = s.data?.coins ?? [];
@@ -50,11 +64,12 @@ export async function findCoin(query: string): Promise<{ id: string; name: strin
 /** Completa o código de posições antigas (cripto pelo nome; ação/FII quando o nome já é o código). */
 export async function backfillTickers(userId: number): Promise<void> {
   const { db } = await import("./db");
-  const rows = db().prepare("SELECT id, block, label FROM holdings WHERE user_id = ? AND ticker IS NULL AND block IN ('cripto','acoes','fiis')").all(userId) as { id: number; block: string; label: string }[];
+  const rows = db().prepare("SELECT id, block, label FROM holdings WHERE user_id = ? AND ticker IS NULL AND block IN ('cripto','acoes','fiis','oportunidades')").all(userId) as { id: number; block: string; label: string }[];
   for (const r of rows) {
     const label = r.label.trim().toUpperCase();
     let t: string | null = null;
-    if (r.block === "cripto") { try { t = (await findCoin(r.label))?.symbol ?? null; } catch { t = null; } }
+    if (r.block === "oportunidades") { const k = KNOWN_COINS[label] ? label : NAME_TO_SYM[label] ?? null; t = k; }
+    else if (r.block === "cripto") { try { t = (await findCoin(r.label))?.symbol ?? null; } catch { t = null; } }
     else if (/^[A-Z]{4}\d{1,2}$/.test(label)) t = label;
     if (t && /^([A-Z]{4}\d{1,2}|[A-Z]{2,10})$/.test(t)) db().prepare("UPDATE holdings SET ticker = ? WHERE id = ?").run(t, r.id);
   }

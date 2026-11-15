@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { BLOCKS } from "@/lib/protocol";
 import { getQuote } from "@/lib/dividends";
 import { getAssetDetail } from "@/lib/market";
-import { backfillTickers, cryptoPrice } from "@/lib/cryptoquote";
+import { backfillTickers, cryptoPrice, isCryptoHolding } from "@/lib/cryptoquote";
 import { assessHolding, isCritical, isFiiTicker } from "@/lib/assess";
 import { attentionPoints } from "@/lib/indicators";
 import { AssetAnalysis, IndicatorCard } from "@/components/AssetAnalysis";
@@ -29,7 +29,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
   const h = Number.isInteger(id) ? (db().prepare("SELECT id, block, label, value_cents, ticker, qty, avg_price, ack_at FROM holdings WHERE id = ? AND user_id = ?").get(id, user.id) as H | undefined) : undefined;
   if (!h) notFound();
 
-  const crypto = h.block === "cripto";
+  const crypto = isCryptoHolding(h);
   const a = await assessHolding(h);
   let price: number | null = null;
   let detail = null as Awaited<ReturnType<typeof getAssetDetail>>["data"];
