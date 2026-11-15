@@ -8,7 +8,7 @@ import { EvolutionChart, IncomeByMonth, ProtocolDashboard } from "@/components/P
 import { getQuote, type Quote } from "@/lib/dividends";
 import { evolution, lastMonths, monthlyIncome } from "@/lib/portfolio-calc";
 import { brl, pct } from "@/lib/format";
-import { backfillTickers, cryptoPrice } from "@/lib/cryptoquote";
+import { backfillTickers, cryptoPrice, isCryptoHolding } from "@/lib/cryptoquote";
 import { assessHolding, isCritical, type Assessment } from "@/lib/assess";
 
 
@@ -30,17 +30,17 @@ export default async function PortfolioPage() {
   await backfillTickers(user.id);
   const holdings = db().prepare("SELECT id, block, label, value_cents, source, ticker, qty, avg_price FROM holdings WHERE user_id = ? ORDER BY block, id").all(user.id) as Holding[];
   const today = new Date().toISOString().slice(0, 10);
-  const tracked = holdings.filter((h) => h.ticker && h.qty && h.qty > 0 && h.block !== "cripto");
+  const tracked = holdings.filter((h) => h.ticker && h.qty && h.qty > 0 && !isCryptoHolding(h));
   const quotes = new Map<string, Quote | null>();
   const cryptoPx = new Map<string, number | null>();
   const assessed = new Map<string, Assessment | null>();
   const key = (h: Holding) => `${h.block}:${h.ticker}`;
   await Promise.all([
     ...[...new Set(tracked.map((h) => h.ticker as string))].map(async (t) => { quotes.set(t, (await getQuote(t)).data); }),
-    ...[...new Set(holdings.filter((h) => h.block === "cripto" && h.ticker).map((h) => h.ticker as string))].map(async (t) => { cryptoPx.set(t, (await cryptoPrice(t))?.price ?? null); }),
+    ...[...new Set(holdings.filter((h) => isCryptoHolding(h) && h.ticker).map((h) => h.ticker as string))].map(async (t) => { cryptoPx.set(t, (await cryptoPrice(t))?.price ?? null); }),
     ...[...new Map(holdings.filter((h) => h.ticker).map((h) => [key(h), h])).values()].map(async (h) => { assessed.set(key(h), await assessHolding(h).catch(() => null)); }),
   ]);
-  const priceOf = (h: Holding) => (h.ticker ? (h.block === "cripto" ? cryptoPx.get(h.ticker) : quotes.get(h.ticker)?.price) ?? null : null);
+  const priceOf = (h: Holding) => (h.ticker ? (isCryptoHolding(h) ? cryptoPx.get(h.ticker) : quotes.get(h.ticker)?.price) ?? null : null);
   /** Valor atual em centavos: quantidade × cotação quando há cotação; senão o último valor salvo. */
   const valueOf = (h: Holding) => {
     const px = priceOf(h);
@@ -128,7 +128,7 @@ export default async function PortfolioPage() {
             const att = h.ticker ? assessed.get(key(h)) ?? null : null;
             const res = px && h.avg_price ? ((px - h.avg_price) / h.avg_price) * 100 : null;
             return {
-              id: h.id, block: BLOCKS.find((b) => b.key === h.block)?.name ?? "", label: h.label, symbol: h.ticker ?? h.label, logo: att?.logo ?? (h.ticker && h.block !== "cripto" ? `https://icons.brapi.dev/icons/${h.ticker}.svg` : null), b3: h.source === "b3",
+              id: h.id, block: BLOCKS.find((b) => b.key === h.block)?.name ?? "", label: h.label, symbol: h.ticker ?? h.label, icon: h.block === "renda_fixa" ? (/tesouro/i.test(h.label) ? "🏛️" : "🏦") : null, logo: att?.logo ?? (h.ticker && !isCryptoHolding(h) ? `https://icons.brapi.dev/icons/${h.ticker}.svg` : null), b3: h.source === "b3",
               attn: att ? { points: att.bad + att.warn, total: att.total, critical: isCritical(att) } : null,
               qty: h.qty ? h.qty.toLocaleString("pt-BR") : "—", avg: h.avg_price ? brl(h.avg_price) : null, needsAvg: !!h.ticker,
               price: px ? brl(px) : "—", result: res === null ? "—" : pct(res, 1), resultTone: res === null ? "none" as const : res >= 0 ? "up" as const : "down" as const,
