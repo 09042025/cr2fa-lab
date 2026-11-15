@@ -7,6 +7,8 @@
 export type AssetKind = "acao" | "fii" | "cripto" | "acao_us" | "renda_fixa" | "outro";
 
 export interface PortfolioItem {
+  /** id da posição no Portfólio (para devolver o preço médio). */
+  id?: number;
   key: string; label: string; ticker: string | null; kind: AssetKind;
   qty: number | null; avg: number | null; valueCents: number;
   cnpj: string | null; legalName: string | null;
@@ -58,6 +60,38 @@ export function codeFor(i: Pick<PortfolioItem, "kind" | "ticker" | "label">): Co
   }
 }
 
+/** Nomes como aparecem no programa da Receita (Ficha Bens e Direitos). O número é o que vale; o nome pode variar um pouco entre anos. */
+const GRUPO_NOME: Record<string, string> = { "01": "Imóveis", "02": "Bens móveis", "03": "Participações Societárias", "04": "Aplicações e Investimentos", "06": "Depósitos à vista e numerário", "07": "Fundos", "08": "Criptoativos", "99": "Outros bens e direitos" };
+const CODIGO_NOME: Record<string, string> = {
+  "01-11": "Apartamento", "01-12": "Casa", "01-13": "Terreno", "02-01": "Veículo automotor terrestre: caminhão, automóvel, moto, etc.",
+  "03-01": "Ações (inclusive as provenientes de linha telefônica)", "04-01": "Depósito em poupança", "04-02": "Títulos públicos e privados sujeitos à tributação definitiva (CDB, RDB, Tesouro Direto e outros)",
+  "04-03": "Títulos isentos: CRI, CRA, LCI, LCA e outros", "06-01": "Depósito bancário em conta corrente no País", "07-03": "Fundos de Investimento Imobiliário (FII)",
+  "08-01": "Bitcoin (BTC)", "08-02": "Altcoins (Ether e outros criptoativos)", "08-03": "Stablecoins (USDT, USDC e outras)", "99-99": "Outros bens e direitos",
+};
+export const programCode = (grupo: string, codigo: string) => ({ grupo: `${grupo} - ${GRUPO_NOME[grupo] ?? "Grupo"}`, codigo: `${codigo} - ${CODIGO_NOME[`${grupo}-${codigo}`] ?? "Código"}` });
+/** Países do programa (código da Receita). */
+export const PAIS_BR = { codigo: "105", nome: "Brasil" };
+export const PAIS_EUA = { codigo: "249", nome: "Estados Unidos" };
+/** Número no formato do campo de valor do programa: 1.234,56 */
+export const fmtField = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const NUM_RE = "\\d{1,3}(?:\\.\\d{3})*(?:,\\d+)?|\\d+(?:[.,]\\d+)?";
+/** Quantidade citada no texto da discriminação ("100 ações", "10 cotas", "0,35 BTC"). */
+export function qtyFromText(t: string): { qty: number; raw: string; index: number } | null {
+  const m = new RegExp(`(${NUM_RE})\\s*(?:a[çc][õo]es|a[çc][ãa]o|cotas?|quotas?|unidades?|units?)`, "i").exec(t) ?? new RegExp(`^\\s*(${NUM_RE})\\s+\\p{L}`, "u").exec(t);
+  if (!m) return null;
+  const q = parseNum(m[1]);
+  return q && q > 0 ? { qty: q, raw: m[1], index: m.index + m[0].indexOf(m[1]) } : null;
+}
+export const cnpjFromText = (t: string): string | null => /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/.exec(t)?.[0] ?? null;
+
+/** Bem da declaração anterior que corresponde a este ativo (pelo código dele no texto). */
+export function matchPrev(i: Pick<PortfolioItem, "ticker" | "label" | "kind">, prev: PrevBem[]): PrevBem | null {
+  const keys = [i.ticker, i.kind === "cripto" ? i.label : null].filter((x): x is string => !!x).map((x) => x.replace(/[^\p{L}0-9]/giu, "")).filter((x) => x.length >= 2);
+  for (const k of keys) { const re = new RegExp(`(^|[^\\p{L}0-9])${k}($|[^\\p{L}0-9])`, "iu"); const hit = prev.find((p) => re.test(p.discriminacao)); if (hit) return hit; }
+  return null;
+}
+
 export const fmtCnpj = (d: string | null) => {
   const s = (d ?? "").replace(/\D/g, "");
   if (s.length !== 14) return d ?? "";
@@ -70,6 +104,19 @@ export interface BemRow {
   key: string; item: PortfolioItem; code: Code; qty: number | null; avg: number | null; custody: string; cnpj: string;
   /** Custo de aquisição total (quantidade × preço médio): é o que se declara, não o valor de mercado. */
   total: number | null; prev: number | null; text: string; autoText: string; warnings: string[]; foreign: boolean;
+  pais: { codigo: string; nome: string };
+  /** Texto vindo da declaração anterior (.DEC) tem prioridade sobre o texto automático. */
+  source: "dec" | "auto" | "editado";
+  avgFrom: "você" | "portfólio" | ".DEC" | null; qtyFrom: "você" | "portfólio" | ".DEC" | null;
+  /** Preço médio calculado do .DEC (situação anterior ÷ quantidade do texto), usado quando o Portfólio não tem. */
+  decAvg: number | null; qtyChange: { from: number; to: number } | null;
+}
+
+/** Troca a quantidade escrita no texto do .DEC pela atual. */
+export function adaptDecText(text: string, newQty: number | null): { text: string; change: { from: number; to: number } | null } {
+  const q = qtyFromText(text);
+  if (!q || !newQty || Math.abs(q.qty - newQty) < 1e-9) return { text, change: null };
+  return { text: text.slice(0, q.index) + num(newQty) + text.slice(q.index + q.raw.length), change: { from: q.qty, to: newQty } };
 }
 
 export function bemText(i: PortfolioItem, qty: number | null, avg: number | null, custody: string, cnpj: string): string {
@@ -88,10 +135,11 @@ export function bemText(i: PortfolioItem, qty: number | null, avg: number | null
 
 /** Procura a situação do ano anterior no que foi importado/colado (pelo código do ativo na discriminação). */
 export function prevFor(i: PortfolioItem, prev: PrevBem[]): number | null {
-  if (!i.ticker) return null;
-  const re = new RegExp(`\\b${i.ticker.replace(/[^A-Z0-9]/gi, "")}\\b`, "i");
-  const hits = prev.filter((p) => re.test(p.discriminacao));
-  return hits.length ? hits.reduce((a, p) => a + p.valor, 0) : null;
+  const m = matchPrev(i, prev);
+  if (!m) return null;
+  const re = i.ticker ? new RegExp(`\\b${i.ticker.replace(/[^A-Z0-9]/gi, "")}\\b`, "i") : null;
+  const hits = re ? prev.filter((p) => re.test(p.discriminacao)) : [m];
+  return hits.reduce((a, p) => a + p.valor, 0);
 }
 
 export function buildBens(items: PortfolioItem[], ws: Workspace): BemRow[] {
@@ -99,21 +147,32 @@ export function buildBens(items: PortfolioItem[], ws: Workspace): BemRow[] {
   for (const i of items) {
     const e = ws.edits[i.key] ?? {};
     if (e.skip) continue;
-    const qty = e.qty !== undefined ? e.qty : i.qty;
-    const avg = e.avg !== undefined ? e.avg : i.avg;
+    const m = matchPrev(i, ws.previous);
+    const decQty = m ? qtyFromText(m.discriminacao)?.qty ?? null : null;
+    const decAvg = m && decQty ? Math.round((m.valor / decQty) * 1e6) / 1e6 : null;
+    // Prioridade: o que você digitou > Portfólio > .DEC
+    const qtyFrom = e.qty !== undefined ? "você" : i.qty ? "portfólio" : decQty ? ".DEC" : null;
+    const qty = e.qty !== undefined ? e.qty : i.qty ?? decQty;
+    const avgFrom = e.avg !== undefined ? "você" : i.avg ? "portfólio" : decAvg ? ".DEC" : null;
+    const avg = e.avg !== undefined ? e.avg : i.avg ?? decAvg;
     const custody = e.custody ?? "";
-    const cnpj = e.cnpj ?? fmtCnpj(i.cnpj);
+    const cnpj = e.cnpj ?? fmtCnpj(i.cnpj) ?? "";
+    const cnpjFinal = cnpj || (m ? cnpjFromText(m.discriminacao) ?? "" : "");
     const total = qty && avg ? Math.round(qty * avg * 100) / 100 : i.kind === "renda_fixa" || i.kind === "outro" ? i.valueCents / 100 : null;
     const warnings: string[] = [];
     if (i.kind !== "renda_fixa" && i.kind !== "outro") {
       if (!qty) warnings.push("Informe a quantidade que você tinha em 31/12.");
       if (!avg) warnings.push("Informe o preço médio (custo de aquisição): a declaração usa o custo, não o preço de hoje.");
     }
-    if ((i.kind === "acao" || i.kind === "fii") && !cnpj) warnings.push("Informe o CNPJ da empresa/fundo (consta no informe de rendimentos).");
-    if (!custody) warnings.push("Informe a corretora/exchange onde o ativo está.");
+    if ((i.kind === "acao" || i.kind === "fii") && !cnpjFinal) warnings.push("Informe o CNPJ da empresa/fundo (consta no informe de rendimentos).");
+    if (!custody && !m) warnings.push("Informe a corretora/exchange onde o ativo está.");
     if (i.kind === "acao_us") warnings.push("Ativo no exterior: o programa pede o país (Estados Unidos) e o valor em R$ pela PTAX da compra. Confira com um contador.");
-    const autoText = bemText(i, qty, avg, custody, cnpj);
-    out.push({ key: i.key, item: i, code: codeFor(i), qty, avg, custody, cnpj, total, prev: prevFor(i, ws.previous), text: e.text ?? autoText, autoText, warnings, foreign: i.kind === "acao_us" });
+    const autoText = bemText(i, qty, avg, custody, cnpjFinal);
+    let decText: string | null = null; let qtyChange: BemRow["qtyChange"] = null;
+    if (m) { const a = adaptDecText(m.discriminacao, qty); decText = a.text; qtyChange = a.change; }
+    if (qtyChange) warnings.push(`A quantidade no texto do .DEC foi atualizada de ${num(qtyChange.from)} para ${num(qtyChange.to)}.`);
+    const text = e.text ?? decText ?? autoText;
+    out.push({ key: i.key, item: i, code: codeFor(i), qty, avg, custody, cnpj: cnpjFinal, total, prev: prevFor(i, ws.previous), text, autoText: decText ?? autoText, warnings, foreign: i.kind === "acao_us", pais: i.kind === "acao_us" ? PAIS_EUA : PAIS_BR, source: e.text !== undefined ? "editado" : decText ? "dec" : "auto", avgFrom, qtyFrom, decAvg, qtyChange });
   }
   return out;
 }

@@ -38,7 +38,7 @@ export default async function IrpfPage({ searchParams }: { searchParams: Promise
       if (t && (kind === "acao" || kind === "fii")) divs = ((await getQuote(t)).data?.dividends ?? []).map((d) => ({ date: d.date, perShare: d.value }));
       else if (t && kind === "acao_us") divs = ((await getUsQuote(t)).data?.dividends ?? []).map((d) => ({ date: d.date, perShare: d.value }));
     } catch { /* sem proventos: o usuário informa */ }
-    return { key: `${h.block}:${t ?? h.label}:${h.id}`, label: h.label, ticker: t, kind, qty: h.qty, avg: h.avg_price, valueCents: h.value_cents, cnpj, legalName, divs };
+    return { id: h.id, key: `${h.block}:${t ?? h.label}:${h.id}`, label: h.label, ticker: t, kind, qty: h.qty, avg: h.avg_price, valueCents: h.value_cents, cnpj, legalName, divs };
   }));
 
   return (

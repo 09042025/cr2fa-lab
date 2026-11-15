@@ -21,11 +21,11 @@ test("24 palavras válidas, criptografa e abre; palavras erradas ou arquivo adul
 });
 
 test("garantia: o código do cofre não faz nenhuma chamada de rede e não usa armazenamento do navegador", () => {
-  for (const file of ["src/lib/irpf-crypto.ts", "src/lib/irpf.ts", "src/lib/irpf-device.ts", "src/lib/irpf-dec.ts", "src/components/IrpfApp.tsx"]) {
+  for (const file of ["src/lib/irpf-crypto.ts", "src/lib/irpf.ts", "src/lib/irpf-device.ts", "src/lib/irpf-dec.ts", "src/lib/irpf-sync.ts", "src/lib/irpf-pdf.ts", "src/components/IrpfApp.tsx"]) {
     let src = "";
     try { src = readFileSync(file, "utf8"); } catch { continue; }
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-    for (const bad of [/\bfetch\s*\(/, /XMLHttpRequest/, /sendBeacon/, /WebSocket/, /localStorage/, /sessionStorage/, ...(file.endsWith("irpf-device.ts") ? [] : [/indexedDB/]), /document\.cookie/, /\bnavigator\.clipboard\.read/]) {
+    for (const bad of [...(file.endsWith("irpf-sync.ts") ? [] : [/\bfetch\s*\(/]), /XMLHttpRequest/, /sendBeacon/, /WebSocket/, /localStorage/, /sessionStorage/, ...(file.endsWith("irpf-device.ts") ? [] : [/indexedDB/]), /document\.cookie/, /\bnavigator\.clipboard\.read/]) {
       assert.equal(bad.test(code), false, `${file} usa ${bad}`);
     }
   }
@@ -85,4 +85,12 @@ test("parseNum aceita formato brasileiro", () => {
   assert.equal(parseNum("12.5"), 12.5);
   assert.equal(parseNum(""), null);
   assert.equal(parseNum("abc"), null);
+});
+
+test("sincronização com o Portfólio só envia id e preço médio", () => {
+  const src = readFileSync("src/lib/irpf-sync.ts", "utf8");
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.equal((code.match(/fetch\(/g) ?? []).length, 1);
+  assert.match(code, /items: items\.map\(\(x\) => \(\{ id: x\.id, avg: x\.avg \}\)\)/);
+  assert.equal(/discriminacao|cnpj|texto|text\b|cpf/i.test(code), false);
 });
