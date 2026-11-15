@@ -3,18 +3,21 @@ import { getFiis } from "@/lib/market";
 import { DataStatus, Disclaimer, Locked, PageTitle, ProBadge } from "@/components/ui";
 import Link from "next/link";
 import { DividendCalendar } from "@/components/DividendCalendar";
+import { CountryTabs } from "@/components/CountryTabs";
+import { UsMarket } from "@/components/UsMarket";
 import { QuotesTable } from "@/components/QuotesTable";
 import { FREE_LIMITS } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ setor?: string; q?: string; aba?: string; mes?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ pais?: string; setor?: string; q?: string; aba?: string; mes?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const isPro = user.plan === "pro";
   const cal = sp.aba === "calendario";
-  const result = await getFiis();
-  const all = result.data ?? [];
+  const us = sp.pais === "us";
+  const result = us ? null : await getFiis();
+  const all = result?.data ?? [];
   const sectors = [...new Set(all.map((q) => q.sector))].sort((a, b) => a.localeCompare(b, "pt-BR"));
   const term = (sp.q || "").trim().toUpperCase().slice(0, 30);
   const bySector = isPro && sp.setor ? all.filter((q) => q.sector === sp.setor) : all;
@@ -24,6 +27,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
   return (
     <>
       <PageTitle title="Fundos imobiliários" subtitle="Bloco de 20% do Protocolo: 30% galpões logísticos, 30% shopping centers, 30% outros imóveis de tijolo e 10% fundos de papel." />
+      <CountryTabs path="/painel/fiis" pais={us ? "us" : "br"} />
+      {us ? (
+        <UsMarket kind="reits" isPro={isPro} aba={sp.aba} setor={sp.setor} q={sp.q} mes={sp.mes} />
+      ) : (
+      <>
       <div className="mb-4 flex flex-wrap gap-2">
         <Link href="/painel/fiis" className={`btn ${cal ? "btn-ghost" : "btn-gold"}`}>Lista</Link>
         <Link href="/painel/fiis?aba=calendario" className={`btn ${cal ? "btn-gold" : "btn-ghost"}`}>Calendário de dividendos {!isPro && <ProBadge />}</Link>
@@ -32,8 +40,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
         <DividendCalendar fii={true} isPro={isPro} setor={sp.setor} mes={sp.mes} />
       ) : (
       <>
-      <DataStatus result={result} source="brapi.dev (B3)" />
-      {result.data && (
+      <DataStatus result={result!} source="brapi.dev (B3)" />
+      {result?.data && (
         <section className="card p-4">
           {isPro ? (
             <form method="get" className="mb-4 flex flex-wrap items-end gap-3">
@@ -60,7 +68,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
       )}
       </>
       )}
-      <p className="mt-4 text-xs text-muted">Lista completa de FIIs da B3. Fundos sem segmento conhecido aparecem em "Outros / não classificado". A estratégia acima é a estrutura do Protocolo, e não recomendação de compra.</p>
+      </>
+      )}
+      {!us && (<p className="mt-4 text-xs text-muted">Lista completa de FIIs da B3. Fundos sem segmento conhecido aparecem em "Outros / não classificado". A estratégia acima é a estrutura do Protocolo, e não recomendação de compra.</p>)}
       <Disclaimer />
     </>
   );
