@@ -45,7 +45,7 @@ export function RfBenchmarks({ points }: { points: BenchPoint[] }) {
       </svg>
       <ul className="mt-3 grid grid-cols-3 gap-2 text-sm">
         {data.map((d) => { const last = hi !== null ? d.vals[hi] : ([...d.vals].reverse().find((v) => v !== null) ?? null); return (
-          <li key={d.key}><label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={on[d.key]} onChange={(e) => setOn((o) => ({ ...o, [d.key]: e.target.checked }))} /><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: d.color }} /><span className="text-muted">{d.label}</span></label><p className={`mt-0.5 text-lg font-semibold ${last !== null && last < 0 ? "text-down" : ""}`}>{last === null ? "—" : pct(last)}</p></li>
+          <li key={d.key}><label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={on[d.key]} onChange={(e) => setOn((o) => ({ ...o, [d.key]: e.target.checked }))} /><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: d.color }} /><span className="text-muted">{d.label}</span></label><p className={`mt-0.5 text-lg font-semibold ${last !== null && last < 0 ? "text-down" : ""}`}>{last === null ? (d.vals.every((v) => v === null) ? <span className="text-xs font-normal text-muted">indisponível agora</span> : "—") : pct(last)}</p></li>
         ); })}
       </ul>
       <p className="mt-3 text-xs text-muted">Fontes: Banco Central (CDI e IPCA) e Yahoo Finance (Ibovespa, fechamento mensal). Rentabilidade passada não garante resultado futuro.</p>

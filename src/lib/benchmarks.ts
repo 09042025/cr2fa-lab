@@ -27,20 +27,42 @@ export function buildMonthly(cdiDaily: Sgs[], ipcaMonthly: Sgs[], ibov: { ts: nu
 
 const fmt = (d: Date) => `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
 
+interface YChart { chart?: { result?: { timestamp?: number[]; indicators?: { quote?: { close?: (number | null)[] }[] } }[] } }
+
+/** Ibovespa mensal (Yahoo ^BVSP), em cache próprio: se a busca vier vazia, NÃO guarda e tenta de novo na próxima visita. */
+function getIbov() {
+  return cached<{ ts: number; close: number }[]>("bench:ibov:v2", 6 * 3600, async () => {
+    let lastErr = "sem dados";
+    for (const host of ["query1", "query2"]) {
+      try {
+        const j = await fetchJson<YChart>(`https://${host}.finance.yahoo.com/v8/finance/chart/%5EBVSP?range=10y&interval=1mo`, {}, 20000);
+        const r = j.chart?.result?.[0]; const closes = r?.indicators?.quote?.[0]?.close ?? [];
+        const out = (r?.timestamp ?? []).map((t, i) => ({ ts: t * 1000, close: closes[i] ?? 0 })).filter((p) => p.close > 0);
+        if (out.length > 12) return out;
+      } catch (e) { lastErr = e instanceof Error ? e.message : lastErr; }
+    }
+    throw new Error(`Ibovespa indisponível: ${lastErr}`);
+  });
+}
+
 /** CDI (SGS 12), IPCA (SGS 433) e Ibovespa (^BVSP) dos últimos 5 anos. Fontes: Banco Central e Yahoo Finance. */
-export function getBenchmarks() {
-  return cached<Bench>("bench:rf:v1", 6 * 3600, async () => {
+export async function getBenchmarks() {
+  const [rates, ib] = await Promise.all([getRates5y(), getIbov()]);
+  if (!rates.data) return { data: null as Bench | null, error: rates.error };
+  const points = buildMonthly(rates.data.cdi, rates.data.ipca, ib.data ?? []);
+  if (points.length < 2) return { data: null as Bench | null, error: "Séries do Banco Central indisponíveis" };
+  return { data: { points, updatedAt: new Date().toISOString() } as Bench, error: undefined };
+}
+
+function getRates5y() {
+  return cached<{ cdi: Sgs[]; ipca: Sgs[] }>("bench:bcb:v2", 6 * 3600, async () => {
     const end = new Date(); const start = new Date(Date.UTC(end.getUTCFullYear() - 5, end.getUTCMonth(), 1));
     const q = `formato=json&dataInicial=${fmt(start)}&dataFinal=${fmt(end)}`;
-    const [cdi, ipca, ib] = await Promise.all([
+    const [cdi, ipca] = await Promise.all([
       fetchJson<Sgs[]>(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.12/dados?${q}`, {}, 25000),
       fetchJson<Sgs[]>(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?${q}`, {}, 25000),
-      fetchJson<{ chart?: { result?: { timestamp?: number[]; indicators?: { quote?: { close?: (number | null)[] }[] } }[] } }>("https://query1.finance.yahoo.com/v8/finance/chart/%5EBVSP?range=5y&interval=1mo", {}, 20000).catch(() => null),
     ]);
-    const r = ib?.chart?.result?.[0]; const closes = r?.indicators?.quote?.[0]?.close ?? [];
-    const ibov = (r?.timestamp ?? []).map((t, i) => ({ ts: t * 1000, close: closes[i] ?? 0 }));
-    const points = buildMonthly(cdi, ipca, ibov);
-    if (points.length < 2) throw new Error("Séries do Banco Central indisponíveis");
-    return { points, updatedAt: new Date().toISOString() };
+    if (!cdi.length || !ipca.length) throw new Error("Séries do Banco Central vazias");
+    return { cdi, ipca };
   });
 }
