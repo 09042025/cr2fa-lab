@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { applyDec, parseDec, type DecResult } from "@/lib/irpf-dec";
 import { deviceSupported, forgetDevice, hasDevicePhrase, quickUnlock, saveDevicePhrase } from "@/lib/irpf-device";
 import { decryptVault, encryptVault, isValidPhrase, newPhrase, normalizePhrase, pickChecks, type VaultFile } from "@/lib/irpf-crypto";
 import {
@@ -67,6 +68,8 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const [quickAns, setQuickAns] = useState<Record<number, string>>({});
   const [remember, setRemember] = useState(false);
   const [forceFull, setForceFull] = useState(false);
+  const [dec, setDec] = useState<DecResult | null>(null);
+  const [decName, setDecName] = useState("");
   useEffect(() => { void hasDevicePhrase().then((v) => { setQuick(v); if (v) setQuickPos(pickChecks()); }); }, [stage]);
 
   const startNew = () => { setWords(newPhrase()); setChecks(pickChecks()); setAnswers({}); setStage("new"); setMsg(null); };
@@ -110,6 +113,14 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const bens = useMemo(() => (ws ? buildBens(items, ws) : []), [items, ws]);
   const prov = useMemo(() => (ws ? buildProventos(items, ws) : []), [items, ws]);
   const totals = useMemo(() => totalsByType(prov), [prov]);
+
+  const pickDec = async (f: File | null) => {
+    setDec(null); setMsg(null);
+    if (!f) return;
+    if (!/\.dec$/i.test(f.name)) { setMsg("Esse arquivo não termina em .DEC. Use o arquivo da declaração (não o recibo nem o backup .DBK)."); return; }
+    setDecName(f.name);
+    setDec(parseDec(new Uint8Array(await f.arrayBuffer())));
+  };
 
   /* ----------------------------------- salvar ----------------------------------- */
   const save = async () => {
@@ -216,6 +227,27 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
 
       {tab === "bens" && (
         <div className="space-y-4">
+          <section className="card border-gold/30 p-4">
+            <h3 className="font-semibold">Importar a declaração do ano passado (.DEC)</h3>
+            <p className="mt-1 text-xs text-muted">Puxa todo o histórico: o que você tinha em 31/12/{ws.year - 1} vira a &quot;situação anterior&quot;, e imóveis, veículos e contas continuam para você só atualizar. O arquivo é lido aqui no seu navegador e <strong className="text-white">não é enviado a lugar nenhum</strong>; CPF e nome do arquivo são ignorados.</p>
+            <p className="mt-1 text-xs text-muted">Onde achar: no programa da Receita, abra a declaração entregue; o arquivo .DEC fica na pasta de declarações transmitidas (algo como <em>ProgramasRFB/IRPF{ws.year}/transmitidas</em>, nome terminando em ORIG.DEC ou RETIF.DEC). No celular/app gov.br, peça o arquivo da declaração em Meu Imposto de Renda.</p>
+            <input type="file" accept=".dec,.DEC" className="input mt-3 w-full" onChange={(e) => void pickDec(e.target.files?.[0] ?? null)} />
+            {dec && !dec.ok && <p role="alert" className="mt-3 text-sm text-down">{dec.error}</p>}
+            {dec && dec.ok && (
+              <div className="mt-3 rounded-lg border border-line bg-panel-2 p-3 text-sm">
+                <p className="font-semibold text-white">{decName}</p>
+                <p className="text-muted">{dec.exercicio ? `Declaração de ${dec.exercicio} (ano-base ${dec.anoBase})` : "Ano não identificado"} · {dec.bens.length} bem(ns) · isentos: {Object.keys(dec.isentos).length} código(s) · exclusivos: {Object.keys(dec.exclusivos).length} código(s)</p>
+                {dec.anoBase !== null && dec.anoBase !== ws.year - 1 && <p className="mt-1 text-yellow-300">Atenção: o ano-base deste arquivo é {dec.anoBase}, mas o simulado espera {ws.year - 1} como ano anterior.</p>}
+                {dec.warnings.map((w) => <p key={w} className="mt-1 text-xs text-yellow-300">● {w}</p>)}
+                <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-xs text-muted">{dec.bens.map((b, i) => <li key={i}>{b.grupo}-{b.codigo} · {brl(b.atual)} · {b.texto.slice(0, 90)}{b.texto.length > 90 ? "…" : ""}</li>)}</ul>
+                <p className="mt-2 text-xs text-muted">Confira se bate com a sua declaração antes de aplicar.</p>
+                <div className="mt-2 flex gap-2">
+                  <button type="button" className="btn btn-gold" onClick={() => { update((w) => applyDec(w, dec, items.map((i) => i.ticker).filter((t): t is string => !!t))); setDec(null); setMsg("Histórico importado. Revise os bens abaixo e os avisos."); }}>Aplicar histórico</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => setDec(null)}>Cancelar</button>
+                </div>
+              </div>
+            )}
+          </section>
           <p className="text-sm text-muted">Os ativos da sua carteira já vieram preenchidos. Na declaração, ações, FIIs e cripto entram pelo <strong className="text-white">custo de aquisição</strong> (quantidade × preço médio), não pelo valor de hoje. Confira se a quantidade é a que você tinha em <strong className="text-white">31/12/{ws.year}</strong>.</p>
           {bens.length === 0 && <p className="card p-4 text-sm text-muted">Nenhum ativo na carteira. Cadastre em Portfólio ou adicione bens abaixo.</p>}
           {bens.map((b) => (
@@ -256,6 +288,9 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
       {tab === "rend" && (
         <div className="space-y-4">
           <p role="note" className="rounded-lg border border-yellow-400/40 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200">Os valores abaixo são <strong>estimativas</strong>: somamos os proventos do ano (data com) × a quantidade que você tem hoje, sem saber quando você comprou ou vendeu. O número oficial está no <strong>informe de rendimentos</strong> da sua corretora (disponível em fevereiro). Ajuste cada valor para bater com ele.</p>
+          {ws.lastYear && (
+            <p className="card p-4 text-sm text-muted">No ano passado ({ws.lastYear.anoBase ?? "?"}) você declarou: {[...Object.entries(ws.lastYear.isentos).map(([k, v]) => `isento ${k}: ${brl(v)}`), ...Object.entries(ws.lastYear.exclusivos).map(([k, v]) => `exclusivo ${k}: ${brl(v)}`)].join(" · ") || "nenhum rendimento isento ou exclusivo"}. Use como referência para conferir este ano.</p>
+          )}
           {prov.length === 0 && <p className="card p-4 text-sm text-muted">Nenhuma ação ou FII com proventos na carteira.</p>}
           {prov.map((p) => {
             const info = PROV_INFO[p.type];
@@ -363,6 +398,8 @@ function CustomBens({ ws, update }: { ws: Workspace; update: (f: (w: Workspace) 
         <div key={c.id} className="mt-3 rounded-lg border border-line bg-panel-2 p-3 text-sm">
           <p className="text-xs text-gold-soft">Grupo {c.grupo} · Código {c.codigo}</p>
           <p>{c.discriminacao}</p>
+          {c.review && <p className="text-xs text-yellow-300">● {c.review}</p>}
+          <label className="mt-1 block text-xs text-muted">Valor em 31/12/{ws.year} (R$): <input className="input ml-1 w-40" inputMode="decimal" autoComplete="off" value={String(c.valor).replace(".", ",")} onChange={(e) => update((w) => ({ ...w, custom: w.custom.map((x) => (x.id === c.id ? { ...x, valor: parseNum(e.target.value) ?? 0, review: undefined } : x)) }))} /></label>
           <p className="text-xs text-muted">31/12/{ws.year - 1}: {c.prev !== null ? brl(c.prev) : "—"} · 31/12/{ws.year}: {brl(c.valor)} <button type="button" className="ml-2 text-down underline" onClick={() => update((w) => ({ ...w, custom: w.custom.filter((x) => x.id !== c.id) }))}>remover</button></p>
         </div>
       ))}
@@ -383,7 +420,7 @@ function PrevBens({ ws, update }: { ws: Workspace; update: (f: (w: Workspace) =>
   return (
     <section className="card p-4">
       <h3 className="font-semibold">Declaração do ano anterior</h3>
-      <p className="text-xs text-muted">Se você abriu o cofre do ano passado, isso já veio sozinho. Se é a primeira vez no cofre, digite os valores de 31/12/{ws.year - 1} da sua última declaração (copie a discriminação, com o código do ativo, ex.: PETR4). A leitura direta do arquivo da Receita (.DEC) é a próxima etapa.</p>
+      <p className="text-xs text-muted">Se você abriu o cofre do ano passado, isso já veio sozinho. Se é a primeira vez no cofre, digite os valores de 31/12/{ws.year - 1} da sua última declaração (copie a discriminação, com o código do ativo, ex.: PETR4). Ou importe o arquivo .DEC no topo desta aba.</p>
       {ws.previous.map((x) => <p key={x.id} className="mt-2 text-sm">{x.discriminacao} <span className="text-muted">· {brl(x.valor)}</span> <button type="button" className="ml-2 text-xs text-down underline" onClick={() => update((w) => ({ ...w, previous: w.previous.filter((y) => y.id !== x.id) }))}>remover</button></p>)}
       <div className="mt-3 grid gap-3 md:grid-cols-[1fr_200px_auto] md:items-end">
         <Field label="Discriminação" value={t} text onChange={setT} />

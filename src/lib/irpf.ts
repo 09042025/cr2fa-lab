@@ -17,12 +17,15 @@ export interface PortfolioItem {
 export interface ItemEdit { custody?: string; cnpj?: string; qty?: number | null; avg?: number | null; text?: string; skip?: boolean }
 export interface ProvEdit { type?: ProvType; gross?: number | null; irrf?: number | null }
 export interface PrevBem { id: string; grupo: string; codigo: string; discriminacao: string; valor: number }
-export interface CustomBem { id: string; grupo: string; codigo: string; discriminacao: string; valor: number; prev: number | null }
+export interface CustomBem { id: string; grupo: string; codigo: string; discriminacao: string; valor: number; prev: number | null; /** veio do arquivo .DEC importado */ fromDec?: boolean; /** aviso para o usuário conferir */ review?: string }
+export interface LastYear { exercicio: number | null; anoBase: number | null; isentos: Record<string, number>; exclusivos: Record<string, number> }
 export interface Workspace {
   v: 1; year: number; previous: PrevBem[]; custom: CustomBem[];
   edits: Record<string, ItemEdit>; prov: Record<string, ProvEdit>; notes: string; savedAt: string;
   /** Fotografia dos bens em 31/12 do ano do arquivo: vira a "situação anterior" no ano seguinte. */
   snapshot?: PrevBem[];
+  /** Totais da declaração anterior importada do .DEC (só para comparar). */
+  lastYear?: LastYear;
 }
 export const emptyWorkspace = (year: number): Workspace => ({ v: 1, year, previous: [], custom: [], edits: {}, prov: {}, notes: "", savedAt: "" });
 
