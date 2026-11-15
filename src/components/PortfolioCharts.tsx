@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -127,63 +128,35 @@ export function ProtocolDashboard({ slices, totalCents }: { slices: PieSlice[]; 
 export interface IncomeMonthView { month: string; total: number; items: { ticker: string; date: string; perShare: number; qty: number; total: number }[] }
 
 export function IncomeByMonth({ months }: { months: IncomeMonthView[] }) {
+  const router = useRouter();
   const first = months.findIndex((m) => m.total > 0);
   const [sel, setSel] = useState(first >= 0 ? first : 0);
+  const last = useRef<{ i: number; t: number }>({ i: -1, t: 0 });
   const max = Math.max(...months.map((m) => m.total), 1);
   const total = months.reduce((a, m) => a + m.total, 0);
-  const cur = months[sel];
+  // toque duplo (funciona no celular e no mouse): abre a página do mês
+  function tap(i: number) {
+    const t = Date.now();
+    if (last.current.i === i && t - last.current.t < 450) { router.push(`/painel/portfolio/dividendos?mes=${months[i].month}`); last.current = { i: -1, t: 0 }; return; }
+    last.current = { i, t };
+    setSel(i);
+  }
   return (
     <section className="card mb-6 p-4">
       <h2 className="mb-1 font-semibold">Dividendos por mês</h2>
       <p className="mb-3 text-sm text-muted">
-        Projeção dos próximos 12 meses: repete o que cada ativo pagou nos últimos 12 meses, multiplicado pela quantidade que você tem hoje. Total estimado: <strong className="text-white">{brl(total)}</strong> (média de {brl(total / 12)} por mês). Clique em um mês para ver de qual ativo vem.
+        Projeção dos próximos 12 meses: repete o que cada ativo pagou nos últimos 12 meses, multiplicado pela quantidade que você tem hoje. Total estimado: <strong className="text-white">{brl(total)}</strong> (média de {brl(total / 12)} por mês). Toque duas vezes em um mês para ver de qual ativo vem.
       </p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         {months.map((m, i) => (
-          <button type="button" key={m.month} onClick={() => setSel(i)} aria-pressed={i === sel}
-            className={`rounded-lg border p-2 text-center text-xs transition ${i === sel ? "border-gold bg-gold/10" : "border-line bg-panel-2 hover:border-gold/50"}`}>
+          <button type="button" key={m.month} onClick={() => tap(i)} aria-pressed={i === sel} style={{ touchAction: "manipulation" }}
+            className={`rounded-lg border p-2 text-center text-xs transition select-none ${i === sel ? "border-gold bg-gold/10" : "border-line bg-panel-2 hover:border-gold/50"}`}>
             <p className="font-semibold">{mlabel(m.month)}</p>
             <div className="mx-auto my-1 flex h-10 items-end"><div className="w-6 rounded-t bg-gold/70" style={{ height: `${Math.max(m.total ? 8 : 2, (m.total / max) * 40)}px` }} /></div>
             <p>{m.total ? brl(m.total) : "—"}</p>
           </button>
         ))}
       </div>
-      {cur && (
-        <div className="mt-4 rounded-lg border border-line bg-panel-2 p-3">
-          <h3 className="mb-2 text-sm font-semibold">{mlabel(cur.month)}: {cur.total ? brl(cur.total) : "nenhum provento estimado"}</h3>
-          {cur.items.length > 0 && (
-            <>
-              <div className="space-y-1.5 sm:hidden">
-                {cur.items.map((x) => (
-                  <div key={`${x.ticker}-${x.date}`} className="flex items-center justify-between gap-2 rounded-md bg-ink/40 px-2.5 py-2 text-xs">
-                    <div className="min-w-0">
-                      <p className="font-semibold">{x.ticker}</p>
-                      <p className="text-[11px] text-muted">{x.qty.toLocaleString("pt-BR")} × {brl(x.perShare)} · com {x.date.split("-").reverse().slice(0, 2).join("/")}</p>
-                    </div>
-                    <span className="shrink-0 font-semibold text-gold-soft">{brl(x.total)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="hidden sm:block">
-            <table className="data w-full text-xs [&_td]:px-2 [&_td]:py-1.5 [&_th]:px-2">
-              <thead><tr><th>Ativo</th><th>Data com (ano passado)</th><th className="num">Por cota/ação</th><th className="num">Quantidade</th><th className="num">Estimado</th></tr></thead>
-              <tbody>
-                {cur.items.map((x) => (
-                  <tr key={`${x.ticker}-${x.date}`}>
-                    <td className="font-semibold">{x.ticker}</td>
-                    <td>{x.date.split("-").reverse().join("/")}</td>
-                    <td className="num">{brl(x.perShare)}</td>
-                    <td className="num">{x.qty.toLocaleString("pt-BR")}</td>
-                    <td className="num font-semibold text-gold-soft">{brl(x.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-              </div>
-            </>
-          )}
-        </div>
-      )}
       <p className="mt-2 text-xs text-muted">Estimativa baseada no histórico, não é promessa de pagamento. Considera só ações e FIIs com código e quantidade informados.</p>
     </section>
   );
