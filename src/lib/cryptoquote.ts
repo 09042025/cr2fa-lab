@@ -71,7 +71,10 @@ export async function findCoin(query: string): Promise<{ id: string; name: strin
 export const isUsStock = (h: { block: string; ticker: string | null }) => (h.block === "acoes" || h.block === "fiis") && !!h.ticker && !/^[A-Z]{4}\d{1,2}$/.test(h.ticker);
 
 /** Logo de empresa americana (fonte aberta de logos por código). */
-export const usLogo = (t: string) => [`https://assets.parqet.com/logos/symbol/${t}?format=png`, `https://financialmodelingprep.com/image-stock/${t}.png`];
+const LOGO_OVERRIDE: Record<string, string[]> = {
+  SPCX: ["https://www.google.com/s2/favicons?domain=spacex.com&sz=128", "https://icons.duckduckgo.com/ip3/spacex.com.ico"],
+};
+export const usLogo = (t: string) => LOGO_OVERRIDE[t] ?? [`https://assets.parqet.com/logos/symbol/${t}?format=png`, `https://financialmodelingprep.com/image-stock/${t}.png`];
 
 async function usRate(): Promise<number | null> { return yahooPrice("BRL=X"); }
 

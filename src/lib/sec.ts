@@ -37,7 +37,7 @@ function units(f: Facts, tax: string, concepts: string[], unit = "USD"): Entry[]
 function annual(f: Facts, concepts: string[]): { cur: number | null; prev: number | null; end: string | null } {
   let best: Entry[] = [];
   for (const c of concepts) {
-    const es = (f.facts?.["us-gaap"]?.[c]?.units?.USD ?? []).filter((e) => e.form === "10-K" && e.start && days(e.start, e.end) > 340 && days(e.start, e.end) < 390);
+    const es = (f.facts?.["us-gaap"]?.[c]?.units?.USD ?? []).filter((e) => /^(10-K|S-1|424B|20-F|40-F)/.test(e.form ?? "") && e.start && days(e.start, e.end) > 340 && days(e.start, e.end) < 390);
     if (es.length && (!best.length || es.reduce((m, e) => (e.end > m ? e.end : m), "") > best.reduce((m, e) => (e.end > m ? e.end : m), ""))) best = es;
   }
   if (!best.length) return { cur: null, prev: null, end: null };
@@ -92,7 +92,7 @@ async function cikOf(sym: string): Promise<string | null> {
   return m.data?.[sym] ?? null;
 }
 
-export const fundKey = (sym: string) => `sec:fund:${sym}:v2`;
+export const fundKey = (sym: string) => `sec:fund:${sym}:v3`;
 
 export function getFund(sym: string) {
   return cached<Fund>(fundKey(sym), 24 * 3600, async () => {
