@@ -115,3 +115,24 @@ ${ev.notes ? `<p style="font-size:14px;color:#444;white-space:pre-wrap">${escape
 </div>`,
   };
 }
+
+export function attentionEmail(name: string, items: { label: string; bad: number; total: number; id: number }[], base: string): { subject: string; html: string; text: string } {
+  const app = process.env.APP_NAME || "NIZA INVEST";
+  const first = name.trim().split(/\s+/)[0] || "";
+  const hello = first ? `Olá, ${first}!` : "Olá!";
+  const link = (id: number) => `${base}/painel/posicao/${id}`;
+  const lines = items.map((i) => `• ${i.label}: ${i.bad} de ${i.total} indicadores ruins - ${link(i.id)}`).join("\n");
+  const rows = items.map((i) => `<li style="margin-bottom:8px"><strong>${escapeHtml(i.label)}</strong>: ${i.bad} de ${i.total} indicadores ruins - <a href="${escapeHtml(link(i.id))}">abrir o ativo</a></li>`).join("");
+  return {
+    subject: `Atenção: ${items.length === 1 ? "um ativo da sua carteira está" : `${items.length} ativos da sua carteira estão`} com mais da metade dos indicadores ruins`,
+    text: `${hello}\n\nMais da metade dos indicadores destes ativos está ruim:\n\n${lines}\n\nAbra cada ativo, confira os pontos de atenção e clique em "Estou ciente e a decisão é minha" para parar de receber este aviso diário. Informativo, não é recomendação de investimento.`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1a1a1a">
+<h2 style="color:#b8860b">${escapeHtml(app)}</h2>
+<p>${escapeHtml(hello)}</p>
+<p>Mais da metade dos indicadores destes ativos da sua carteira está <strong>ruim</strong>:</p>
+<ul>${rows}</ul>
+<p style="font-size:13px;color:#555">Abra cada ativo, confira os pontos de atenção e clique em <strong>"Estou ciente e a decisão é minha"</strong> para parar de receber este aviso diário às 8h.</p>
+<p style="font-size:12px;color:#777">Informativo, não é recomendação de investimento.</p>
+</div>`,
+  };
+}

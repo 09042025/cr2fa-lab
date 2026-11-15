@@ -51,7 +51,7 @@ export function HoldingForm() {
         block: f.get("block"),
         label: String(f.get("label") || "").trim() || t,
         value: Number(String(f.get("value")).replace(",", ".")) || est || 0,
-        ticker: b3 ? t : undefined,
+        ticker: b3 || (px.state === "ok" && block === "cripto") ? t : undefined,
         qty: num(f.get("qty")),
         avgPrice: num(f.get("avg")),
       }),
