@@ -4,7 +4,7 @@
  * Informativo, não é recomendação de investimento.
  */
 import { analyzeFii, analyzeStock, type Indicator, type Status } from "./indicators";
-import { companyByName, companyOf, getCvmData, getFiiData, getFiiImoveis } from "./cvm";
+import { companyByName, companyInd, companyOf, getCvmData, getCvmInd, getFiiData, getFiiImoveis } from "./cvm";
 import { getQuote, monthsPaid, sumBetween, type Quote } from "./dividends";
 import { getAssetDetail, getCoinDetail } from "./market";
 import { coinIdOf, isCryptoHolding, isUsStock } from "./cryptoquote";
@@ -82,7 +82,7 @@ export async function assessStockOrFii(ticker: string, isFii: boolean, hint?: { 
   } else {
     const cvm = getCvmData();
     const alias = CVM_ALIAS[ticker.slice(0, 4)];
-    const found = cvm.data ? (companyOf(cvm.data, ticker) ?? (name ? companyByName(cvm.data, name) : null) ?? (alias ? companyByName(cvm.data, alias) : null)) : null;
+    const found = cvm.data ? (companyOf(cvm.data, ticker) ?? (name ? companyByName(cvm.data, name) : null) ?? (alias ? companyByName(cvm.data, alias) : null) ?? companyInd(cvm.data, getCvmInd().data, ticker, name, alias)) : null;
     if (found) {
       const a = analyzeStock({ rows: found.company.rows, bank: found.company.bank, price, marketCap, dividends12m: quote ? div12 : null });
       indicators = a.indicators;

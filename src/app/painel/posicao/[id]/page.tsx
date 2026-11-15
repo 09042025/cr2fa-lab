@@ -91,7 +91,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
         <AssetAnalysis ticker={h.ticker} isFii={h.block === "fiis" || isFiiTicker(h.ticker)} marketCap={detail?.marketCap ?? null} brapiPrice={detail?.price ?? null} name={detail?.name ?? null} />
       )}
 
-      {h.ticker && crypto && a && (
+      {h.ticker && (crypto || isUsStock(h)) && a && (
         <>
           <h2 className="mb-1 mt-2 font-display text-xl font-bold text-gold-soft">Indicadores</h2>
           <p className="mb-3 text-xs text-muted">Fonte: {a.source}. Os selos seguem critérios gerais e fixos e são informativos, não recomendação de investimento.</p>
