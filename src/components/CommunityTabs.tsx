@@ -11,13 +11,14 @@ const TABS = [
   { href: "/painel/cursos", label: "Masterclass" },
   { href: "/painel/links", label: "Links Essenciais" },
   { href: "/painel/portfolio", label: "Portfólio" },
+  { href: "/painel/irpf", label: "Imposto de Renda" },
   { href: "/painel/financiamento", label: "Financiamentos" },
   { href: "/painel/negocios", label: "Negócios" },
   { href: "/painel/mentoria", label: "Mentoria com Niza", diamond: true },
   { href: "/painel/black", label: "Black Diamond VIP", black: true },
   { href: "/painel/protocolo", label: "Protocolo CR2FA" },
 ];
-const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/financiamento", "/painel/negocios", "/painel/mentoria", "/painel/black", "/painel/protocolo"];
+const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/irpf", "/painel/financiamento", "/painel/negocios", "/painel/mentoria", "/painel/black", "/painel/protocolo"];
 
 /** Abas da área Premium (White Flame Society): aparecem em todas as páginas dela. */
 export function CommunityTabs(_props: { pro?: boolean }) {
