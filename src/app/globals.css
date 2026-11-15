@@ -151,3 +151,6 @@ html[data-standalone] #pwa-splash { display: flex; }
 .logo-hub { display: none; }
 html[data-standalone] .logo-hub { display: inline; }
 html[data-standalone] .logo-invest { display: none; }
+
+/* Olho do portfólio: esconde valores marcados com .money */
+html[data-hide] .money { filter: blur(8px); user-select: none; pointer-events: none; }

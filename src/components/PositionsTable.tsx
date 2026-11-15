@@ -36,12 +36,12 @@ export function PositionsTable({ rows }: { rows: PositionRowData[] }) {
           <Link key={r.id} href={`/painel/posicao/${r.id}`} className="block rounded-lg border border-line bg-panel-2 p-3 text-xs">
             <div className="flex items-center justify-between gap-2">
               <span className="flex min-w-0 items-center gap-2 text-sm font-semibold"><Logo r={r} size={26} /><span className="truncate">{r.label}</span>{r.b3 && <span className="shrink-0 rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">B3</span>}</span>
-              <span className="shrink-0 text-sm font-semibold">{r.value}</span>
+              <span className="money shrink-0 text-sm font-semibold">{r.value}</span>
             </div>
             <div className="mt-1 flex items-center justify-between gap-2"><span className="text-[11px] text-muted">{r.block}</span><AttentionBall a={r.attn} /></div>
             <div className="mt-2 grid grid-cols-4 gap-2 text-muted">
-              <div><p className="text-[10px] uppercase">Qtd.</p><p className="text-white">{r.qty}</p></div>
-              <div><p className="text-[10px] uppercase">P. médio</p><p className="text-white">{r.avg ?? (r.needsAvg ? "ajustar" : "—")}</p></div>
+              <div><p className="text-[10px] uppercase">Qtd.</p><p className="money text-white">{r.qty}</p></div>
+              <div><p className="text-[10px] uppercase">P. médio</p><p className="money text-white">{r.avg ?? (r.needsAvg ? "ajustar" : "—")}</p></div>
               <div><p className="text-[10px] uppercase">Atual</p><p className="text-white">{r.price}</p></div>
               <div><p className="text-[10px] uppercase">Result.</p><p className={r.resultTone === "up" ? "text-up" : r.resultTone === "down" ? "text-down" : "text-white"}>{r.result}</p></div>
             </div>
@@ -56,11 +56,11 @@ export function PositionsTable({ rows }: { rows: PositionRowData[] }) {
               <td>{r.block}</td>
               <td className="font-semibold"><Link href={`/painel/posicao/${r.id}`} className="flex items-center gap-2 hover:underline"><Logo r={r} size={24} /><span className="break-words">{r.label}</span>{r.b3 && <span className="rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-gold-soft">B3</span>}</Link></td>
               <td><AttentionBall a={r.attn} /></td>
-              <td className="num">{r.qty}</td>
+              <td className="num"><span className="money">{r.qty}</span></td>
               <td className="num">{r.avg ?? (r.needsAvg ? <span className="text-[10px] text-muted">abra e ajuste</span> : "—")}</td>
               <td className="num">{r.price}</td>
               <td className={`num ${r.resultTone === "up" ? "text-up" : r.resultTone === "down" ? "text-down" : ""}`}>{r.result}</td>
-              <td className="num">{r.value}</td>
+              <td className="num"><span className="money">{r.value}</span></td>
             </tr>
           ))}
         </tbody>

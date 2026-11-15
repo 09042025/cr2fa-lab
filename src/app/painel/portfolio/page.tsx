@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { BLOCKS, rebalance, type BlockKey } from "@/lib/protocol";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
+import { PrivacyEye } from "@/components/PrivacyEye";
 import { PortfolioEntry } from "@/components/PortfolioEntry";
 import { PositionsTable } from "@/components/PositionsTable";
 import { EvolutionChart, IncomeByMonth, ProtocolDashboard } from "@/components/PortfolioCharts";
@@ -59,25 +60,25 @@ export default async function PortfolioPage() {
 
   return (
     <>
-      <PageTitle title="Portfólio" subtitle="Importe sua posição da B3 ou preencha manualmente, por bloco. A tabela mostra quanto comprar (+) ou vender (−) em cada bloco para voltar aos 20% do Protocolo." />
+      <div className="flex items-start justify-between gap-3"><PageTitle title="Portfólio" subtitle="Importe sua posição da B3 ou preencha manualmente, por bloco. A tabela mostra quanto comprar (+) ou vender (−) em cada bloco para voltar aos 20% do Protocolo." /><PrivacyEye /></div>
       <PortfolioEntry startOnB3={holdings.length === 0} />
 
-      <ProtocolDashboard totalCents={total} slices={rows.map((r) => ({ key: r.block.key, name: r.block.name, color: r.block.color, value: r.currentCents / 100, target: r.block.pct }))} />
+      <div className="money"><ProtocolDashboard totalCents={total} slices={rows.map((r) => ({ key: r.block.key, name: r.block.name, color: r.block.color, value: r.currentCents / 100, target: r.block.pct }))} /></div>
 
       <section className="card mb-6 p-4">
         <h2 className="mb-1 font-semibold">Rebalanceamento</h2>
-        <p className="mb-3 text-sm text-muted">Patrimônio nos blocos: <strong className="text-white">{brl(total / 100)}</strong> (a reserva de emergência não entra aqui).</p>
+        <p className="mb-3 text-sm text-muted">Patrimônio nos blocos: <strong className="text-white"><span className="money">{brl(total / 100)}</span></strong> (a reserva de emergência não entra aqui).</p>
         <div className="space-y-2 sm:hidden">
           {rows.map((r) => (
             <div key={r.block.key} className="rounded-lg border border-line bg-panel-2 p-3 text-xs">
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 text-sm font-semibold"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: r.block.color }} />{r.block.name}</span>
-                <span className={`font-semibold ${r.diffCents > 0 ? "text-up" : r.diffCents < 0 ? "text-down" : ""}`}>{r.diffCents > 0 ? "Comprar " : r.diffCents < 0 ? "Vender " : ""}{brl(Math.abs(r.diffCents) / 100)}</span>
+                <span className={`font-semibold ${r.diffCents > 0 ? "text-up" : r.diffCents < 0 ? "text-down" : ""}`}>{r.diffCents > 0 ? "Comprar " : r.diffCents < 0 ? "Vender " : ""}<span className="money">{brl(Math.abs(r.diffCents) / 100)}</span></span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-muted">
-                <div><p className="text-[10px] uppercase">Atual</p><p className="text-white">{brl(r.currentCents / 100)}</p></div>
+                <div><p className="text-[10px] uppercase">Atual</p><p className="text-white"><span className="money">{brl(r.currentCents / 100)}</span></p></div>
                 <div><p className="text-[10px] uppercase">% atual</p><p className="text-white">{pct(r.currentPct, 1)}</p></div>
-                <div><p className="text-[10px] uppercase">Alvo (20%)</p><p className="text-white">{brl(r.targetCents / 100)}</p></div>
+                <div><p className="text-[10px] uppercase">Alvo (20%)</p><p className="text-white"><span className="money">{brl(r.targetCents / 100)}</span></p></div>
               </div>
             </div>
           ))}
@@ -89,11 +90,11 @@ export default async function PortfolioPage() {
               {rows.map((r) => (
                 <tr key={r.block.key}>
                   <td><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ background: r.block.color }} />{r.block.name}</td>
-                  <td className="num">{brl(r.currentCents / 100)}</td>
+                  <td className="num"><span className="money">{brl(r.currentCents / 100)}</span></td>
                   <td className="num">{pct(r.currentPct, 1)}</td>
-                  <td className="num">{brl(r.targetCents / 100)}</td>
+                  <td className="num"><span className="money">{brl(r.targetCents / 100)}</span></td>
                   <td className={`num font-semibold ${r.diffCents > 0 ? "text-up" : r.diffCents < 0 ? "text-down" : ""}`}>
-                    {r.diffCents > 0 ? "Comprar " : r.diffCents < 0 ? "Vender " : ""}{brl(Math.abs(r.diffCents) / 100)}
+                    {r.diffCents > 0 ? "Comprar " : r.diffCents < 0 ? "Vender " : ""}<span className="money">{brl(Math.abs(r.diffCents) / 100)}</span>
                   </td>
                 </tr>
               ))}
@@ -105,15 +106,15 @@ export default async function PortfolioPage() {
 
       {tracked.length > 0 && (
         <>
-          <IncomeByMonth months={income.map((m) => ({ month: m.month, total: m.total, items: m.items }))} />
+          <div className="money"><IncomeByMonth months={income.map((m) => ({ month: m.month, total: m.total, items: m.items }))} /></div>
 
           <section className="card mb-6 p-4">
             <h2 className="mb-1 font-semibold">Evolução da carteira</h2>
             <p className="mb-3 text-sm text-muted">
-              Valor de mercado de hoje: <strong className="text-white">{brl(marketValue)}</strong>
-              {invested > 0 && <> · Custo (preço médio): <strong className="text-white">{brl(invested)}</strong> · Resultado: <strong className={marketValue >= invested ? "text-up" : "text-down"}>{pct(((marketValue - invested) / invested) * 100, 1)}</strong></>}
+              Valor de mercado de hoje: <strong className="text-white"><span className="money">{brl(marketValue)}</span></strong>
+              {invested > 0 && <> · Custo (preço médio): <strong className="text-white"><span className="money">{brl(invested)}</span></strong> · Resultado: <strong className={marketValue >= invested ? "text-up" : "text-down"}>{pct(((marketValue - invested) / invested) * 100, 1)}</strong></>}
             </p>
-            <EvolutionChart points={evo} marketValue={marketValue} invested={invested} />
+            <div className="money"><EvolutionChart points={evo} marketValue={marketValue} invested={invested} /></div>
             <p className="mt-2 text-xs text-muted">Mostra como a carteira de hoje (mesmas quantidades) se comportou, com fechamento mensal das cotações. Passe o mouse (ou o dedo) sobre o gráfico para ver cada mês; o período máximo é o histórico que temos (até 5 anos). Posições sem código entram com o valor informado.</p>
           </section>
         </>
