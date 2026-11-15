@@ -9,23 +9,25 @@ interface H { id: number; block: string; label: string; ticker: string | null; a
  * Para cada Premium: se mais da metade dos indicadores de um ativo está ruim e o investidor ainda não confirmou ("ciente"),
  * entra no e-mail do dia. Quando o ativo volta ao normal, a confirmação é zerada (um novo alerta voltará a avisar).
  */
-export async function runAttentionAlerts(send: Sender = (to, m) => sendMail({ to, ...m })): Promise<number> {
+export async function runAttentionAlerts(send: Sender = (to, m) => sendMail({ to, ...m }), opts: { userId?: number; ignoreAck?: boolean } = {}): Promise<{ sent: number; items: number; incomplete: boolean }> {
   const base = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
-  const users = db().prepare("SELECT * FROM users WHERE role = 'user' AND plan = 'pro' AND (plan_expires_at IS NULL OR plan_expires_at > ?)").all(now()) as UserRow[];
-  let sent = 0;
+  const users = (db().prepare("SELECT * FROM users WHERE plan = 'pro' AND (role = 'admin' OR plan_expires_at IS NULL OR plan_expires_at > ?)").all(now()) as UserRow[]).filter((u) => !opts.userId || u.id === opts.userId);
+  let sent = 0, total = 0, incomplete = false;
   for (const u of users) {
     const hs = db().prepare("SELECT id, block, label, ticker, ack_at FROM holdings WHERE user_id = ? AND ticker IS NOT NULL").all(u.id) as H[];
     const items: { label: string; bad: number; total: number; id: number }[] = [];
     for (const h of hs) {
       const a = await assessHolding(h).catch(() => null);
-      if (!a || a.total === 0) continue;
+      if (!a) { incomplete = true; continue; }
+      if (a.total === 0) { if (a.kind !== "cripto" ? a.notice !== null : true) incomplete = true; continue; }
       if (!isCritical(a)) { if (h.ack_at) db().prepare("UPDATE holdings SET ack_at = NULL WHERE id = ?").run(h.id); continue; }
-      if (!h.ack_at) items.push({ label: h.ticker ?? h.label, bad: a.bad, total: a.total, id: h.id });
+      if (!h.ack_at || opts.ignoreAck) items.push({ label: h.ticker ?? h.label, bad: a.bad, total: a.total, id: h.id });
     }
     if (!items.length) continue;
-    try { await send(u.email, attentionEmail(u.name, items, base)); sent += 1; } catch (e) { console.error("[atenção] falha ao enviar para o usuário", u.id, e); }
+    total += items.length;
+    try { await send(u.email, attentionEmail(u.name, items, base)); sent += 1; } catch (e) { if (opts.userId) throw e; console.error("[atenção] falha ao enviar para o usuário", u.id, e); }
   }
-  return sent;
+  return { sent, items: total, incomplete };
 }
 
 const g = globalThis as unknown as { __attentionTimer?: NodeJS.Timeout };
@@ -42,11 +44,12 @@ export function startAttentionJob(): void {
   const tick = async () => {
     const { day, hour } = spNow();
     if (hour < 8) return;
-    const done = db().prepare("SELECT day FROM job_runs WHERE name = 'attention'").get() as { day: string } | undefined;
+    const done = db().prepare("SELECT day FROM job_runs WHERE name = 'attention2'").get() as { day: string } | undefined;
     if (done?.day === day) return;
-    db().prepare("INSERT INTO job_runs (name, day) VALUES ('attention', ?) ON CONFLICT(name) DO UPDATE SET day = excluded.day").run(day);
-    const n = await runAttentionAlerts();
-    if (n > 0) console.log(`[atenção] ${n} e-mail(s) de alerta enviado(s).`);
+    const r = await runAttentionAlerts();
+    // só dá o dia como feito quando todos os dados estavam disponíveis (a CVM pode ainda estar carregando logo após o deploy)
+    if (!r.incomplete || r.sent > 0) db().prepare("INSERT INTO job_runs (name, day) VALUES ('attention2', ?) ON CONFLICT(name) DO UPDATE SET day = excluded.day").run(day);
+    if (r.sent > 0) console.log(`[atenção] ${r.sent} e-mail(s) de alerta enviado(s).`);
   };
   const safe = () => tick().catch((e) => console.error("[atenção] erro:", e));
   setTimeout(safe, 90 * 1000).unref?.();

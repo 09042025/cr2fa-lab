@@ -8,7 +8,7 @@ import { EvolutionChart, IncomeByMonth, ProtocolDashboard } from "@/components/P
 import { getQuote, type Quote } from "@/lib/dividends";
 import { evolution, lastMonths, monthlyIncome } from "@/lib/portfolio-calc";
 import { brl, pct } from "@/lib/format";
-import { cryptoPrice } from "@/lib/cryptoquote";
+import { backfillTickers, cryptoPrice } from "@/lib/cryptoquote";
 import { assessHolding, isCritical, type Assessment } from "@/lib/assess";
 
 
@@ -27,6 +27,7 @@ export default async function PortfolioPage() {
     );
   }
 
+  await backfillTickers(user.id);
   const holdings = db().prepare("SELECT id, block, label, value_cents, source, ticker, qty, avg_price FROM holdings WHERE user_id = ? ORDER BY block, id").all(user.id) as Holding[];
   const today = new Date().toISOString().slice(0, 10);
   const tracked = holdings.filter((h) => h.ticker && h.qty && h.qty > 0 && h.block !== "cripto");
@@ -127,7 +128,7 @@ export default async function PortfolioPage() {
             const att = h.ticker ? assessed.get(key(h)) ?? null : null;
             const res = px && h.avg_price ? ((px - h.avg_price) / h.avg_price) * 100 : null;
             return {
-              id: h.id, block: BLOCKS.find((b) => b.key === h.block)?.name ?? "", label: h.label, symbol: h.ticker ?? h.label, logo: att?.logo ?? null, b3: h.source === "b3",
+              id: h.id, block: BLOCKS.find((b) => b.key === h.block)?.name ?? "", label: h.label, symbol: h.ticker ?? h.label, logo: att?.logo ?? (h.ticker && h.block !== "cripto" ? `https://icons.brapi.dev/icons/${h.ticker}.svg` : null), b3: h.source === "b3",
               attn: att ? { points: att.bad + att.warn, total: att.total, critical: isCritical(att) } : null,
               qty: h.qty ? h.qty.toLocaleString("pt-BR") : "—", avg: h.avg_price ? brl(h.avg_price) : null, needsAvg: !!h.ticker,
               price: px ? brl(px) : "—", result: res === null ? "—" : pct(res, 1), resultTone: res === null ? "none" as const : res >= 0 ? "up" as const : "down" as const,

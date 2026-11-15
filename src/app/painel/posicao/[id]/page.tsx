@@ -5,10 +5,11 @@ import { db } from "@/lib/db";
 import { BLOCKS } from "@/lib/protocol";
 import { getQuote } from "@/lib/dividends";
 import { getAssetDetail } from "@/lib/market";
-import { cryptoPrice } from "@/lib/cryptoquote";
+import { backfillTickers, cryptoPrice } from "@/lib/cryptoquote";
 import { assessHolding, isCritical, isFiiTicker } from "@/lib/assess";
 import { attentionPoints } from "@/lib/indicators";
 import { AssetAnalysis, IndicatorCard } from "@/components/AssetAnalysis";
+import { TestMail } from "@/components/TestMail";
 import { AckButton } from "@/components/AckButton";
 import { DeleteHolding } from "@/components/DeleteHolding";
 import { HoldingActions } from "@/components/HoldingActions";
@@ -23,6 +24,7 @@ interface H { id: number; block: string; label: string; value_cents: number; tic
 export default async function PositionPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
   if (user.plan !== "pro") return <><PageTitle title="Posição" subtitle="Detalhes do ativo." /><Locked feature="Portfólio" /></>;
+  await backfillTickers(user.id);
   const id = Number((await params).id);
   const h = Number.isInteger(id) ? (db().prepare("SELECT id, block, label, value_cents, ticker, qty, avg_price, ack_at FROM holdings WHERE id = ? AND user_id = ?").get(id, user.id) as H | undefined) : undefined;
   if (!h) notFound();
@@ -39,8 +41,8 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
   const res = price && h.avg_price ? ((price - h.avg_price) / h.avg_price) * 100 : null;
   const critical = a ? isCritical(a) : false;
   const { bad, warn } = a ? attentionPoints(a.indicators) : { bad: [], warn: [] };
-  const logo = a?.logo ?? detail?.logo ?? null;
-  const canTrade = !!(h.ticker && h.qty);
+  const logo = a?.logo ?? detail?.logo ?? (h.ticker && !crypto ? `https://icons.brapi.dev/icons/${h.ticker}.svg` : null);
+  const canTrade = !!h.qty;
 
   return (
     <>
@@ -62,6 +64,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
             <div className="mt-3 text-sm">
               <p className="text-red-300">Mais da metade dos indicadores deste ativo está ruim.{h.ack_at ? " Você já confirmou que está ciente; não enviaremos mais alertas enquanto ele continuar assim." : " Enviaremos um e-mail todos os dias às 8h até você confirmar abaixo."}</p>
               {!h.ack_at && <AckButton id={h.id} />}
+              <TestMail />
             </div>
           )}
         </div>
@@ -77,7 +80,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
       <section className="card mb-6 p-4">
         <h2 className="mb-2 font-semibold">Operações</h2>
         <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
-          {canTrade ? <HoldingActions id={h.id} /> : <p className="text-xs text-muted">Esta posição não tem código e quantidade; para comprar ou vender, cadastre com o código do ativo.</p>}
+          {canTrade ? <HoldingActions id={h.id} /> : <p className="text-xs text-muted">Esta posição não tem quantidade; remova e cadastre de novo informando código e quantidade.</p>}
           <div className="pt-0.5 text-xs"><DeleteHolding id={h.id} redirectTo="/painel/portfolio" /></div>
         </div>
         <p className="mt-2 text-xs text-muted">Compra recalcula o preço médio (método da B3); venda reduz a quantidade e não muda o preço médio.</p>
