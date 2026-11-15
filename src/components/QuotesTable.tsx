@@ -10,14 +10,14 @@ import type { Extra } from "@/lib/brlist";
 export function QuotesTable({ rows, origem, extras }: { rows: Quote[]; origem: "acoes" | "fiis"; extras?: Map<string, Extra> }) {
   return (
     <div className="overflow-x-auto">
-      <table className="data">
-        <thead><tr><th>Código</th><th>Nome</th><th>Setor</th><th className="num">Preço</th><th className="num">Dia</th><th className="num">Volume</th><th className="num">Valor de mercado</th>{extras && <th className="num">Indic.</th>}</tr></thead>
+      <table className="data fit">
+        <thead><tr><th className="w-[16%]">Código</th><th className="w-[21%]">Nome</th><th className="w-[17%]">Setor</th><th className="num w-[11%]">Preço</th><th className="num w-[9%]">Dia</th><th className="num w-[11%]">Volume</th><th className="num w-[11%]">Valor de mercado</th>{extras && <th className="num w-[8%]">Indic.</th>}</tr></thead>
         <tbody>
           {rows.map((q) => (
             <tr key={q.symbol}>
-              <td className="font-semibold"><Link href={`/painel/ativo/${q.symbol}?de=${origem}`} title="Ver gráfico e informações" className="text-gold-soft underline-offset-2 hover:underline"><span className="inline-flex items-center gap-2"><TickerLogo src={q.logo} symbol={q.symbol} />{q.symbol} <span aria-hidden>📈</span></span></Link></td>
-              <td className="max-w-[260px] truncate text-muted" title={q.name}>{shortName(q.name)}</td>
-              <td>{q.sector}</td>
+              <td className="font-semibold"><Link href={`/painel/ativo/${q.symbol}?de=${origem}`} title="Ver gráfico e informações" className="text-gold-soft underline-offset-2 hover:underline"><span className="inline-flex max-w-full items-center gap-1.5"><TickerLogo src={q.logo} symbol={q.symbol} />{q.symbol} <span aria-hidden>📈</span></span></Link></td>
+              <td className="truncate text-muted" title={q.name}>{shortName(q.name)}</td>
+              <td className="truncate" title={q.sector}>{q.sector}</td>
               <td className="num">{brl(q.price)}</td>
               <td className="num"><Change value={q.changePct} /></td>
               <td className="num">{q.volume === null ? "—" : q.volume.toLocaleString("pt-BR")}</td>

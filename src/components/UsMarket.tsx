@@ -100,13 +100,13 @@ export async function UsMarket({ kind, isPro, aba, setor, q, mes, ordem }: { kin
         ) : <div className="mb-4 flex items-center gap-2 text-sm text-muted"><ProBadge /> Lista completa, filtro por {label} e busca no plano Premium.</div>}
         {isPro && <p className="mb-2 text-xs text-muted">{rows.length} de {rowsAll.length} ativos. Cotações em dólar (US$). Clique no código para abrir.{loading ? " Valor de mercado e indicadores estão sendo carregados da SEC (primeira vez leva alguns minutos): atualize a página em instantes." : ""}</p>}
         <div className="overflow-x-auto">
-          <table className="data">
-            <thead><tr><th>Código</th><th>Nome</th><th>{reits ? "Segmento" : "Setor"}</th><th className="num">Preço</th><th className="num">Dia</th><th className="num">Volume</th><th className="num">Valor de mercado</th><th className="num">Indic.</th></tr></thead>
+          <table className="data fit">
+            <thead><tr><th className="w-[15%]">Código</th><th className="w-[19%]">Nome</th><th className="w-[16%]">{reits ? "Segmento" : "Setor"}</th><th className="num w-[11%]">Preço</th><th className="num w-[9%]">Dia</th><th className="num w-[12%]">Volume</th><th className="num w-[11%]">Valor de mercado</th><th className="num w-[7%]">Indic.</th></tr></thead>
             <tbody>{rows.map((r) => (
               <tr key={r.symbol}>
-                <td className="font-semibold"><Link href={`/painel/ativo-us/${r.symbol}?de=${reits ? "fiis" : "acoes"}`} className="text-gold-soft underline-offset-2 hover:underline"><span className="inline-flex items-center gap-2"><TickerLogo src={usLogo(r.symbol)} symbol={r.symbol} />{r.symbol} <span aria-hidden>📈</span></span></Link></td>
-                <td className="max-w-[260px] truncate text-muted" title={r.name}>{r.name}</td>
-                <td>{r.sector}</td>
+                <td className="font-semibold"><Link href={`/painel/ativo-us/${r.symbol}?de=${reits ? "fiis" : "acoes"}`} className="text-gold-soft underline-offset-2 hover:underline"><span className="inline-flex max-w-full items-center gap-1.5"><TickerLogo src={usLogo(r.symbol)} symbol={r.symbol} />{r.symbol} <span aria-hidden>📈</span></span></Link></td>
+                <td className="truncate text-muted" title={r.name}>{r.name}</td>
+                <td className="truncate" title={r.sector}>{r.sector}</td>
                 <td className="num">{usd(r.price)}</td>
                 <td className="num"><Change value={r.changePct} /></td>
                 <td className="num">{r.volume === null ? "—" : r.volume.toLocaleString("en-US")}</td>

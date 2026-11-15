@@ -84,8 +84,8 @@ export default async function PortfolioPage() {
           ))}
         </div>
         <div className="hidden overflow-x-auto sm:block">
-          <table className="data">
-            <thead><tr><th>Bloco</th><th className="num">Atual</th><th className="num">% atual</th><th className="num">Alvo (20%)</th><th className="num">Ajuste</th></tr></thead>
+          <table className="data fit">
+            <thead><tr><th className="w-[28%]">Bloco</th><th className="num w-[18%]">Atual</th><th className="num w-[14%]">% atual</th><th className="num w-[20%]">Alvo (20%)</th><th className="num w-[20%]">Ajuste</th></tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.block.key}>
