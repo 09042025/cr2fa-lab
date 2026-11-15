@@ -1,10 +1,12 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { pushAvgToPortfolio } from "@/lib/irpf-sync";
+import { buildIrpfPdf } from "@/lib/irpf-pdf";
 import { applyDec, parseDec, type DecResult } from "@/lib/irpf-dec";
 import { deviceSupported, forgetDevice, hasDevicePhrase, quickUnlock, saveDevicePhrase } from "@/lib/irpf-device";
 import { decryptVault, encryptVault, isValidPhrase, newPhrase, normalizePhrase, pickChecks, type VaultFile } from "@/lib/irpf-crypto";
 import {
-  PROV_INFO, buildBens, buildProventos, emptyWorkspace, parseNum, rollover, roteiro, snapshotOf, totalsByType,
+  PROV_INFO, buildBens, fmtField, programCode, buildProventos, emptyWorkspace, parseNum, rollover, roteiro, snapshotOf, totalsByType,
   type CustomBem, type PortfolioItem, type PrevBem, type ProvType, type Workspace,
 } from "@/lib/irpf";
 
@@ -114,6 +116,20 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const bens = useMemo(() => (ws ? buildBens(items, ws) : []), [items, ws]);
   const prov = useMemo(() => (ws ? buildProventos(items, ws) : []), [items, ws]);
   const totals = useMemo(() => totalsByType(prov), [prov]);
+  const pushable = useMemo(() => bens.filter((b) => b.item.id !== undefined && !b.item.avg && b.avg && b.avg > 0 && b.item.kind !== "acao_us").map((b) => ({ id: b.item.id as number, avg: b.avg as number, ticker: b.item.ticker ?? b.item.label })), [bens]);
+  const syncPortfolio = async () => {
+    setBusy(true); setMsg(null);
+    try { const n = await pushAvgToPortfolio(pushable.map(({ id, avg }) => ({ id, avg }))); setMsg(`Portfólio atualizado: ${n} ativo(s) receberam o preço médio. Recarregue a página do Portfólio para ver.`); }
+    catch (e) { setMsg(e instanceof Error ? e.message : "Não foi possível atualizar o Portfólio."); }
+    setBusy(false);
+  };
+  const makePdf = async () => {
+    if (!ws) return;
+    setBusy(true); setMsg(null);
+    try { const blob = await buildIrpfPdf({ year: ws.year, bens, custom: ws.custom, prov }); downloadBlob(`roteiro-irpf-${ws.year + 1}.pdf`, blob); setMsg("PDF gerado no seu aparelho. Ele não é criptografado: guarde com cuidado e apague depois de usar."); }
+    catch { setMsg("Não foi possível gerar o PDF."); }
+    setBusy(false);
+  };
 
   const pickDec = async (f: File | null) => {
     setDec(null); setMsg(null);
@@ -252,33 +268,55 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
           </section>
           <p className="text-sm text-muted">Os ativos da sua carteira já vieram preenchidos. Na declaração, ações, FIIs e cripto entram pelo <strong className="text-white">custo de aquisição</strong> (quantidade × preço médio), não pelo valor de hoje. Confira se a quantidade é a que você tinha em <strong className="text-white">31/12/{ws.year}</strong>.</p>
           {bens.length === 0 && <p className="card p-4 text-sm text-muted">Nenhum ativo na carteira. Cadastre em Portfólio ou adicione bens abaixo.</p>}
-          {bens.map((b) => (
-            <section key={b.key} className="card p-4">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-semibold">{b.item.ticker ?? b.item.label} <span className="text-xs font-normal text-muted">· {b.item.label}</span></h3>
-                <span className="rounded-full border border-gold/40 px-2.5 py-0.5 text-xs text-gold-soft">Grupo {b.code.grupo} · Código {b.code.codigo}</span>
-              </div>
-              <p className="text-xs text-muted">{b.code.nome}</p>
-              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Field label="Quantidade em 31/12" value={b.qty === null ? "" : String(b.qty).replace(".", ",")} onChange={(v) => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], qty: parseNum(v) } } }))} />
-                <Field label={b.item.kind === "acao_us" ? "Preço médio (US$)" : "Preço médio (R$)"} value={b.avg === null ? "" : String(b.avg).replace(".", ",")} onChange={(v) => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], avg: parseNum(v) } } }))} />
-                <Field label="Corretora / exchange" value={b.custody} text onChange={(v) => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], custody: v } } }))} />
-                {b.item.kind === "acao" || b.item.kind === "fii" ? <Field label="CNPJ" value={b.cnpj} text onChange={(v) => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], cnpj: v } } }))} /> : <div />}
-              </div>
-              <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                <div><dt className="text-xs text-muted">Situação em 31/12/{ws.year - 1}</dt><dd className="font-semibold">{b.prev !== null ? brl(b.prev) : "—"}</dd></div>
-                <div><dt className="text-xs text-muted">Situação em 31/12/{ws.year}</dt><dd className="font-semibold">{b.total !== null ? (b.foreign ? `US$ ${b.total.toFixed(2)} (converter em R$)` : brl(b.total)) : "—"}</dd></div>
-              </dl>
-              <label className="label mt-3" htmlFor={`t-${b.key}`}>Discriminação (texto para colar no programa)</label>
-              <textarea id={`t-${b.key}`} className="input w-full text-sm" rows={4} value={b.text} spellCheck={false} onChange={(e) => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], text: e.target.value } } }))} />
-              {b.warnings.length > 0 && <ul className="mt-2 space-y-1 text-xs text-yellow-300">{b.warnings.map((x) => <li key={x}>● {x}</li>)}</ul>}
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <button type="button" className="btn btn-ghost !py-1" onClick={() => void navigator.clipboard.writeText(b.text).then(() => setMsg("Texto copiado."))}>Copiar texto</button>
-                {b.text !== b.autoText && <button type="button" className="btn btn-ghost !py-1" onClick={() => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], text: undefined } } }))}>Voltar ao texto automático</button>}
-                <button type="button" className="btn btn-ghost !py-1" onClick={() => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], skip: true } } }))}>Não incluir (já vendi)</button>
-              </div>
+          {pushable.length > 0 && (
+            <section className="card border-up/30 p-4 text-sm">
+              <h3 className="font-semibold">Ligação com o Portfólio</h3>
+              <p className="mt-1 text-xs text-muted">O que falta aqui é puxado do Portfólio (quantidade e preço médio). O que falta no Portfólio pode ser preenchido com o que você informou aqui ou que veio do .DEC. {pushable.length} ativo(s) estão sem preço médio no Portfólio: {pushable.map((x) => x.ticker).join(", ")}.</p>
+              <p className="mt-1 text-xs text-muted">Ao clicar, enviamos ao Portfólio <strong className="text-white">somente o preço médio</strong> desses ativos (nunca texto, CNPJ, valores da declaração ou dados do .DEC), e nunca trocamos um preço médio que já exista lá.</p>
+              <button type="button" disabled={busy} className="btn btn-ghost mt-2" onClick={() => void syncPortfolio()}>{busy ? "Atualizando…" : `Atualizar o preço médio no Portfólio (${pushable.length})`}</button>
             </section>
-          ))}
+          )}
+          {bens.map((b, idx) => {
+            const pc = programCode(b.code.grupo, b.code.codigo);
+            const needsCnpj = b.item.kind === "acao" || b.item.kind === "fii";
+            const e = ws.edits[b.item.key];
+            const setE = (patch: Partial<NonNullable<typeof e>>) => update((w) => ({ ...w, edits: { ...w.edits, [b.item.key]: { ...w.edits[b.item.key], ...patch } } }));
+            const tag = (from: string | null) => (from ? <span className="ml-1 rounded bg-panel-2 px-1.5 py-0.5 text-[10px] text-muted">{from === "você" ? "digitado" : `do ${from}`}</span> : null);
+            return (
+              <section key={b.key} className="card p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-semibold">Bem {idx + 1}: {b.item.ticker ?? b.item.label} <span className="text-xs font-normal text-muted">· {b.item.label}</span></h3>
+                  <span className={`rounded-full border px-2.5 py-0.5 text-[11px] ${b.source === "dec" ? "border-up/50 text-up" : "border-line text-muted"}`}>{b.source === "dec" ? "texto do .DEC (ano passado)" : b.source === "editado" ? "texto editado por você" : "texto automático"}</span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div><label className="label">Quantidade em 31/12{tag(b.qtyFrom)}</label><input className="input w-full" inputMode="decimal" autoComplete="off" value={b.qty === null ? "" : String(b.qty).replace(".", ",")} onChange={(ev) => setE({ qty: parseNum(ev.target.value) })} /></div>
+                  <div><label className="label">{b.item.kind === "acao_us" ? "Preço médio (US$)" : "Preço médio (R$)"}{tag(b.avgFrom)}</label><input className="input w-full" inputMode="decimal" autoComplete="off" value={b.avg === null ? "" : String(Math.round(b.avg * 1e6) / 1e6).replace(".", ",")} onChange={(ev) => setE({ avg: parseNum(ev.target.value) })} /></div>
+                  <Field label="Corretora / exchange" value={b.custody} text onChange={(v) => setE({ custody: v })} />
+                  {needsCnpj ? <Field label="CNPJ" value={b.cnpj} text onChange={(v) => setE({ cnpj: v })} /> : <div />}
+                </div>
+
+                <div className="mt-4 rounded-xl border border-gold/30 bg-black/20 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold-soft">Como aparece no programa da Receita: Bens e Direitos &gt; Novo</p>
+                  <Mirror label="Grupo" value={pc.grupo} />
+                  <Mirror label="Código" value={pc.codigo} />
+                  <Mirror label="Localização (País)" value={`${b.pais.codigo} - ${b.pais.nome}`} />
+                  {needsCnpj && <Mirror label="CNPJ" value={b.cnpj} empty="Preencha o CNPJ acima" />}
+                  <div className="border-t border-line/60 py-2">
+                    <div className="flex items-center justify-between gap-2"><span className="text-xs text-muted">Discriminação</span><span className={`text-[10px] ${b.text.length > 512 ? "text-down" : "text-muted"}`}>{b.text.length}/512 caracteres</span></div>
+                    <textarea aria-label="Discriminação" className="input mt-1 w-full text-sm" rows={4} value={b.text} spellCheck={false} onChange={(ev) => setE({ text: ev.target.value })} />
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                      <button type="button" className="btn btn-ghost !py-1" onClick={() => void navigator.clipboard.writeText(b.text).then(() => setMsg("Discriminação copiada. Cole no campo Discriminação do programa."))}>Copiar discriminação</button>
+                      {e?.text !== undefined && <button type="button" className="btn btn-ghost !py-1" onClick={() => setE({ text: undefined })}>Voltar ao texto {b.source === "dec" || (e?.text !== undefined && b.autoText) ? "original" : "automático"}</button>}
+                    </div>
+                  </div>
+                  <Mirror label={`Situação em 31/12/${ws.year - 1} (R$)`} value={b.prev !== null ? fmtField(b.prev) : ""} empty="Sem valor anterior (bem novo ou .DEC não importado)" />
+                  <Mirror label={`Situação em 31/12/${ws.year} (R$)`} value={b.total !== null ? fmtField(b.total) : ""} empty="Informe quantidade e preço médio" note={b.foreign ? "Ativo no exterior: converta para reais pela PTAX da compra." : undefined} />
+                </div>
+                {b.warnings.length > 0 && <ul className="mt-3 space-y-1 text-xs text-yellow-300">{b.warnings.map((x) => <li key={x}>● {x}</li>)}</ul>}
+                <div className="mt-3 text-xs"><button type="button" className="btn btn-ghost !py-1" onClick={() => setE({ skip: true })}>Não incluir (já vendi)</button></div>
+              </section>
+            );
+          })}
           {Object.entries(ws.edits).some(([, e]) => e.skip) && (
             <p className="text-xs text-muted">Fora da declaração: {Object.entries(ws.edits).filter(([, e]) => e.skip).map(([k]) => items.find((i) => i.key === k)?.ticker ?? k).join(", ")}. <button type="button" className="text-gold-soft underline" onClick={() => update((w) => ({ ...w, edits: Object.fromEntries(Object.entries(w.edits).map(([k, e]) => [k, { ...e, skip: false }])) }))}>incluir de novo</button></p>
           )}
@@ -331,6 +369,12 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
             <p className="mt-2 text-sm text-muted">Gera o arquivo <strong className="text-white">irpf-{ws.year}.niza</strong> no seu aparelho. Ele só abre com as suas 24 palavras. Ano que vem, abra este arquivo aqui e atualizamos tudo para a nova declaração.</p>
             <button type="button" disabled={busy} className="btn btn-gold mt-3" onClick={() => void save()}>{busy ? "Criptografando…" : "Salvar cofre (.niza)"}</button>
           </section>
+          <section className="card border-gold/40 p-5">
+            <h2 className="font-display text-lg font-bold text-gold-soft">Concluir: gerar o PDF do passo a passo</h2>
+            <p className="mt-2 text-sm text-muted">Gera um PDF como uma declaração final, com as fichas na ordem do programa da Receita (Bens e Direitos, Rendimentos), cada bem com Grupo, Código, País, CNPJ, Discriminação e Situações, para você ir copiando para o programa oficial.</p>
+            <p role="note" className="mt-2 text-xs text-yellow-300">O PDF é feito no seu aparelho e não é criptografado: guarde com cuidado e apague depois de usar.</p>
+            <button type="button" disabled={busy} className="btn btn-gold mt-3" onClick={() => void makePdf()}>{busy ? "Gerando…" : "Gerar PDF do passo a passo"}</button>
+          </section>
           <section className="card p-5">
             <h2 className="font-display text-lg font-bold text-gold-soft">2. Roteiro para preencher a declaração oficial</h2>
             <p className="mt-2 text-sm text-muted">Texto com tudo o que vai em cada ficha, para você ir copiando e colando no programa da Receita.</p>
@@ -356,12 +400,24 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   );
 }
 
+/** Linha espelhada do programa da Receita, com botão de copiar o valor exatamente como o campo espera. */
+function Mirror({ label, value, empty, note }: { label: string; value: string; empty?: string; note?: string }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 py-2 first:border-t-0">
+      <div className="min-w-0 flex-1"><p className="text-xs text-muted">{label}</p><p className={`break-words text-sm font-semibold ${value ? "text-white" : "text-yellow-300"}`}>{value || empty || "—"}</p>{note && <p className="text-[11px] text-yellow-300">{note}</p>}</div>
+      {value && <button type="button" className="btn btn-ghost !py-1 text-xs" onClick={() => void navigator.clipboard.writeText(value).then(() => { setOk(true); setTimeout(() => setOk(false), 1500); })}>{ok ? "Copiado ✓" : "Copiar"}</button>}
+    </div>
+  );
+}
+
 function Field({ label, value, onChange, text }: { label: string; value: string; onChange: (v: string) => void; text?: boolean }) {
   return <div><label className="label">{label}</label><input className="input w-full" inputMode={text ? "text" : "decimal"} autoComplete="off" spellCheck={false} value={value} onChange={(e) => onChange(e.target.value)} /></div>;
 }
 
-function download(name: string, content: string, type: string) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
+function download(name: string, content: string, type: string) { downloadBlob(name, new Blob([content], { type })); }
+function downloadBlob(name: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
