@@ -14,6 +14,12 @@ export async function yahooPrice(symbol: string): Promise<number | null> {
   return null;
 }
 
+interface SearchCoin { id: string; name: string; symbol: string; market_cap_rank?: number | null }
+/** Entre os resultados que casam, fica o de maior valor de mercado (menor rank); sem rank = golpe/moeda minúscula, vai por último. */
+function pickCoin(list: SearchCoin[], match: (c: SearchCoin) => boolean): SearchCoin | null {
+  return list.filter(match).sort((a, b) => (a.market_cap_rank ?? 1e9) - (b.market_cap_rank ?? 1e9))[0] ?? null;
+}
+
 /** Principais criptos: id e nome fixos (evita busca ambígua ou limite da API). */
 export const KNOWN_COINS: Record<string, { id: string; name: string }> = {
   BTC: { id: "bitcoin", name: "Bitcoin" }, ETH: { id: "ethereum", name: "Ethereum" }, SOL: { id: "solana", name: "Solana" },
@@ -28,9 +34,9 @@ export const isCryptoHolding = (h: { block: string; ticker: string | null }) => 
 /** Id do CoinGecko a partir do símbolo (BTC → bitcoin). A busca já vem ordenada por valor de mercado. */
 export async function coinIdOf(sym: string): Promise<{ id: string; name: string } | null> {
   if (KNOWN_COINS[sym]) return KNOWN_COINS[sym];
-  const s = await cached<{ coins?: { id: string; name: string; symbol: string }[] }>(`gecko:search:${sym}`, 24 * 3600, () =>
+  const s = await cached<{ coins?: SearchCoin[] }>(`gecko:search:v2:${sym}`, 24 * 3600, () =>
     fetchJson(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(sym)}`, {}, 12000));
-  const c = s.data?.coins?.find((x) => x.symbol.toUpperCase() === sym);
+  const c = pickCoin(s.data?.coins ?? [], (x) => x.symbol.toUpperCase() === sym);
   return c ? { id: c.id, name: c.name } : null;
 }
 
@@ -54,23 +60,57 @@ export async function findCoin(query: string): Promise<{ id: string; name: strin
   if (!q) return null;
   const known = KNOWN_COINS[q.toUpperCase()] ? q.toUpperCase() : NAME_TO_SYM[q.toUpperCase()];
   if (known) return { ...KNOWN_COINS[known], symbol: known };
-  const s = await cached<{ coins?: { id: string; name: string; symbol: string }[] }>(`gecko:search:${q.toLowerCase()}`, 24 * 3600, () =>
+  const s = await cached<{ coins?: SearchCoin[] }>(`gecko:search:v2:${q.toLowerCase()}`, 24 * 3600, () =>
     fetchJson(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`, {}, 12000));
   const list = s.data?.coins ?? [];
-  const c = list.find((x) => x.symbol.toUpperCase() === q.toUpperCase()) ?? list.find((x) => x.name.toLowerCase() === q.toLowerCase()) ?? null;
+  const c = pickCoin(list, (x) => x.symbol.toUpperCase() === q.toUpperCase()) ?? pickCoin(list, (x) => x.name.toLowerCase() === q.toLowerCase());
   return c ? { id: c.id, name: c.name, symbol: c.symbol.toUpperCase() } : null;
 }
 
-/** Completa o código de posições antigas (cripto pelo nome; ação/FII quando o nome já é o código). */
+/** Ação/ETF/BDR fora da B3 (ex.: AAPL): código só com letras, sem número. */
+export const isUsStock = (h: { block: string; ticker: string | null }) => (h.block === "acoes" || h.block === "fiis") && !!h.ticker && !/^[A-Z]{4}\d{1,2}$/.test(h.ticker);
+
+/** Logo de empresa americana (fonte aberta de logos por código). */
+export const usLogo = (t: string) => `https://financialmodelingprep.com/image-stock/${t}.png`;
+
+async function usRate(): Promise<number | null> { return yahooPrice("BRL=X"); }
+
+/** Preço em R$ de uma ação americana: cotação em dólar × dólar do dia. */
+export async function usPrice(sym: string): Promise<number | null> {
+  const [p, r] = await Promise.all([yahooPrice(sym), usRate()]);
+  return p && r ? p * r : null;
+}
+
+interface YSearch { quotes?: { symbol?: string; quoteType?: string; shortname?: string }[] }
+/** Descobre o código americano a partir do nome digitado (ex.: AAPLE → AAPL). */
+async function findUsSymbol(label: string): Promise<string | null> {
+  const q = label.trim();
+  if (!q) return null;
+  const upper = q.toUpperCase();
+  if (/^[A-Z]{1,5}$/.test(upper) && (await yahooPrice(upper))) return upper;
+  try {
+    const r = await cached<YSearch>(`yahoo:search:${upper}`, 24 * 3600, () => fetchJson(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=6&newsCount=0`, {}, 12000));
+    const hit = r.data?.quotes?.find((x) => x.symbol && /^[A-Z]{1,5}$/.test(x.symbol) && (x.quoteType === "EQUITY" || x.quoteType === "ETF"));
+    return hit?.symbol ?? null;
+  } catch { return null; }
+}
+
+/** Completa/corrige o código das posições: cripto conhecida pelo nome, ação/FII cujo nome já é o código e ações americanas. */
 export async function backfillTickers(userId: number): Promise<void> {
   const { db } = await import("./db");
-  const rows = db().prepare("SELECT id, block, label FROM holdings WHERE user_id = ? AND ticker IS NULL AND block IN ('cripto','acoes','fiis','oportunidades')").all(userId) as { id: number; block: string; label: string }[];
+  const rows = db().prepare("SELECT id, block, label, ticker FROM holdings WHERE user_id = ? AND block IN ('cripto','acoes','fiis','oportunidades')").all(userId) as { id: number; block: string; label: string; ticker: string | null }[];
   for (const r of rows) {
     const label = r.label.trim().toUpperCase();
     let t: string | null = null;
-    if (r.block === "oportunidades") { const k = KNOWN_COINS[label] ? label : NAME_TO_SYM[label] ?? null; t = k; }
-    else if (r.block === "cripto") { try { t = (await findCoin(r.label))?.symbol ?? null; } catch { t = null; } }
-    else if (/^[A-Z]{4}\d{1,2}$/.test(label)) t = label;
-    if (t && /^([A-Z]{4}\d{1,2}|[A-Z]{2,10})$/.test(t)) db().prepare("UPDATE holdings SET ticker = ? WHERE id = ?").run(t, r.id);
+    if (r.block === "oportunidades") { if (r.ticker) continue; t = KNOWN_COINS[label] ? label : NAME_TO_SYM[label] ?? null; }
+    else if (r.block === "cripto") {
+      const known = KNOWN_COINS[label] ? label : NAME_TO_SYM[label];
+      if (known) t = known; // conserta códigos errados gravados antes (moedas homônimas)
+      else if (!r.ticker) { try { t = (await findCoin(r.label))?.symbol ?? null; } catch { t = null; } }
+    } else if (!r.ticker) {
+      if (/^[A-Z]{4}\d{1,2}$/.test(label)) t = label;
+      else { try { t = await findUsSymbol(r.label); } catch { t = null; } }
+    }
+    if (t && t !== r.ticker && /^([A-Z]{4}\d{1,2}|[A-Z]{1,10})$/.test(t)) db().prepare("UPDATE holdings SET ticker = ? WHERE id = ?").run(t, r.id);
   }
 }

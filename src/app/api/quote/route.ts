@@ -2,7 +2,7 @@ import { getUser } from "@/lib/auth";
 import { fail, json } from "@/lib/http";
 import { getQuote } from "@/lib/dividends";
 import { getAssetDetail } from "@/lib/market";
-import { cryptoPrice, yahooPrice } from "@/lib/cryptoquote";
+import { cryptoPrice, usPrice, yahooPrice } from "@/lib/cryptoquote";
 
 /** Preço atual de ação/FII da B3 ou de cripto (BTC, ETH, SOL…), usado ao cadastrar posição. Premium. */
 export async function GET(req: Request) {
@@ -20,7 +20,11 @@ export async function GET(req: Request) {
   }
   if (/^[A-Z]{2,10}$/.test(t)) {
     const c = await cryptoPrice(t);
-    if (!c) return fail("Não encontramos esse código.", 404);
+    if (!c) {
+      const us = await usPrice(t); // ação/ETF americano (ex.: AAPL), convertido para reais
+      if (us) return json({ ticker: t, kind: "acoes", price: us, name: null });
+      return fail("Não encontramos esse código.", 404);
+    }
     return json({ ticker: t, kind: "cripto", price: c.price, name: c.name });
   }
   return fail("Código inválido.");

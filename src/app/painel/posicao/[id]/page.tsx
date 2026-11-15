@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { BLOCKS } from "@/lib/protocol";
 import { getQuote } from "@/lib/dividends";
 import { getAssetDetail } from "@/lib/market";
-import { backfillTickers, cryptoPrice, isCryptoHolding } from "@/lib/cryptoquote";
+import { backfillTickers, cryptoPrice, isCryptoHolding, isUsStock, usLogo, usPrice } from "@/lib/cryptoquote";
 import { assessHolding, isCritical, isFiiTicker } from "@/lib/assess";
 import { attentionPoints } from "@/lib/indicators";
 import { AssetAnalysis, IndicatorCard } from "@/components/AssetAnalysis";
@@ -34,14 +34,15 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
   let price: number | null = null;
   let detail = null as Awaited<ReturnType<typeof getAssetDetail>>["data"];
   if (h.ticker) {
-    if (crypto) price = (await cryptoPrice(h.ticker))?.price ?? null;
+    if (isUsStock(h)) price = await usPrice(h.ticker);
+    else if (crypto) price = (await cryptoPrice(h.ticker))?.price ?? null;
     else { price = (await getQuote(h.ticker)).data?.price ?? null; detail = (await getAssetDetail(h.ticker)).data; price = price ?? detail?.price ?? null; }
   }
   const value = price && h.qty ? price * h.qty : h.value_cents / 100;
   const res = price && h.avg_price ? ((price - h.avg_price) / h.avg_price) * 100 : null;
   const critical = a ? isCritical(a) : false;
   const { bad, warn } = a ? attentionPoints(a.indicators) : { bad: [], warn: [] };
-  const logo = a?.logo ?? detail?.logo ?? (h.ticker && !crypto ? `https://icons.brapi.dev/icons/${h.ticker}.svg` : null);
+  const logo = a?.logo ?? detail?.logo ?? (h.ticker && isUsStock(h) ? usLogo(h.ticker) : h.ticker && !crypto ? `https://icons.brapi.dev/icons/${h.ticker}.svg` : null);
   const canTrade = !!h.qty;
 
   return (
@@ -86,7 +87,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
         <p className="mt-2 text-xs text-muted">Compra recalcula o preço médio (método da B3); venda reduz a quantidade e não muda o preço médio.</p>
       </section>
 
-      {h.ticker && !crypto && (
+      {h.ticker && !crypto && !isUsStock(h) && (
         <AssetAnalysis ticker={h.ticker} isFii={h.block === "fiis" || isFiiTicker(h.ticker)} marketCap={detail?.marketCap ?? null} brapiPrice={detail?.price ?? null} name={detail?.name ?? null} />
       )}
 
