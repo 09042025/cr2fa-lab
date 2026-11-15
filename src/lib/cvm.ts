@@ -62,6 +62,34 @@ export function unzipAll(buf: Buffer, want: (name: string) => boolean): Map<stri
   return out;
 }
 
+export function* unzipIter(buf: Buffer, want: (name: string) => boolean): Generator<[string, Buffer]> {
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65_557); i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("zip inválido");
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  for (let n = 0; n < count; n++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error("zip corrompido");
+    const method = buf.readUInt16LE(p + 10);
+    const compSize = buf.readUInt32LE(p + 20);
+    const uncomp = buf.readUInt32LE(p + 24);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const commentLen = buf.readUInt16LE(p + 32);
+    const offset = buf.readUInt32LE(p + 42);
+    const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+    p += 46 + nameLen + extraLen + commentLen;
+    if (!want(name)) continue;
+    if (uncomp > MAX_ENTRY) throw new Error("arquivo grande demais no zip");
+    const start = offset + 30 + buf.readUInt16LE(offset + 26) + buf.readUInt16LE(offset + 28);
+    const raw = buf.subarray(start, start + compSize);
+    yield [name, method === 0 ? raw : method === 8 ? inflateRawSync(raw) : (() => { throw new Error("compressão não suportada"); })()];
+  }
+}
+
+
 async function download(url: string): Promise<Buffer> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 180_000);
@@ -182,7 +210,17 @@ export function normName(s: string): string {
     .join(" ");
 }
 
-export function companyByName(d: CvmData, name: string): { cnpj: string; company: CvmCompany } | null {
+const nameMemo = new WeakMap<CvmData, Map<string, { cnpj: string; company: CvmCompany } | null>>();
+export function companyByName(d: CvmData, name: string) {
+  let m = nameMemo.get(d);
+  if (!m) { m = new Map(); nameMemo.set(d, m); }
+  if (m.has(name)) return m.get(name)!;
+  const r = companyByNameRaw(d, name);
+  m.set(name, r);
+  return r;
+}
+
+function companyByNameRaw(d: CvmData, name: string): { cnpj: string; company: CvmCompany } | null {
   const n = normName(name);
   if (n.length < 4) return null;
   let hit: [string, CvmCompany] | undefined;
@@ -231,11 +269,13 @@ async function buildCvmData(): Promise<CvmData> {
   const diag: string[] = [];
   for (const j of jobs) {
     try {
-      const tabs = await loadZipCsvs(`${BASE}/CIA_ABERTA/DOC/${j.kind.toUpperCase()}/DADOS/${j.kind}_cia_aberta_${j.y}.zip`, /_(DRE|BPA|BPP)_(con|ind)_/i);
-      for (const [name, t] of tabs) {
+      const zip = await download(`${BASE}/CIA_ABERTA/DOC/${j.kind.toUpperCase()}/DADOS/${j.kind}_cia_aberta_${j.y}.zip`);
+      // um arquivo por vez: lê, guarda os números e solta a memória (evita estourar o servidor)
+      for (const [name, buf] of unzipIter(zip, (n) => /_(DRE|BPA|BPP)_(con|ind)_/i.test(n))) {
         const m = /_(DRE|BPA|BPP)_(con|ind)_/i.exec(name);
         if (!m) continue;
-        ingestStatement(t, m[1].toUpperCase() as "DRE" | "BPA" | "BPP", m[2].toLowerCase() === "con" ? acc : ind);
+        ingestStatement(parseCsv(buf), m[1].toUpperCase() as "DRE" | "BPA" | "BPP", m[2].toLowerCase() === "con" ? acc : ind);
+        await new Promise((r) => setImmediate(r)); // deixa o site responder entre um arquivo e outro
       }
       ok++;
     } catch (e) {
