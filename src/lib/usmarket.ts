@@ -2,7 +2,7 @@
  * Mercado americano: lista curada das maiores ações e REITs (fundos imobiliários dos EUA) com cotação da Yahoo Finance (fonte aberta, em dólar).
  * É uma seleção, não o mercado inteiro; os setores seguem a classificação usual.
  */
-import { cached, fetchJson } from "./market";
+import { cached, cachedSwr, fetchJson } from "./market";
 import { parseYahoo, type Quote } from "./dividends";
 import { db } from "./db";
 import { fundKey, getFund, type Fund } from "./sec";
@@ -70,7 +70,7 @@ export async function getUsRows(k: UsKind): Promise<UsRow[]> {
 
 /** Histórico de 5 anos com proventos (data ex), em dólar. */
 export function getUsQuote(sym: string) {
-  return cached<Quote>(`yahoo:us:div:${sym}:v1`, 6 * 3600, async () => parseYahoo(await fetchJson(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=5y&interval=1d&events=div`, {}, 20000)));
+  return cachedSwr<Quote>(`yahoo:us:div:${sym}:v1`, 15 * 60, async () => parseYahoo(await fetchJson(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=5y&interval=1d&events=div`, {}, 20000)));
 }
 
 /** Lê do cache sem buscar na rede (a lista não pode esperar dezenas de downloads). */

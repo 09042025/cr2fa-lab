@@ -29,6 +29,25 @@ export interface Cached<T> {
  * Cache em SQLite. Se a busca falhar, devolve o último valor salvo (marcado como stale).
  * Nunca inventa dados: sem cache e sem rede, devolve data=null.
  */
+const inflight = new Map<string, Promise<unknown>>();
+
+/**
+ * Como `cached`, mas NUNCA faz o usuário esperar por um valor que já existe: se há valor guardado (mesmo vencido), devolve
+ * na hora e atualiza em segundo plano. Só espera a rede na primeira vez em que a chave não existe.
+ */
+export async function cachedSwr<T>(key: string, ttlSec: number, load: () => Promise<T>): Promise<Cached<T>> {
+  const row = db().prepare("SELECT value, fetched_at FROM cache WHERE key = ?").get(key) as { value: string; fetched_at: number } | undefined;
+  if (!row) return cached(key, ttlSec, load);
+  if (now() - row.fetched_at >= ttlSec && !inflight.has(key)) {
+    const job = load()
+      .then((data) => { db().prepare("INSERT INTO cache (key, value, fetched_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, fetched_at = excluded.fetched_at").run(key, JSON.stringify(data), now()); })
+      .catch(() => { /* mantém o valor antigo */ })
+      .finally(() => inflight.delete(key));
+    inflight.set(key, job);
+  }
+  return { data: JSON.parse(row.value) as T, fetchedAt: row.fetched_at, stale: now() - row.fetched_at >= ttlSec };
+}
+
 export async function cached<T>(key: string, ttlSec: number, load: () => Promise<T>): Promise<Cached<T>> {
   const row = db().prepare("SELECT value, fetched_at FROM cache WHERE key = ?").get(key) as
     | { value: string; fetched_at: number }

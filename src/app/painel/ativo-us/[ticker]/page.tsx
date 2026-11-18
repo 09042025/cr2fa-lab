@@ -60,7 +60,7 @@ export default async function UsAssetPage({ params, searchParams }: { params: Pr
                 <p className="mt-1 text-xs text-muted"><span className="text-red-400">{a.bad} ruim</span> · <span className="text-yellow-300">{a.warn} atenção</span> · <span className="text-green-400">{a.good} bom</span></p>
               </div>
               <h2 className="mb-1 font-display text-xl font-bold text-gold-soft">Indicadores</h2>
-              <p className="mb-3 text-xs text-muted">{a.period ? `Último exercício considerado: ${brDate(a.period)}. ` : ""}Fonte: {a.source}. Selos por critérios gerais e fixos, informativos, não recomendação de investimento.{a.notice ? ` ${a.notice}` : ""}</p>
+              <p className="mb-3 text-xs text-muted">{a.period ? `Dados até: ${brDate(a.period)}. ` : ""}Fonte: {a.source}. Selos por critérios gerais e fixos, informativos, não recomendação de investimento.{a.notice ? ` ${a.notice}` : ""}</p>
               <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{a.indicators.map((i) => <IndicatorCard key={i.id} i={i} />)}</section>
               {bad.length + warn.length > 0 && (
                 <div className="card mt-4 p-4"><h3 className="mb-2 font-semibold">Pontos de atenção</h3>
@@ -81,7 +81,7 @@ export default async function UsAssetPage({ params, searchParams }: { params: Pr
               {d.dividends.length === 0 && <p className="card p-4 text-sm text-muted">Sem proventos registrados nos últimos 5 anos.</p>}
             </>
           )}
-          <p className="mt-4 text-xs text-muted">Valores em dólar (US$), cotação da Yahoo Finance. Indicadores de balanço pelos dados abertos da SEC (último relatório anual).</p>
+          <p className="mt-4 text-xs text-muted">Valores em dólar (US$), cotação da Yahoo Finance. Indicadores de balanço pelos dados abertos da SEC (últimos 12 meses, atualizados a cada relatório trimestral).</p>
         </>
       )}
       <Disclaimer />

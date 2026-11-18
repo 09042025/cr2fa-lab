@@ -1,8 +1,8 @@
 /**
  * Fundamentos de empresas americanas pela SEC (dados abertos, sem chave): demonstrações em XBRL ("company facts").
- * Usamos o último exercício anual (10-K) para resultado e o balanço mais recente para patrimônio e dívida.
+ * Resultado em 12 meses móveis (último 10-K + trimestres do 10-Q) e balanço mais recente para patrimônio e dívida.
  */
-import { cached, fetchJson } from "./market";
+import { cachedSwr, cached, fetchJson } from "./market";
 
 const HEADERS = { "user-agent": process.env.SEC_USER_AGENT || "NIZA INVEST contato@nizainvest.com.br" };
 
@@ -46,6 +46,30 @@ function annual(f: Facts, concepts: string[]): { cur: number | null; prev: numbe
   return { cur: cur.val, prev: prev?.val ?? null, end: cur.end };
 }
 
+/**
+ * Últimos 12 meses (TTM): último 10-K + acumulado do ano nos 10-Q − o mesmo período do ano anterior. Sem 10-Q mais novo que o 10-K,
+ * vale o próprio exercício. `prev` é o TTM de um ano antes (null quando a SEC não traz os comparativos).
+ */
+function ttm(f: Facts, concepts: string[]): { cur: number | null; prev: number | null; end: string | null } {
+  const a = annual(f, concepts);
+  if (a.cur === null || a.end === null) return a;
+  let all: Entry[] = [];
+  for (const c of concepts) {
+    const es = (f.facts?.["us-gaap"]?.[c]?.units?.USD ?? []).filter((e) => e.start);
+    if (es.length && (!all.length || es.reduce((m, e) => (e.end > m ? e.end : m), "") > all.reduce((m, e) => (e.end > m ? e.end : m), ""))) all = es;
+  }
+  const q = all.filter((e) => /^10-Q/.test(e.form ?? "") && e.end > a.end! && days(e.start!, e.end) > 60 && days(e.start!, e.end) < 290);
+  if (!q.length) return a;
+  const lastEnd = q.reduce((m, e) => (e.end > m ? e.end : m), "");
+  const y = q.filter((e) => e.end === lastEnd).reduce((m, e) => (days(e.start!, e.end) > days(m.start!, m.end) ? e : m));
+  const dur = days(y.start!, y.end);
+  const near = (yrs: number) => all.find((e) => /^10-[QK]/.test(e.form ?? "") && Math.abs(days(e.end, y.end) - 365 * yrs) < 20 && Math.abs(days(e.start!, e.end) - dur) < 12);
+  const y1 = near(1);
+  if (!y1) return a;
+  const y2 = near(2);
+  return { cur: a.cur + y.val - y1.val, prev: a.prev !== null && y2 ? a.prev + y1.val - y2.val : null, end: y.end };
+}
+
 function instant(f: Facts, concepts: string[]): number | null {
   let best: Entry | null = null;
   for (const c of concepts) {
@@ -66,10 +90,10 @@ function propertyCount(f: Facts): number | null {
 }
 
 export function reduceFacts(f: Facts): Fund {
-  const rev = annual(f, ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet"]);
-  const ni = annual(f, ["NetIncomeLoss", "ProfitLoss"]);
-  const op = annual(f, ["OperatingIncomeLoss"]);
-  const ocf = annual(f, ["NetCashProvidedByUsedInOperatingActivities"]);
+  const rev = ttm(f, ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet"]);
+  const ni = ttm(f, ["NetIncomeLoss", "ProfitLoss"]);
+  const op = ttm(f, ["OperatingIncomeLoss"]);
+  const ocf = ttm(f, ["NetCashProvidedByUsedInOperatingActivities"]);
   const equity = instant(f, ["StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"]);
   const assets = instant(f, ["Assets"]);
   let liabilities = instant(f, ["Liabilities"]);
@@ -92,10 +116,11 @@ async function cikOf(sym: string): Promise<string | null> {
   return m.data?.[sym] ?? null;
 }
 
-export const fundKey = (sym: string) => `sec:fund:${sym}:v3`;
+export const fundKey = (sym: string) => `sec:fund:${sym}:v4`;
 
 export function getFund(sym: string) {
-  return cached<Fund>(fundKey(sym), 24 * 3600, async () => {
+  // 6 h e sem espera: o valor guardado aparece na hora e o balanço novo (após um resultado) entra em segundo plano
+  return cachedSwr<Fund>(fundKey(sym), 6 * 3600, async () => {
     const cik = await cikOf(sym);
     if (!cik) throw new Error("empresa não encontrada na SEC");
     return reduceFacts(await fetchJson<Facts>(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, { headers: HEADERS }, 45000));
