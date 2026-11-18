@@ -5,6 +5,7 @@ import { getAssetDetail } from "@/lib/market";
 import { Change, DataStatus, Disclaimer, Locked, PageTitle, ProBadge } from "@/components/ui";
 import { TradingViewChart } from "@/components/TradingViewChart";
 import { brl, brlCompact } from "@/lib/format";
+import { marketCapFallback } from "@/lib/brlist";
 import { AssetAnalysis } from "@/components/AssetAnalysis";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,8 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
   const d = result.data;
   const symbol = tradingViewSymbol("b3", ticker);
   const isFii = sp.de === "fiis";
+  const mcFb = d && !d.marketCap ? marketCapFallback(ticker, isFii, d.price) : null;
+  const marketCap = d?.marketCap ?? mcFb?.value ?? null;
   const lower = ticker.toLowerCase();
   const docs: { label: string; url: string }[] = isFii
     ? [
@@ -62,7 +65,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
           <Item label="Preço" value={brl(d.price)} />
           <Item label="Variação no dia" value={<Change value={d.changePct} />} />
           <Item label="Volume" value={d.volume === null ? "—" : d.volume.toLocaleString("pt-BR")} />
-          <Item label="Valor de mercado" value={brlCompact(d.marketCap)} />
+          <Item label="Valor de mercado" value={<>{brlCompact(marketCap)}{mcFb?.estimated && <span className="ml-2 text-xs font-normal text-muted">cotas do informe × preço</span>}</>} />
         </section>
       )}
 
@@ -81,7 +84,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
               </section>
             </>
           )}
-          <AssetAnalysis ticker={ticker} isFii={isFii} marketCap={d?.marketCap ?? null} brapiPrice={d?.price ?? null} name={d?.name ?? null} />
+          <AssetAnalysis ticker={ticker} isFii={isFii} marketCap={marketCap} brapiPrice={d?.price ?? null} name={d?.name ?? null} />
         </>
       ) : (
         <>

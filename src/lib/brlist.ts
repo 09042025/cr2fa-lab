@@ -36,3 +36,19 @@ export async function brExtras(rows: Row[], fii: boolean): Promise<Map<string, E
   }));
   return out;
 }
+
+/**
+ * Valor de mercado para a página do ativo quando a cotação individual da brapi não traz (comum em FIIs no plano grátis):
+ * 1) valor da lista já guardada; 2) FII: cotas do informe mensal da CVM × preço. Sem dado, null (não inventa).
+ */
+export function marketCapFallback(ticker: string, isFii: boolean, price: number | null): { value: number; estimated: boolean } | null {
+  const list = peek<Row[]>(isFii ? "brapi:fiis:all:v3" : "brapi:stocks:all:v2");
+  const hit = list?.find((r) => r.symbol === ticker)?.marketCap;
+  if (typeof hit === "number" && hit > 0) return { value: hit, estimated: false };
+  if (isFii && price) {
+    const rec = getFiiData().data?.byPrefix[ticker.slice(0, 4)];
+    const cotas = rec?.cotas && rec.cotas > 0 ? rec.cotas : rec?.patrimonio && rec.vpa ? rec.patrimonio / rec.vpa : null;
+    if (cotas) return { value: cotas * price, estimated: true };
+  }
+  return null;
+}
