@@ -53,14 +53,35 @@ const addDays = (s: string, n: number) => ymd(new Date(new Date(`${s}T00:00:00Z`
 
 export const sumBetween = (d: Dividend[], from: string, to: string) => d.filter((x) => x.date > from && x.date <= to).reduce((s, x) => s + x.value, 0);
 
+const yearBefore = (s: string) => { const t = new Date(`${s}T00:00:00Z`); t.setUTCFullYear(t.getUTCFullYear() - 1); return ymd(t); };
+
+/**
+ * Janela de "12 meses" dos proventos. A fonte só registra o provento na data ex; se o mês atual ainda não tem nenhum
+ * (ainda não saiu, ou a fonte atrasou) e a janela fosse "hoje menos 365 dias", o mesmo mês do ano passado cairia fora e o
+ * ativo pareceria pagar 11 de 12 meses, com DY menor. Por isso, sem provento no mês atual, a janela fecha no fim do mês anterior.
+ */
+export function dividendWindow(d: Dividend[], today: string): { from: string; to: string; prevFrom: string } {
+  const cm = today.slice(0, 7);
+  const paidNow = d.some((x) => x.date.slice(0, 7) === cm && x.date <= today);
+  const to = paidNow ? today : ymd(new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, 0)));
+  const from = yearBefore(to);
+  return { from, to, prevFrom: yearBefore(from) };
+}
+
+/** Soma dos proventos na janela de 12 meses e na dos 12 meses anteriores. */
+export function sum12(d: Dividend[], today: string): { cur: number; prev: number } {
+  const w = dividendWindow(d, today);
+  return { cur: sumBetween(d, w.from, w.to), prev: sumBetween(d, w.prevFrom, w.from) };
+}
+
 export interface CalendarMonth { month: number; label: string; items: { date: string; value: number }[] }
 
 /** Proventos dos últimos 12 meses, agrupados por mês do ano (para ver em que meses o ativo costuma pagar). */
 export function monthCalendar(d: Dividend[], today: string): CalendarMonth[] {
-  const from = addDays(today, -365);
+  const w = dividendWindow(d, today);
   const names = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const months: CalendarMonth[] = names.map((label, i) => ({ month: i + 1, label, items: [] }));
-  for (const x of d) if (x.date > from && x.date <= today) months[Number(x.date.slice(5, 7)) - 1].items.push(x);
+  for (const x of d) if (x.date > w.from && x.date <= w.to) months[Number(x.date.slice(5, 7)) - 1].items.push(x);
   return months;
 }
 
@@ -74,10 +95,20 @@ export function nextEstimate(d: Dividend[], today: string): { date: string; valu
   if (!gaps.length) return null;
   gaps.sort((a, b) => a - b);
   const med = gaps[Math.floor(gaps.length / 2)];
+  const monthly = med < 45;
+  const cm = today.slice(0, 7);
+  if (monthly && last.date.slice(0, 7) < cm) {
+    // pagador mensal sem provento registrado neste mês: ainda deve sair (a fonte registra na data ex e pode atrasar)
+    const day = Math.min(28, Number(last.date.slice(8, 10)));
+    const typical = `${cm}-${String(day).padStart(2, "0")}`;
+    return { date: typical > today ? typical : today, value: last.value, basis: "pagamento mensal, ainda não registrado neste mês" };
+  }
   let date = addDays(last.date, Math.round(med));
   while (date <= today) date = addDays(date, Math.round(med));
   return { date, value: last.value, basis: med < 45 ? "pagamento mensal" : med < 120 ? "pagamento trimestral" : "padrão histórico" };
 }
 
-export const monthsPaid = (d: Dividend[], today: string) =>
-  new Set(d.filter((x) => x.date > addDays(today, -365) && x.date <= today).map((x) => x.date.slice(0, 7))).size;
+export const monthsPaid = (d: Dividend[], today: string) => {
+  const w = dividendWindow(d, today);
+  return new Set(d.filter((x) => x.date > w.from && x.date <= w.to).map((x) => x.date.slice(0, 7))).size;
+};

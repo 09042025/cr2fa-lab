@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getUsQuote, US_REITS, US_STOCKS } from "@/lib/usmarket";
-import { monthCalendar, nextEstimate, sumBetween } from "@/lib/dividends";
+import { monthCalendar, nextEstimate, sum12 } from "@/lib/dividends";
 import { usLogo } from "@/lib/cryptoquote";
 import { TickerLogo } from "@/components/TickerLogo";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
@@ -30,7 +30,7 @@ export default async function UsAssetPage({ params, searchParams }: { params: Pr
   const d = q.data;
   const fund = fd.data;
   const today = new Date().toISOString().slice(0, 10);
-  const div12 = d ? sumBetween(d.dividends, new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10), today) : 0;
+  const div12 = d ? sum12(d.dividends, today).cur : 0;
   const cal = d ? monthCalendar(d.dividends, today) : null;
   const next = d ? nextEstimate(d.dividends, today) : null;
   const a = d ? buildUsAssessment(ticker, reit, fund, d, meta?.name ?? null, today) : null;

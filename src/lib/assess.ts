@@ -5,7 +5,7 @@
  */
 import { analyzeFii, analyzeStock, type Indicator, type Status } from "./indicators";
 import { companyByName, companyInd, companyOf, getCvmData, getCvmInd, getFiiData, getFiiImoveis } from "./cvm";
-import { getQuote, monthsPaid, sumBetween, type Quote } from "./dividends";
+import { getQuote, monthsPaid, sum12, type Quote } from "./dividends";
 import { getAssetDetail, getCoinDetail } from "./market";
 import { coinIdOf, isCryptoHolding, isUsStock } from "./cryptoquote";
 
@@ -58,10 +58,9 @@ export async function assessStockOrFii(ticker: string, isFii: boolean, hint?: { 
   const q = hint?.quote !== undefined ? { data: hint.quote, error: undefined as string | undefined } : await getQuote(ticker);
   const quote = q.data;
   const price = quote?.price ?? brapiPrice;
-  const from12 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
-  const from24 = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10);
-  const div12 = quote ? sumBetween(quote.dividends, from12, today) : null;
-  const div12Prev = quote ? sumBetween(quote.dividends, from24, from12) : null;
+  const s12 = quote ? sum12(quote.dividends, today) : null;
+  const div12 = s12 ? s12.cur : null;
+  const div12Prev = s12 ? s12.prev : null;
 
   let indicators: Indicator[] = [];
   let period: string | null = null;
