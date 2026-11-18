@@ -214,11 +214,14 @@ export function analyzeFii(i: FiiInput): Indicator[] {
   const out: Indicator[] = [];
   const dy = i.price && i.dividends12m !== null ? (i.dividends12m / i.price) * 100 : null;
   out.push(mk("dy", "Dividend yield (12 meses)", dy, pct(dy), rate(dy, "higher", 9, 6), "Proventos dos últimos 12 meses sobre a cota. Bom a partir de 9%, atenção a partir de 6%.", `Dividend yield de ${pct(dy)}: renda abaixo do esperado para fundos imobiliários.`));
-  const pvp = i.price && i.vpa && i.vpa > 0 ? i.price / i.vpa : null;
+  // trava de segurança: P/VP fora de 0,2 a 4 em fundo listado quase sempre é dado trocado/incompleto; melhor "—" do que número errado
+  const pvpRaw = i.price && i.vpa && i.vpa > 0 ? i.price / i.vpa : null;
+  const pvp = pvpRaw !== null && pvpRaw >= 0.2 && pvpRaw <= 4 ? pvpRaw : null;
+  const vpaOk = pvpRaw === null || pvp !== null;
   out.push(mk("pvp", "P/VP", pvp, dec(pvp), pvp === null ? "nd" : pvp < 0.85 ? "atencao" : pvp <= 1.05 ? "bom" : pvp <= 1.2 ? "atencao" : "ruim",
     "Cota sobre o valor patrimonial. Entre 0,85 e 1,05 costuma ser equilibrado; muito abaixo pode sinalizar risco nos ativos; acima de 1,2 é caro.",
     pvp !== null && pvp < 0.85 ? `P/VP de ${dec(pvp)}: o mercado desconta bastante o patrimônio, vale entender o porquê.` : `P/VP de ${dec(pvp)}: cota negociando bem acima do patrimônio.`));
-  out.push(mk("vpa", "Valor patrimonial por cota", i.vpa, i.vpa === null ? "—" : i.vpa.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), "nd", "Patrimônio líquido dividido pelas cotas (informe mensal da CVM)."));
+  out.push(mk("vpa", "Valor patrimonial por cota", vpaOk ? i.vpa : null, i.vpa === null || !vpaOk ? "—" : i.vpa.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), "nd", "Patrimônio líquido dividido pelas cotas (informe mensal da CVM)."));
   const trend = i.dividends12m !== null && i.div12mPrev && i.div12mPrev > 0 ? ((i.dividends12m - i.div12mPrev) / i.div12mPrev) * 100 : null;
   out.push(mk("trend", "Proventos vs. 12 meses anteriores", trend, pct(trend), rate(trend, "higher", 0, -10), "Soma dos proventos dos últimos 12 meses contra os 12 anteriores. Bom se estável ou crescendo, ruim se cair mais de 10%.", `Proventos ${pct(trend)} contra os 12 meses anteriores: renda em queda.`));
   out.push(mk("reg", "Meses com pagamento (últimos 12)", i.monthsPaid, `${i.monthsPaid} de 12`, i.dividends12m === null ? "nd" : i.monthsPaid >= 12 ? "bom" : i.monthsPaid >= 9 ? "atencao" : "ruim", "Regularidade dos proventos. O ideal é pagar todos os meses.", `Pagou proventos em só ${i.monthsPaid} dos últimos 12 meses: renda irregular.`));
