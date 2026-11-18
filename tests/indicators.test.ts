@@ -184,3 +184,21 @@ test("FII: P/VP absurdo não é exibido", () => {
   assert.equal(by.pvp.status, "nd");
   assert.equal(by.vpa.value, null);
 });
+
+test("proventos: mês atual ainda sem registro não derruba o 12 meses nem a regularidade (caso SNEL11/SNCI11)", async () => {
+  const { monthsPaid, sum12, nextEstimate, monthCalendar } = await import("../src/lib/dividends");
+  const d: { date: string; value: number }[] = [];
+  const ms = ["2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10"];
+  ms.forEach((m) => d.push({ date: `${m}-17`, value: 0.1 }));
+  const today = "2026-11-18";
+  assert.equal(monthsPaid(d, today), 12); // antes: 11 (17/11/2025 caía fora e novembro/2026 ainda não existe)
+  assert.ok(Math.abs(sum12(d, today).cur - 1.2) < 1e-9);
+  assert.equal(monthCalendar(d, today)[10].items.length, 1);
+  const nx = nextEstimate(d, today);
+  assert.equal(nx?.date, "2026-11-18"); // ainda em novembro, não pula para dezembro
+  assert.match(nx?.basis ?? "", /ainda não registrado/);
+  // quando novembro aparece, a janela volta a ser móvel e continua com 12 meses
+  const d2 = [...d, { date: "2026-11-17", value: 0.1 }];
+  assert.equal(monthsPaid(d2, today), 12);
+  assert.ok(Math.abs(sum12(d2, today).cur - 1.2) < 1e-9);
+});

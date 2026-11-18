@@ -3,7 +3,7 @@ import type { Indicator, Status } from "./indicators";
 import { propertyIndicator, rate } from "./indicators";
 import type { Fund } from "./sec";
 import type { Quote } from "./dividends";
-import { monthsPaid, sumBetween } from "./dividends";
+import { monthsPaid, sum12 } from "./dividends";
 import { summarize, type Assessment } from "./assess";
 
 const n1 = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
@@ -20,8 +20,9 @@ export const marketCapOf = (price: number | null, f: Fund | null) => (price && f
 export function usIndicators(f: Fund | null, quote: Quote | null, reit: boolean, today: string): Indicator[] {
   const price = quote?.price ?? null;
   const mc = marketCapOf(price, f);
-  const div12 = quote ? sumBetween(quote.dividends, new Date(Date.parse(today) - 365 * 86400000).toISOString().slice(0, 10), today) : null;
-  const div12p = quote ? sumBetween(quote.dividends, new Date(Date.parse(today) - 730 * 86400000).toISOString().slice(0, 10), new Date(Date.parse(today) - 365 * 86400000).toISOString().slice(0, 10)) : null;
+  const s12 = quote ? sum12(quote.dividends, today) : null;
+  const div12 = s12 ? s12.cur : null;
+  const div12p = s12 ? s12.prev : null;
   const dy = price && div12 !== null && div12 > 0 ? (div12 / price) * 100 : div12 === 0 ? 0 : null;
   const dg = div12 !== null && div12p !== null && div12p > 0 ? ((div12 - div12p) / div12p) * 100 : null;
   const paid = quote ? monthsPaid(quote.dividends, today) : null;
