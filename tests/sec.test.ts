@@ -35,3 +35,16 @@ test("usIndicators calcula margem, ROE e crescimento", () => {
   assert.equal(Math.round(get("gr").value!), 11);
   assert.equal(get("pl").value, 25); // 60 * 50 / 120
 });
+
+test("TTM: soma o último 10-K ao acumulado do ano atual e tira o mesmo período do ano anterior", () => {
+  const q = (start: string, end: string, val: number, form = "10-Q") => ({ start, end, val, form });
+  const f = reduceFacts({
+    facts: { "us-gaap": { Revenues: { units: { USD: [
+      yr("2024-12-31", 800), yr("2025-12-31", 1000),
+      q("2024-01-01", "2024-09-30", 560), q("2025-01-01", "2025-09-30", 700), q("2026-01-01", "2026-09-30", 900),
+    ] } } } },
+  });
+  assert.equal(f.revenue, 1200); // 1000 + 900 - 700
+  assert.equal(f.revenuePrev, 940); // 800 (FY anterior) + 700 - 560
+  assert.equal(f.period, "2026-09-30");
+});
