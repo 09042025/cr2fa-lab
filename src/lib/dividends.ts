@@ -2,7 +2,7 @@
  * Histórico e calendário de proventos. Fonte aberta sem chave (Yahoo Finance, endpoint público de gráfico),
  * que traz preço, volume e proventos por data "com/ex". A data de pagamento exata não vem desta fonte.
  */
-import { cached, fetchJson } from "./market";
+import { cachedSwr, fetchJson } from "./market";
 
 export interface Dividend { date: string; value: number } // data ex (AAAA-MM-DD)
 export interface Quote { price: number | null; avgDailyVolume: number | null; dividends: Dividend[]; /** Fechamento do último pregão de cada mês (AAAA-MM). */ monthly: { m: string; close: number }[]; /** Fechamento de ~30 dias atrás. */ close30: number | null }
@@ -42,7 +42,7 @@ export function parseYahoo(j: YahooChart): Quote {
 }
 
 export function getQuote(ticker: string) {
-  return cached<Quote>(`yahoo:div:${ticker}:v3`, 6 * 3600, async () => {
+  return cachedSwr<Quote>(`yahoo:div:${ticker}:v3`, 6 * 3600, async () => {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?range=5y&interval=1d&events=div`;
     return parseYahoo(await fetchJson<YahooChart>(url, {}, 20000));
   });

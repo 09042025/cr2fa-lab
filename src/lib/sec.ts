@@ -2,6 +2,7 @@
  * Fundamentos de empresas americanas pela SEC (dados abertos, sem chave): demonstrações em XBRL ("company facts").
  * Resultado em 12 meses móveis (último 10-K + trimestres do 10-Q) e balanço mais recente para patrimônio e dívida.
  */
+import { Worker } from "node:worker_threads";
 import { cachedSwr, cached, fetchJson } from "./market";
 
 const HEADERS = { "user-agent": process.env.SEC_USER_AGENT || "NIZA INVEST contato@nizainvest.com.br" };
@@ -116,6 +117,43 @@ async function cikOf(sym: string): Promise<string | null> {
   return m.data?.[sym] ?? null;
 }
 
+/** Conceitos que o código lê do arquivo da SEC: só estes sobram depois da poda (o arquivo bruto tem dezenas de MB). */
+export const NEEDED_CONCEPTS = [
+  "Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet",
+  "NetIncomeLoss", "ProfitLoss", "OperatingIncomeLoss", "NetCashProvidedByUsedInOperatingActivities",
+  "StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest", "Assets", "Liabilities",
+  "LongTermDebtNoncurrent", "LongTermDebt", "CashAndCashEquivalentsAtCarryingValue", "AssetsCurrent", "LiabilitiesCurrent",
+  "NumberOfRealEstateProperties", "NumberOfPropertiesOwned", "NumberOfRealEstatePropertiesOwned", "EntityCommonStockSharesOutstanding",
+];
+
+/**
+ * Baixa e lê o arquivo da SEC FORA da thread principal: o JSON de empresas grandes tem dezenas de MB e o parse trava o servidor
+ * inteiro (todas as telas ficavam lentas enquanto isso). A thread auxiliar devolve só os conceitos usados.
+ */
+function fetchFactsOffThread(url: string): Promise<Facts> {
+  const code = `
+    const { parentPort, workerData } = require("node:worker_threads");
+    (async () => {
+      const res = await fetch(workerData.url, { headers: { "user-agent": workerData.ua, accept: "application/json" }, signal: AbortSignal.timeout(60000) });
+      if (!res.ok) throw new Error("HTTP " + res.status + " em data.sec.gov");
+      const j = await res.json();
+      const keep = new Set(workerData.need);
+      const out = { facts: {} };
+      for (const [tax, group] of Object.entries(j.facts || {})) {
+        const g = {};
+        for (const [name, v] of Object.entries(group)) if (keep.has(name)) g[name] = v;
+        if (Object.keys(g).length) out.facts[tax] = g;
+      }
+      parentPort.postMessage({ ok: true, data: out });
+    })().catch((e) => parentPort.postMessage({ ok: false, error: String(e && e.message || e) }));
+  `;
+  return new Promise((resolve, reject) => {
+    const w = new Worker(code, { eval: true, workerData: { url, ua: HEADERS["user-agent"], need: NEEDED_CONCEPTS } });
+    w.once("message", (m: { ok: boolean; data?: Facts; error?: string }) => { void w.terminate(); m.ok ? resolve(m.data as Facts) : reject(new Error(m.error)); });
+    w.once("error", reject);
+  });
+}
+
 export const fundKey = (sym: string) => `sec:fund:${sym}:v4`;
 
 export function getFund(sym: string) {
@@ -123,6 +161,6 @@ export function getFund(sym: string) {
   return cachedSwr<Fund>(fundKey(sym), 6 * 3600, async () => {
     const cik = await cikOf(sym);
     if (!cik) throw new Error("empresa não encontrada na SEC");
-    return reduceFacts(await fetchJson<Facts>(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, { headers: HEADERS }, 45000));
+    return reduceFacts(await fetchFactsOffThread(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`));
   });
 }

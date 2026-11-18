@@ -104,7 +104,7 @@ function geckoHeaders(): Record<string, string> {
 }
 
 export function getCryptoMarkets() {
-  return cached<CryptoCoin[]>("coingecko:markets", 5 * 60, async () => {
+  return cachedSwr<CryptoCoin[]>("coingecko:markets", 5 * 60, async () => {
     const url =
       "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d";
     const raw = await fetchJson<GeckoCoin[]>(url, { headers: geckoHeaders() });
@@ -127,7 +127,7 @@ export function getCryptoMarkets() {
 export function getCryptoPage(page: number, category?: string, perPage = 100) {
   const pg = Math.min(Math.max(Math.floor(page) || 1, 1), 20);
   const cat = category && /^[a-z0-9-]{2,60}$/.test(category) ? category : "";
-  return cached<CryptoCoin[]>(`coingecko:markets:v2:${cat || "all"}:${perPage}:${pg}`, 5 * 60, async () => {
+  return cachedSwr<CryptoCoin[]>(`coingecko:markets:v2:${cat || "all"}:${perPage}:${pg}`, 5 * 60, async () => {
     const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${pg}&sparkline=false&price_change_percentage=24h,7d,30d${cat ? `&category=${cat}` : ""}`;
     const raw = await fetchJson<GeckoCoin[]>(url, { headers: geckoHeaders() });
     return raw.map((c) => ({
@@ -149,7 +149,7 @@ export interface GlobalMarket {
 
 /** Números globais do mercado cripto (CoinGecko). */
 export function getGlobalMarket() {
-  return cached<GlobalMarket>("coingecko:global:v1", 5 * 60, async () => {
+  return cachedSwr<GlobalMarket>("coingecko:global:v1", 5 * 60, async () => {
     const raw = await fetchJson<{ data?: { total_market_cap?: { usd?: number }; total_volume?: { usd?: number }; market_cap_change_percentage_24h_usd?: number; market_cap_percentage?: { btc?: number; eth?: number }; active_cryptocurrencies?: number } }>(
       "https://api.coingecko.com/api/v3/global", { headers: geckoHeaders() });
     const d = raw.data;
@@ -203,7 +203,7 @@ const COIN_ID_RE = /^[a-z0-9][a-z0-9-]{0,80}$/;
 /** Ficha completa de uma moeda/ativo tokenizado (CoinGecko). */
 export function getCoinDetail(id: string) {
   if (!COIN_ID_RE.test(id)) return Promise.resolve({ data: null, fetchedAt: null, stale: false, error: "ativo inválido" } as Cached<CoinDetail>);
-  return cached<CoinDetail>(`coingecko:coin:${id}:v1`, 5 * 60, async () => {
+  return cachedSwr<CoinDetail>(`coingecko:coin:${id}:v1`, 5 * 60, async () => {
     const r = await fetchJson<GeckoDetail>(
       `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false`, { headers: geckoHeaders() });
     const m = r.market_data ?? {};
@@ -238,7 +238,7 @@ function thin(rows: [number, number][] | undefined, max = 140): [number, number]
 export function getMarketChart(id: string, days: number) {
   const d = [7, 30, 90, 365].includes(days) ? days : 30;
   if (!COIN_ID_RE.test(id)) return Promise.resolve({ data: null, fetchedAt: null, stale: false, error: "ativo inválido" } as Cached<ChartSeries>);
-  return cached<ChartSeries>(`coingecko:chart:${id}:${d}:v1`, 15 * 60, async () => {
+  return cachedSwr<ChartSeries>(`coingecko:chart:${id}:${d}:v1`, 15 * 60, async () => {
     const r = await fetchJson<{ prices?: [number, number][]; market_caps?: [number, number][]; total_volumes?: [number, number][] }>(
       `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${d}`, { headers: geckoHeaders() }, 20000);
     const prices = thin(r.prices);
@@ -347,7 +347,7 @@ export function toDefiPool(p: LlamaPool): DefiPool {
 
 /** Pools do DefiLlama (gratuito). Cache de 30 min; v2 inclui volume, taxa e perda impermanente. */
 export function getDefiPools() {
-  return cached<DefiPool[]>("defillama:pools:v4", 30 * 60, async () => {
+  return cachedSwr<DefiPool[]>("defillama:pools:v4", 30 * 60, async () => {
     const raw = await fetchJson<{ data: LlamaPool[] }>("https://yields.llama.fi/pools", {}, 40000);
     return raw.data
       .filter((p) => p.apy !== null && p.apy !== undefined && p.apy < 1000)
@@ -411,7 +411,7 @@ export function toPaprikaPool(p: PaprikaPool, chainLabel: string): DefiPool | nu
 }
 
 export function getRobinhoodPools() {
-  return cached<DefiPool[]>("dexpaprika:robinhood:v2", 30 * 60, async () => {
+  return cachedSwr<DefiPool[]>("dexpaprika:robinhood:v2", 30 * 60, async () => {
     const url =
       "https://api.dexpaprika.com/networks/robinhood/pools/search?limit=100&order_by=liquidity_usd&sort=desc&liquidity_usd_min=5000&detailed=true";
     const raw = await fetchJson<{ results?: PaprikaPool[] }>(url, {}, 20000);
@@ -587,7 +587,7 @@ async function fillMarketCap(quotes: Quote[]): Promise<void> {
 
 /** Todas as ações da B3 (lista completa da brapi). Se a lista falhar, cai nos exemplos por setor. */
 export const getStocks = () =>
-  cached<Quote[]>("brapi:stocks:all:v2", 15 * 60, async () => {
+  cachedSwr<Quote[]>("brapi:stocks:all:v2", 15 * 60, async () => {
     try {
       const items = (await fetchBrapiList("type=stock")).filter((i) => /^[A-Z]{4}\d{1,2}$/.test(i.stock));
       if (items.length < 20) throw new Error("lista curta");
@@ -599,7 +599,7 @@ export const getStocks = () =>
 
 /** Todos os FIIs da B3, com segmento quando conhecido. Se a lista falhar, cai nos exemplos por segmento. */
 export const getFiis = () =>
-  cached<Quote[]>("brapi:fiis:all:v3", 15 * 60, async () => {
+  cachedSwr<Quote[]>("brapi:fiis:all:v3", 15 * 60, async () => {
     try {
       const items = (await fetchBrapiList("type=fund&subType=fii")).filter((i) => /^[A-Z]{4}1[1-3]$/.test(i.stock));
       if (items.length < 20) throw new Error("lista curta");
@@ -638,7 +638,7 @@ interface BrapiDetail {
 }
 
 export function getAssetDetail(ticker: string) {
-  return cached<AssetDetail>(`brapi:detail:${ticker}:v1`, 15 * 60, async () => {
+  return cachedSwr<AssetDetail>(`brapi:detail:${ticker}:v1`, 15 * 60, async () => {
     const token = process.env.BRAPI_TOKEN;
     const url = `https://brapi.dev/api/quote/${ticker}?fundamental=true&dividends=true${token ? `&token=${encodeURIComponent(token)}` : ""}`;
     let r: BrapiDetail | undefined;
@@ -685,7 +685,7 @@ async function sgs(code: number): Promise<{ value: number; date: string } | null
 }
 
 export function getRates() {
-  return cached<Rates>("bcb:rates", 6 * 60 * 60, async () => {
+  return cachedSwr<Rates>("bcb:rates", 6 * 60 * 60, async () => {
     const [selic, cdi, ipca] = await Promise.all([sgs(432), sgs(4389), sgs(13522)]);
     if (!selic && !cdi && !ipca) throw new Error("API do Banco Central indisponível");
     return {
