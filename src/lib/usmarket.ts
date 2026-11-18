@@ -2,7 +2,7 @@
  * Mercado americano: lista curada das maiores ações e REITs (fundos imobiliários dos EUA) com cotação da Yahoo Finance (fonte aberta, em dólar).
  * É uma seleção, não o mercado inteiro; os setores seguem a classificação usual.
  */
-import { cached, cachedSwr, fetchJson } from "./market";
+import { cachedSwr, fetchJson } from "./market";
 import { parseYahoo, type Quote } from "./dividends";
 import { db } from "./db";
 import { fundKey, getFund, type Fund } from "./sec";
@@ -54,7 +54,7 @@ interface Meta { chart?: { result?: { meta?: { regularMarketPrice?: number; char
 export interface UsRow extends UsAsset { price: number | null; changePct: number | null; volume: number | null }
 
 async function lite(sym: string): Promise<{ price: number | null; changePct: number | null; volume: number | null }> {
-  const r = await cached(`yahoo:us:lite:${sym}:v1`, 10 * 60, async () => {
+  const r = await cachedSwr(`yahoo:us:lite:${sym}:v1`, 10 * 60, async () => {
     const m = (await fetchJson<Meta>(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=5d&interval=1d`, {}, 15000)).chart?.result?.[0]?.meta;
     if (!m?.regularMarketPrice) throw new Error("sem cotação");
     const prev = m.chartPreviousClose ?? m.previousClose ?? null;

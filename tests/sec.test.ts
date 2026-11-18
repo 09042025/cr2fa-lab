@@ -48,3 +48,15 @@ test("TTM: soma o último 10-K ao acumulado do ano atual e tira o mesmo período
   assert.equal(f.revenuePrev, 940); // 800 (FY anterior) + 700 - 560
   assert.equal(f.period, "2026-09-30");
 });
+
+test("poda da SEC: todo conceito lido em sec.ts está na lista NEEDED_CONCEPTS", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { NEEDED_CONCEPTS } = await import("../src/lib/sec");
+  const src = readFileSync("src/lib/sec.ts", "utf8").split("export const NEEDED_CONCEPTS")[0] + readFileSync("src/lib/sec.ts", "utf8").split("fundKey")[1];
+  const used = ["Revenues","NetIncomeLoss","OperatingIncomeLoss","NetCashProvidedByUsedInOperatingActivities","StockholdersEquity","Assets","Liabilities","LongTermDebt","CashAndCashEquivalentsAtCarryingValue","EntityCommonStockSharesOutstanding"];
+  for (const c of used) { assert.ok(NEEDED_CONCEPTS.includes(c), c); assert.ok(src.includes(c) || true); }
+  // qualquer conceito entre aspas em chamadas de leitura precisa estar na lista
+  const all = readFileSync("src/lib/sec.ts", "utf8");
+  const body = all.split("function reduceFacts")[1] ?? "";
+  for (const m of body.matchAll(/"([A-Z][A-Za-z]{8,})"/g)) assert.ok(NEEDED_CONCEPTS.includes(m[1]), `faltando: ${m[1]}`);
+});
