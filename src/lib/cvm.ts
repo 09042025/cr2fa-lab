@@ -336,20 +336,26 @@ async function buildCvmInd(): Promise<CvmData> {
 
 /* ------------------------------ FII (informe mensal) ------------------------------ */
 
-export interface FiiRecord { cnpj?: string; name: string; isin: string; date: string; vpa: number | null; patrimonio: number | null; cotistas: number | null; taxaAdm: number | null }
+export interface FiiRecord { cnpj?: string; name: string; isin: string; date: string; vpa: number | null; patrimonio: number | null; cotistas: number | null; taxaAdm: number | null; cotas?: number | null }
 export interface FiiData { loadedAt: number; byPrefix: Record<string, FiiRecord> }
 
+/**
+ * Junta o informe mensal (geral + complemento) por fundo e liga ao ticker pelas 4 letras do ISIN.
+ * Vários fundos podem ter o mesmo prefixo (um fundo novo ou minúsculo com a mesma sigla): fica o MAIOR patrimônio entre os informes recentes,
+ * que é o fundo listado em bolsa. O valor patrimonial é conferido contra patrimônio ÷ cotas emitidas.
+ */
 export function ingestFii(geral: Table, compl: Table, into: Record<string, FiiRecord>) {
   const gC = col(geral, /^CNPJ/i), gD = col(geral, /^Data_Referencia$/i), gN = col(geral, /^Nome_Fundo/i), gI = col(geral, /ISIN/i);
-  const cC = col(compl, /^CNPJ/i), cD = col(compl, /^Data_Referencia$/i);
-  const cVpa = col(compl, /^Valor_Patrimonial_Cotas$/i), cPl = col(compl, /^Patrimonio_Liquido$/i), cCot = col(compl, /^Total_Numero_Cotistas$/i), cAdm = col(compl, /Taxa_Administracao/i);
+  const cC = col(compl, /^CNPJ/i), cD = col(compl, /^Data_Referencia$/i), cV = col(compl, /^Versao$/i);
+  const cVpa = col(compl, /^Valor_Patrimonial_Cotas$/i), cPl = col(compl, /^Patrimonio_Liquido$/i), cCot = col(compl, /^Total_Numero_Cotistas$/i), cAdm = col(compl, /Taxa_Administracao/i), cCotas = col(compl, /^Cotas_Emitidas$/i);
   if ([gC, gD, cC, cD].some((x) => x < 0)) throw new Error("colunas inesperadas no informe mensal de FII");
   const n = (s: string | undefined) => { const v = Number((s ?? "").replace(",", ".")); return s && Number.isFinite(v) ? v : null; };
+  const rank = (r: string[], d: number, v: number) => `${r[d] ?? ""}|${v >= 0 ? (r[v] ?? "").padStart(4, "0") : ""}`;
   const latestCompl = new Map<string, string[]>();
   for (const r of compl.rows) {
     const key = digits(r[cC]);
     const prev = latestCompl.get(key);
-    if (!prev || (r[cD] ?? "") >= (prev[cD] ?? "")) latestCompl.set(key, r);
+    if (!prev || rank(r, cD, cV) >= rank(prev, cD, cV)) latestCompl.set(key, r);
   }
   const latestGeral = new Map<string, string[]>();
   for (const r of geral.rows) {
@@ -357,18 +363,34 @@ export function ingestFii(geral: Table, compl: Table, into: Record<string, FiiRe
     const prev = latestGeral.get(key);
     if (!prev || (r[gD] ?? "") >= (prev[gD] ?? "")) latestGeral.set(key, r);
   }
+  const cands = new Map<string, FiiRecord[]>();
+  let newest = "";
   for (const [cnpj, g] of latestGeral) {
     const isin = gI >= 0 ? (g[gI] ?? "").toUpperCase() : "";
     const prefix = /^BR[A-Z0-9]{4}/.test(isin) ? isin.slice(2, 6) : "";
     if (!prefix) continue;
     const c = latestCompl.get(cnpj);
     if (!c) continue;
-    into[prefix] = {
-      cnpj,
-      name: gN >= 0 ? g[gN] ?? "" : "", isin, date: c[cD] ?? "",
-      vpa: cVpa >= 0 ? n(c[cVpa]) : null, patrimonio: cPl >= 0 ? n(c[cPl]) : null,
-      cotistas: cCot >= 0 ? n(c[cCot]) : null, taxaAdm: cAdm >= 0 ? n(c[cAdm]) : null,
+    const pl = cPl >= 0 ? n(c[cPl]) : null;
+    const cotas = cCotas >= 0 ? n(c[cCotas]) : null;
+    let vpa = cVpa >= 0 ? n(c[cVpa]) : null;
+    // confere: valor patrimonial = patrimônio ÷ cotas. Se divergir mais de 2%, vale a conta (o campo pode vir com escala errada)
+    if (pl && cotas && cotas > 0) {
+      const calc = pl / cotas;
+      if (vpa === null || Math.abs(vpa - calc) / calc > 0.02) vpa = calc;
+    }
+    const rec: FiiRecord = {
+      cnpj, name: gN >= 0 ? g[gN] ?? "" : "", isin, date: c[cD] ?? "",
+      vpa, patrimonio: pl, cotistas: cCot >= 0 ? n(c[cCot]) : null, taxaAdm: cAdm >= 0 ? n(c[cAdm]) : null, cotas,
     };
+    if (rec.date > newest) newest = rec.date;
+    (cands.get(prefix) ?? cands.set(prefix, []).get(prefix)!).push(rec);
+  }
+  const limit = newest ? new Date(Date.parse(newest) - 130 * 86400000).toISOString().slice(0, 10) : "";
+  for (const [prefix, list] of cands) {
+    const recent = list.filter((r) => r.date >= limit);
+    const pool = recent.length ? recent : list;
+    into[prefix] = pool.sort((a, b) => (b.patrimonio ?? 0) - (a.patrimonio ?? 0) || (b.cotistas ?? 0) - (a.cotistas ?? 0))[0];
   }
 }
 
@@ -431,7 +453,7 @@ const failedAtMap = new Map<string, number>();
 
 export const getCvmData = () => get<CvmData>("cvm:acoes:v3", buildCvmData);
 export const getCvmInd = () => get<CvmData>("cvm:ind:v1", buildCvmInd);
-export const getFiiData = () => get<FiiData>("cvm:fii:v2", buildFiiData);
+export const getFiiData = () => get<FiiData>("cvm:fii:v3", buildFiiData);
 
 /* ------------------- FII: número de imóveis (informe trimestral) ------------------- */
 

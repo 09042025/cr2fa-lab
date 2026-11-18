@@ -165,3 +165,22 @@ test("FII sempre traz o indicador de imóveis", () => {
   const a = analyzeFii({ price: 100, dividends12m: 10, vpa: 100, patrimonio: 1e9, cotistas: 1000, taxaAdm: 0.1, div12mPrev: 9, monthsPaid: 12, avgDailyVolume: 1e6, imoveis: 4 });
   assert.equal(a.find((x) => x.id === "imoveis")?.status, "ruim");
 });
+
+test("FII: dois fundos com o mesmo prefixo de ISIN — vale o maior, e o VP é conferido com patrimônio ÷ cotas", () => {
+  const geral = parseCsv(Buffer.from("CNPJ_Fundo_Classe;Data_Referencia;Nome_Fundo_Classe;Codigo_ISIN\n11.111.111/0001-11;2026-09-30;SUNO RECEBIVEIS;BRSNCICTF001\n22.222.222/0001-22;2026-09-30;FUNDO NOVO;BRSNCICTF002\n33.333.333/0001-33;2026-09-30;OUTRO;BRXPTOCTF000", "latin1"));
+  const compl = parseCsv(Buffer.from("CNPJ_Fundo_Classe;Data_Referencia;Versao;Valor_Patrimonial_Cotas;Patrimonio_Liquido;Cotas_Emitidas;Total_Numero_Cotistas\n11.111.111/0001-11;2026-09-30;1;95,75;6000000000;62660000;90000\n22.222.222/0001-22;2026-09-30;1;0,75;750;1000;1\n33.333.333/0001-33;2026-09-30;1;10;1000;300;5", "latin1"));
+  const out: Record<string, { cnpj?: string; vpa: number | null; cotistas: number | null }> = {};
+  ingestFii(geral, compl, out as never);
+  assert.equal(out.SNCI.cnpj, "11111111000111");
+  assert.equal(out.SNCI.cotistas, 90000);
+  assert.ok(Math.abs((out.SNCI.vpa as number) - 95.75) < 0.1);
+  // campo com valor divergente de PL ÷ cotas: vale a conta
+  assert.ok(Math.abs((out.XPTO.vpa as number) - 1000 / 300) < 1e-9);
+});
+
+test("FII: P/VP absurdo não é exibido", () => {
+  const a = analyzeFii({ price: 56, dividends12m: 11, vpa: 0.75, patrimonio: 1e8, cotistas: 100, taxaAdm: null, div12mPrev: 11, monthsPaid: 12, avgDailyVolume: 1e6 });
+  const by = Object.fromEntries(a.map((i) => [i.id, i]));
+  assert.equal(by.pvp.status, "nd");
+  assert.equal(by.vpa.value, null);
+});
