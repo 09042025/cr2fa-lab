@@ -515,7 +515,32 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
           {/* cursor */}
           {hover !== null && (
             <g pointerEvents="none">
-              <line x1={geo.x(hover)} x2={geo.x(hover)} y1={padT} y2={padT + geo.plotH} stroke="#e8ecf8" opacity={0.45} />
+              <line x1={geo.x(hover)} x2={geo.x(hover)} y1={padT} y2={padT + geo.plotH} stroke="#e8ecf8" strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />
+              {/* mira como no TradingView: linha tracejada horizontal na altura do preço da data sob o cursor, com a etiqueta do valor no eixo */}
+              {priceNow !== null && priceNow !== undefined && (() => {
+                const y = geo.yPrice(priceNow);
+                if (y === null || y < padT || y > padT + geo.plotH) return null;
+                const label = formatValue("usd", priceNow);
+                const tw = label.length * 6.6 + 10;
+                return (
+                  <g>
+                    <line x1={padL} x2={padL + geo.plotW} y1={y} y2={y} stroke="#e8ecf8" strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />
+                    <rect x={padL - tw - 2} y={y - 9} width={tw} height={18} rx={3} fill={PRICE_COLOR} />
+                    <text x={padL - 2 - tw / 2} y={y + 3.5} textAnchor="middle" fill="#0b1020" fontWeight={600}>{label}</text>
+                  </g>
+                );
+              })()}
+              {(() => {
+                const label = fmtDate(day);
+                const tw = label.length * 6.4 + 12;
+                const x = Math.min(Math.max(geo.x(hover), padL + tw / 2), padL + geo.plotW - tw / 2);
+                return (
+                  <g>
+                    <rect x={x - tw / 2} y={padT + geo.plotH + 3} width={tw} height={17} rx={3} fill="#2a3556" />
+                    <text x={x} y={padT + geo.plotH + 15.5} textAnchor="middle" fill="#e8ecf8">{label}</text>
+                  </g>
+                );
+              })()}
               {priceNow !== null && priceNow !== undefined && geo.yPrice(priceNow) !== null && <circle cx={geo.x(hover)} cy={geo.yPrice(priceNow) as number} r={3.5} fill={PRICE_COLOR} />}
               {lines.map((l) => {
                 const v = l.values[hover];
