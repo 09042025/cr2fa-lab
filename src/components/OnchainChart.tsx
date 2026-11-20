@@ -512,6 +512,23 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
             <path d={geo.pricePath} fill="none" stroke={PRICE_COLOR} strokeWidth={1.8} strokeLinejoin="round" />
           </g>
 
+          {/* preço atual em verde no eixo do preço (e uma linha tracejada discreta), para achar o preço de agora de relance */}
+          {(() => {
+            const cp = price[price.length - 1];
+            if (cp === null || cp === undefined || !Number.isFinite(cp)) return null;
+            const y = geo.yPrice(cp);
+            if (y === null || y < padT || y > padT + geo.plotH) return null;
+            const label = formatValue("usd", cp);
+            const tw = label.length * 6.6 + 10;
+            return (
+              <g pointerEvents="none">
+                <line x1={padL} x2={padL + geo.plotW} y1={y} y2={y} stroke="#34d399" strokeWidth={1} strokeDasharray="2 4" opacity={0.55} />
+                <rect x={padL - tw - 2} y={y - 9} width={tw} height={18} rx={3} fill="#34d399" />
+                <text x={padL - 2 - tw / 2} y={y + 3.5} textAnchor="middle" fill="#06231a" fontWeight={700}>{label}</text>
+              </g>
+            );
+          })()}
+
           {/* cursor */}
           {hover !== null && (
             <g pointerEvents="none">
