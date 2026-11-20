@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { zoomWindow } from "@/lib/timezoom";
+import { clampStart, zoomWindow } from "@/lib/timezoom";
 import { distToStroke, type PenStroke } from "@/lib/pen";
 import { dateTicks, extent, linePath, linearTicks, logTicks, padExtent, sampleIndices } from "@/lib/chartmath";
 import { dayToDate, formatValue, type Fmt } from "@/lib/onchain-defs";
@@ -188,8 +188,9 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
       const st = panRef.current;
       const span = st.i1 - st.i0;
       const n = price.length;
-      if (span < n - 1) {
-        const a = Math.max(0, Math.min(n - 1 - span, Math.round(st.i0 - ((px - drag.x0) / geo.plotW) * span)));
+      {
+        // o gráfico pode ser arrastado para além do último dado (e do primeiro), deixando espaço vazio como no TradingView
+        const a = clampStart(Math.round(st.i0 - ((px - drag.x0) / geo.plotW) * span), span, n);
         if (a !== i0) onZoom(a, a + span);
       }
       const dy = py - drag.y0;
@@ -340,7 +341,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         const span0 = p.i1 - p.i0;
         const span = Math.min(price.length - 1, Math.max(14, span0 * (p.dist / d)));
         const r = (p.c - p.i0) / span0;
-        const n0 = Math.max(0, Math.min(price.length - 1 - span, p.c - r * span));
+        const n0 = clampStart(p.c - r * span, span, price.length);
         onZoom(Math.round(n0), Math.round(n0 + span));
       }
     }
@@ -416,7 +417,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         e.preventDefault();
         const span = L.i1 - L.i0;
         const d = Math.round(((e.deltaY + e.deltaX) / L.plotW) * span * 1.5) || Math.sign(e.deltaY + e.deltaX);
-        const n0 = Math.max(0, Math.min(L.n - 1 - span, L.i0 + d));
+        const n0 = clampStart(L.i0 + d, span, L.n);
         if (n0 !== L.i0) L.onZoom(n0, n0 + span);
         return;
       }
