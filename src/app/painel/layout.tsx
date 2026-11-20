@@ -16,6 +16,7 @@ import wfsTitle from "@/assets/wfs/title.webp";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { Diamond } from "@/components/Diamond";
 import { MobileDrawer } from "@/components/MobileDrawer";
+import { TopCaps } from "@/components/TopCaps";
 
 type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean; logo?: boolean; diamond?: boolean };
 
@@ -88,6 +89,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
                 {n.href === "/painel/feed/mensagens" && unread > 0 && <span className="rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink" aria-label={`${unread} mensagens não lidas`}>{unread}</span>}
               </Link>
             ))}
+            <TopCaps />
             {user.role === "admin" && (
               <Link href="/painel/admin" className={ITEM + " text-gold-soft"}>Administração</Link>
             )}
