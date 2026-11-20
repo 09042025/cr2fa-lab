@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { zoomWindow } from "@/lib/timezoom";
 import { dateTicks, extent, linePath, linearTicks, logTicks, padExtent, sampleIndices } from "@/lib/chartmath";
 import { dayToDate, formatValue, type Fmt } from "@/lib/onchain-defs";
 
@@ -322,8 +323,8 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   const resetAll = () => { setYz({}); onReset(); };
 
   // Roda do mouse: Ctrl/⌘ + roda move o gráfico para os lados; a roda sobre um eixo estica/encolhe a escala dele.
-  const live = useRef({ geo, i0, i1, n: price.length, yz, padL, axisW, plotW: geo.plotW, onZoom });
-  live.current = { geo, i0, i1, n: price.length, yz, padL, axisW, plotW: geo.plotW, onZoom };
+  const live = useRef({ geo, i0, i1, n: price.length, yz, padL, axisW, plotW: geo.plotW, onZoom, onReset, padT, plotH: geo.plotH });
+  live.current = { geo, i0, i1, n: price.length, yz, padL, axisW, plotW: geo.plotW, onZoom, onReset, padT, plotH: geo.plotH };
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
@@ -331,6 +332,14 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
       const L = live.current;
       const r = el.getBoundingClientRect();
       const px = e.clientX - r.left;
+      // roda sobre o eixo das datas (faixa de baixo): aproxima (para cima) ou afasta (para baixo) o tempo, ancorado no cursor
+      if (e.clientY - r.top > L.padT + L.plotH) {
+        e.preventDefault();
+        const frac = (px - L.padL) / L.plotW;
+        const w = zoomWindow(L.i0, L.i1, L.n, e.deltaY < 0 ? 0.8 : 1.25, frac);
+        if (w) L.onZoom(w[0], w[1]); else L.onReset();
+        return;
+      }
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const span = L.i1 - L.i0;
@@ -410,6 +419,11 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         </div>
       </div>
 
+      <div className="mb-1 flex items-center justify-end gap-1.5 text-xs">
+        <span className="mr-1 text-muted">Zoom do tempo</span>
+        <button type="button" aria-label="Afastar o tempo (zoom out)" title="Afastar (zoom out)" onClick={() => { const w = zoomWindow(i0, i1, price.length, 1.5, 0.5); if (w) onZoom(w[0], w[1]); else onReset(); }} className="btn btn-ghost !h-7 !w-8 !px-0 !py-0 text-base leading-none">−</button>
+        <button type="button" aria-label="Aproximar o tempo (zoom in)" title="Aproximar (zoom in)" onClick={() => { const w = zoomWindow(i0, i1, price.length, 0.67, 0.5); if (w) onZoom(w[0], w[1]); }} className="btn btn-ghost !h-7 !w-8 !px-0 !py-0 text-base leading-none">+</button>
+      </div>
       <div ref={wrap} className="w-full select-none">
         <svg ref={svgRef} width={w} height={h} role="img" aria-label="Gráfico do preço do Bitcoin com indicadores on-chain" className="block" style={{ fontSize: fs, touchAction: "none" }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}>
           <defs>
@@ -534,7 +548,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         </svg>
       </div>
       <p className="mt-1 text-[11px] text-muted">
-        Arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início. No celular: um toque e arrastar move o gráfico; para zoom, dê um toque rápido e, no segundo toque, arraste a janela (ou segure um canto com um dedo e marque o outro com o segundo dedo); pinça nos números à esquerda (preço), à direita (indicador) ou embaixo (tempo) muda só aquela escala.
+        Arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. A roda do mouse sobre o eixo das datas (embaixo) aproxima e afasta o tempo, e os botões − e + fazem o mesmo. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início. No celular: um toque e arrastar move o gráfico; para zoom, dê um toque rápido e, no segundo toque, arraste a janela (ou segure um canto com um dedo e marque o outro com o segundo dedo); pinça nos números à esquerda (preço), à direita (indicador) ou embaixo (tempo) muda só aquela escala.
         {Object.keys(yz).length > 0 && <> <button type="button" className="text-gold-soft underline" onClick={() => setYz({})}>Desfazer zoom vertical</button></>}
       </p>
     </div>

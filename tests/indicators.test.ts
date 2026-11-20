@@ -242,3 +242,23 @@ test("maiores valores de mercado: Bitcoin e Ethereum (linhas sem link) também e
   assert.equal(r[2].rank, 84);
   assert.equal(r[2].logo, "https://companiesmarketcap.com/img/company-logos/64/ETH.X.png");
 });
+
+test("zoom do tempo do gráfico on-chain: aproxima, afasta, ancora no cursor e volta ao início", async () => {
+  const { zoomWindow } = await import("../src/lib/timezoom");
+  const n = 1000;
+  // aproximar no centro de 0..999 → janela menor, com o centro preservado
+  const a = zoomWindow(0, 999, n, 0.5, 0.5)!;
+  assert.ok(a[1] - a[0] < 999 && a[1] - a[0] >= 14);
+  assert.ok(Math.abs((a[0] + a[1]) / 2 - 499.5) <= 1);
+  // âncora na esquerda: o início fica parado
+  const b = zoomWindow(100, 500, n, 0.5, 0)!;
+  assert.equal(b[0], 100);
+  // afastar além do total → null (reset)
+  assert.equal(zoomWindow(100, 500, n, 10, 0.5), null);
+  // não passa do mínimo nem sai dos limites
+  const c = zoomWindow(990, 999, n, 0.1, 1)!;
+  assert.ok(c[1] <= 999 && c[0] >= 0 && c[1] - c[0] >= 14);
+  const d = zoomWindow(0, 200, n, 1.25, 0)!;
+  assert.equal(d[0], 0);
+  assert.equal(d[1] - d[0], 250);
+});
