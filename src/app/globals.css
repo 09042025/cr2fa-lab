@@ -115,6 +115,10 @@ table.data td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+table.data.compact { font-size: 0.72rem; }
+table.data.compact th { font-size: 0.6rem; letter-spacing: 0; padding: 0.4rem 0.3rem; white-space: normal; vertical-align: bottom; line-height: 1.15; }
+table.data.compact td { padding: 0.35rem 0.3rem; }
+table.data.compact td:first-child, table.data.compact th:first-child { padding-left: 0.5rem; }
 table.data.fit { table-layout: fixed; width: 100%; font-size: 0.78rem; }
 table.data.fit th, table.data.fit td { padding-left: 0.4rem; padding-right: 0.4rem; overflow: hidden; text-overflow: ellipsis; }
 table.data.fit th { white-space: normal; font-size: 0.65rem; vertical-align: bottom; }
