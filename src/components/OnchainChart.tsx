@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { zoomWindow } from "@/lib/timezoom";
+import { distToStroke, type PenStroke } from "@/lib/pen";
 import { dateTicks, extent, linePath, linearTicks, logTicks, padExtent, sampleIndices } from "@/lib/chartmath";
 import { dayToDate, formatValue, type Fmt } from "@/lib/onchain-defs";
 
@@ -32,6 +33,10 @@ interface Props {
   i1: number;
   onZoom: (i0: number, i1: number) => void;
   onReset: () => void;
+  /** Caneta: quando ligada, arrastar no gráfico desenha (ou apaga, no modo borracha) em vez de aproximar. */
+  pen?: { on: boolean; erase: boolean; color: string; width: number };
+  strokes?: PenStroke[];
+  onStrokes?: (s: PenStroke[]) => void;
   /** Avisa qual dia está sob o cursor (ou o último do período), para o painel mostrar os valores. */
   onCursor?: (index: number, hovering: boolean) => void;
 }
@@ -59,7 +64,7 @@ const valueAt = (lo: number, hi: number, log: boolean, f: number) =>
 
 const fmtDate = (day: number) => dayToDate(day).toLocaleDateString("pt-BR", { timeZone: "UTC" });
 
-export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, showHalvings, logPrice, i0, i1, onZoom, onReset, onCursor }: Props) {
+export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, showHalvings, logPrice, i0, i1, onZoom, onReset, onCursor, pen, strokes = [], onStrokes }: Props) {
   // O último ponto do preço vira o preço ao vivo (o dado diário só fecha à meia-noite UTC).
   const price = useMemo(() => (spot && priceRaw.length ? [...priceRaw.slice(0, -1), spot.usd] : priceRaw), [spot, priceRaw]);
   const uid = useId().replace(/:/g, "");
@@ -330,6 +335,38 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   };
   const resetAll = () => { setYz({}); onReset(); };
 
+  // Caneta: o traço é guardado em dia + preço (não em pixels), então acompanha o gráfico quando há zoom.
+  const penOn = !!pen?.on;
+  const [curStroke, setCurStroke] = useState<PenStroke | null>(null);
+  const erasing = useRef(false);
+  const toData = (px: number, py: number) => ({ i: i0 + ((px - padL) / geo.plotW) * (i1 - i0), v: valueAt(geo.pLo, geo.pHi, logPrice, fracFromY(py)) });
+  const toPx = (p: { i: number; v: number }) => ({ x: geo.x(p.i), y: geo.yPrice(p.v) ?? NaN });
+  const eraseAt = (px: number, py: number) => {
+    if (!onStrokes) return;
+    const keep = strokes.filter((st) => distToStroke(px, py, st.pts.map(toPx).filter((q) => Number.isFinite(q.y))) > 8 + st.width / 2);
+    if (keep.length !== strokes.length) onStrokes(keep);
+  };
+  const penDown = (e: React.PointerEvent<SVGRectElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const px = localX(e), py = localY(e);
+    setHover(null);
+    if (pen?.erase) { erasing.current = true; eraseAt(px, py); return; }
+    setCurStroke({ id: Date.now() + Math.random(), color: pen?.color ?? "#f43f5e", width: pen?.width ?? 3, pts: [toData(px, py)] });
+  };
+  const penMove = (e: React.PointerEvent<SVGRectElement>) => {
+    const px = localX(e), py = localY(e);
+    if (erasing.current) { eraseAt(px, py); return; }
+    if (!curStroke) return;
+    const last = toPx(curStroke.pts[curStroke.pts.length - 1]);
+    if (Math.hypot(px - last.x, py - last.y) < 2) return;
+    setCurStroke({ ...curStroke, pts: [...curStroke.pts, toData(px, py)] });
+  };
+  const penUp = () => {
+    erasing.current = false;
+    if (curStroke && onStrokes) onStrokes([...strokes, curStroke]);
+    setCurStroke(null);
+  };
+
   // Roda do mouse: Ctrl/⌘ + roda move o gráfico para os lados; a roda sobre um eixo estica/encolhe a escala dele.
   const live = useRef({ geo, i0, i1, n: price.length, yz, padL, axisW, plotW: geo.plotW, onZoom, onReset, padT, plotH: geo.plotH });
   live.current = { geo, i0, i1, n: price.length, yz, padL, axisW, plotW: geo.plotW, onZoom, onReset, padT, plotH: geo.plotH };
@@ -433,7 +470,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         <button type="button" aria-label="Aproximar o tempo (zoom in)" title="Aproximar (zoom in)" onClick={() => { const w = zoomWindow(i0, i1, price.length, 0.67, 0.5); if (w) onZoom(w[0], w[1]); }} className="btn btn-ghost !h-7 !w-8 !px-0 !py-0 text-base leading-none">+</button>
       </div>
       <div ref={wrap} className="w-full select-none">
-        <svg ref={svgRef} width={w} height={h} role="img" aria-label="Gráfico do preço do Bitcoin com indicadores on-chain" className="block" style={{ fontSize: fs, touchAction: "none" }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}>
+        <svg ref={svgRef} width={w} height={h} role="img" aria-label="Gráfico do preço do Bitcoin com indicadores on-chain" className="block" style={{ fontSize: fs, touchAction: "none" }} onTouchStart={penOn ? undefined : onTouchStart} onTouchMove={penOn ? undefined : onTouchMove} onTouchEnd={penOn ? undefined : onTouchEnd} onTouchCancel={penOn ? undefined : onTouchEnd}>
           <defs>
             <clipPath id={`clip-${uid}`}><rect x={padL} y={padT} width={geo.plotW} height={geo.plotH} /></clipPath>
           </defs>
@@ -510,6 +547,12 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
               <path key={l.key} d={geo.paths[k]} fill="none" stroke={l.color} strokeWidth={1.6} strokeDasharray={l.dashed ? "6 4" : undefined} strokeLinejoin="round" />
             ))}
             <path d={geo.pricePath} fill="none" stroke={PRICE_COLOR} strokeWidth={1.8} strokeLinejoin="round" />
+            {[...strokes, ...(curStroke ? [curStroke] : [])].map((st) => {
+              const q = st.pts.map(toPx).filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+              if (q.length === 0) return null;
+              if (q.length === 1) return <circle key={st.id} cx={q[0].x} cy={q[0].y} r={st.width / 2} fill={st.color} pointerEvents="none" />;
+              return <polyline key={st.id} points={q.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke={st.color} strokeWidth={st.width} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />;
+            })}
           </g>
 
           {/* preço atual em verde no eixo do preço (e uma linha tracejada discreta), para achar o preço de agora de relance */}
@@ -595,6 +638,10 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
             onPointerCancel={(e) => { if (e.pointerType !== "touch") setDrag(null); }}
             onDoubleClick={resetAll}
           />
+          {penOn && (
+            <rect x={padL} y={padT} width={geo.plotW} height={geo.plotH} fill="transparent" style={{ cursor: pen?.erase ? "cell" : "crosshair", touchAction: "none" }}
+              onPointerDown={penDown} onPointerMove={penMove} onPointerUp={penUp} onPointerCancel={penUp} />
+          )}
         </svg>
       </div>
       <p className="mt-1 text-[11px] text-muted">

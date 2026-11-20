@@ -262,3 +262,12 @@ test("zoom do tempo do gráfico on-chain: aproxima, afasta, ancora no cursor e v
   assert.equal(d[0], 0);
   assert.equal(d[1] - d[0], 250);
 });
+
+test("caneta do gráfico: distância a traços (borracha)", async () => {
+  const { distToSegment, distToStroke } = await import("../src/lib/pen");
+  assert.equal(distToSegment(5, 5, 0, 0, 10, 0), 5);
+  assert.equal(distToSegment(-3, 4, 0, 0, 10, 0), 5); // além da ponta: distância até o extremo
+  assert.equal(distToStroke(5, 3, [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }]), 3);
+  assert.equal(distToStroke(0, 0, [{ x: 3, y: 4 }]), 5);
+  assert.equal(distToStroke(0, 0, []), Infinity);
+});

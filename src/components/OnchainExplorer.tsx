@@ -5,6 +5,7 @@ import { OnchainChart, PRICE_COLOR, type ChartLine } from "@/components/OnchainC
 import { FREE_MAX_INDICATORS, GROUPS, INDICATORS, INDICATOR_BY_ID, PRESETS, formatValue } from "@/lib/onchain-defs";
 import { ProBadge } from "@/components/ui";
 import Link from "next/link";
+import { loadStrokes, saveStrokes, type PenStroke } from "@/lib/pen";
 
 type Series = (number | null)[];
 
@@ -44,6 +45,14 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
   const [logPrice, setLogPrice] = useState(true);
   const [showHalvings, setShowHalvings] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [penOn, setPenOn] = useState(false);
+  const [erase, setErase] = useState(false);
+  const [penColor, setPenColor] = useState("#f43f5e");
+  const [penWidth, setPenWidth] = useState(3);
+  const [strokes, setStrokes] = useState<PenStroke[]>([]);
+  const strokesLoaded = useRef(false);
+  useEffect(() => { setStrokes(loadStrokes()); strokesLoaded.current = true; }, []);
+  useEffect(() => { if (strokesLoaded.current) saveStrokes(strokes); }, [strokes]);
   const filterRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!filterOpen) return;
@@ -248,6 +257,22 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
               ))}
               {zoom && <button type="button" onClick={() => setZoom(null)} className="btn btn-ghost col-span-5 !px-3 !py-1.5 !text-xs">Desfazer zoom</button>}
             </div>
+            <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto" role="group" aria-label="Caneta">
+              <button type="button" onClick={() => { setPenOn((o) => !o); setErase(false); }} aria-pressed={penOn} className={`btn !px-3 !py-1.5 !text-xs ${penOn && !erase ? "btn-gold" : "btn-ghost"}`} title="Desenhar no gráfico para marcar pontos de atenção">✏️ Caneta</button>
+              {penOn && (
+                <>
+                  <label className="inline-flex items-center gap-1 text-xs text-muted" title="Cor da caneta">
+                    Cor <input type="color" value={penColor} onChange={(e) => { setPenColor(e.target.value); setErase(false); }} className="h-7 w-8 cursor-pointer rounded border border-line bg-transparent p-0.5" aria-label="Cor da caneta" />
+                  </label>
+                  <label className="inline-flex items-center gap-1 text-xs text-muted" title="Grossura da linha">
+                    Grossura <input type="range" min={1} max={14} step={1} value={penWidth} onChange={(e) => setPenWidth(Number(e.target.value))} className="w-20 accent-[#f3d27a]" aria-label="Grossura da linha" />
+                    <span className="inline-block w-7 text-center"><span className="inline-block rounded-full align-middle" style={{ width: Math.max(2, penWidth), height: Math.max(2, penWidth), background: penColor }} /></span>
+                  </label>
+                  <button type="button" onClick={() => setErase((x) => !x)} aria-pressed={erase} className={`btn !px-3 !py-1.5 !text-xs ${erase ? "btn-gold" : "btn-ghost"}`} title="Passe sobre um traço para apagá-lo">🧽 Borracha</button>
+                </>
+              )}
+              {strokes.length > 0 && <button type="button" onClick={() => setStrokes([])} className="btn btn-ghost !px-3 !py-1.5 !text-xs" title="Apaga todos os desenhos">Apagar tudo</button>}
+            </div>
             <div className="flex w-full flex-wrap gap-x-6 gap-y-2 text-xs text-muted sm:w-auto">
               <label className="inline-flex cursor-pointer items-center gap-1.5">
                 <input type="checkbox" checked={logPrice} onChange={(e) => setLogPrice(e.target.checked)} /> Preço em escala log
@@ -264,6 +289,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
                 spot={live} start={data.start} price={data.price} lines={lines} halvings={data.halvings}
                 showHalvings={showHalvings} logPrice={logPrice} i0={i0} i1={i1}
                 onZoom={(a, b) => setZoom([a, b])} onReset={() => setZoom(null)} onCursor={(i, h) => { setCursor(i); setHovering(h); }}
+                pen={{ on: penOn, erase, color: penColor, width: penWidth }} strokes={strokes} onStrokes={setStrokes}
               />
             </div>
           ) : status === "error" ? (
