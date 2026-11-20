@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { OnchainChart, PRICE_COLOR, type ChartLine } from "@/components/OnchainChart";
 import { FREE_MAX_INDICATORS, GROUPS, INDICATORS, INDICATOR_BY_ID, PRESETS, formatValue } from "@/lib/onchain-defs";
 import { ProBadge } from "@/components/ui";
@@ -43,6 +43,17 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
   const [zoom, setZoom] = useState<[number, number] | null>(null);
   const [logPrice, setLogPrice] = useState(true);
   const [showHalvings, setShowHalvings] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!filterOpen) return;
+    const down = (e: MouseEvent | TouchEvent) => { if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setFilterOpen(false); };
+    document.addEventListener("mousedown", down);
+    document.addEventListener("touchstart", down);
+    document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("mousedown", down); document.removeEventListener("touchstart", down); document.removeEventListener("keydown", key); };
+  }, [filterOpen]);
 
   const key = selected.join(",");
   const [cursor, setCursor] = useState(0);
@@ -157,8 +168,12 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
 
   return (
     <div className="space-y-5">
+      <div ref={filterRef} className="relative">
       <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
         <span className="col-span-3 mb-0.5 text-xs uppercase tracking-wide text-muted sm:col-auto sm:mb-0 sm:mr-1">Atalhos</span>
+        <button type="button" onClick={() => setFilterOpen((o) => !o)} aria-expanded={filterOpen} aria-controls="filtro-indicadores" className={`btn col-span-3 w-full !px-3 !py-1.5 !text-xs sm:col-auto sm:w-auto ${filterOpen ? "btn-gold" : "btn-ghost"}`}>
+          Filtro de indicadores <span className="ml-1 rounded-full bg-white/10 px-1.5 text-[11px]">{selected.length}</span> <span aria-hidden>{filterOpen ? "▴" : "▾"}</span>
+        </button>
         {PRESETS.map((p) => (
           <button key={p.label} type="button" onClick={() => applyPreset(p.ids)} className="btn btn-ghost w-full !px-1 !py-1.5 !text-xs max-sm:leading-tight sm:w-auto sm:!px-3" title={p.ids.map((i) => INDICATOR_BY_ID[i]?.name).join(" + ")}>
             {p.label}
@@ -166,9 +181,63 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
         ))}
         {selected.length > 0 && <button type="button" onClick={() => { setSelected([]); setNotice(""); }} className="btn btn-ghost w-full !px-1 !py-1.5 !text-xs sm:w-auto sm:!px-3">Limpar</button>}
       </div>
+      {filterOpen && (
+        <div id="filtro-indicadores" role="dialog" aria-label="Filtro de indicadores on-chain" className="card absolute left-0 right-0 top-full z-30 mt-2 max-h-[75vh] overflow-y-auto p-4 shadow-2xl sm:right-auto sm:w-[min(92vw,44rem)]">
+          <h2 className="font-semibold">Indicadores on-chain</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            Ligue ou desligue cada indicador no gráfico. {isPro ? `${selected.length} ativos.` : `${selected.length} de ${FREE_MAX_INDICATORS} ativos no plano Grátis.`}
+          </p>
+          <div className="mt-2 flex items-center gap-3 text-xs">
+            {isPro ? (
+              <button type="button" onClick={showAll} className="text-gold-soft underline">Mostrar todos</button>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-muted"><ProBadge /> Todos juntos no Premium</span>
+            )}
+            <span className="text-line">|</span>
+            <button type="button" onClick={() => { setSelected([]); setNotice(""); }} className="text-gold-soft underline">Ocultar todos</button>
+          </div>
+
+          <div className="mt-3 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            {GROUPS.map((g) => (
+              <div key={g.id}>
+                <h3 className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted">{g.label}</h3>
+                <ul>
+                  {INDICATORS.filter((d) => d.group === g.id).map((d) => {
+                    const on = selected.includes(d.id);
+                    const off = unavailable.has(d.id);
+                    const c = colorOf(d.id);
+                    return (
+                      <li key={d.id} className="flex items-center justify-between gap-3 border-b border-line/40 py-2 last:border-0">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c, opacity: on ? 1 : 0.35 }} />
+                          <span className="min-w-0">
+                            <span className={`block truncate text-sm ${on ? "font-medium text-white" : "text-muted"}`} title={d.name}>{d.name}</span>
+                            {on && <span className="block text-xs font-semibold" style={{ color: c }}>{valueOf(d.id)}</span>}
+                            {off && <span className="block text-[11px] text-muted">indisponível agora</span>}
+                          </span>
+                        </span>
+                        <button
+                          type="button" role="switch" aria-checked={on} aria-label={`${on ? "Desligar" : "Ligar"} ${d.name}`} disabled={off}
+                          onClick={() => toggle(d.id)}
+                          className="relative h-6 w-11 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-40"
+                          style={{ background: on ? "#16a34a" : "#2a3556" }}
+                        >
+                          <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all" style={{ left: on ? 22 : 2 }} />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => setFilterOpen(false)} className="btn btn-gold mt-4 w-full !py-2 text-sm">Pronto</button>
+        </div>
+      )}
+      </div>
       {notice && <p className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-gold-soft">{notice} {!isPro && <Link href="/planos" className="underline">Ver planos</Link>}</p>}
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div>
         <section className="card min-w-0 p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="grid w-full grid-cols-5 gap-1.5 sm:flex sm:w-auto sm:flex-wrap" role="group" aria-label="Período">
@@ -216,59 +285,9 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
             <p className="mt-1 text-xs text-muted">Preço realizado STH e LTH: BGeometrics (bitcoin-data.com), plano gratuito, que cobre os últimos 4 anos. Por isso essas linhas começam mais tarde que o preço.</p>
           )}
           {data?.holderError && <p className="mt-1 text-xs text-gold-soft">Os indicadores de detentores (STH/LTH) estão indisponíveis agora: {data.holderError}. O site tenta de novo em até 30 minutos.</p>}
-          {selected.length > 2 && <p className="mt-1 text-xs text-muted">Com vários indicadores, só os dois primeiros mostram escala no eixo direito. Os demais usam escala própria e o valor aparece no painel ao lado.</p>}
+          {selected.length > 2 && <p className="mt-1 text-xs text-muted">Com vários indicadores, só os dois primeiros mostram escala no eixo direito. Os demais usam escala própria, e o valor deles aparece na legenda acima do gráfico e no filtro de indicadores.</p>}
         </section>
 
-        <aside className="card p-4 xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto" aria-label="Indicadores">
-          <h2 className="font-semibold">Indicadores on-chain</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            Ligue ou desligue cada indicador no gráfico. {isPro ? `${selected.length} ativos.` : `${selected.length} de ${FREE_MAX_INDICATORS} ativos no plano Grátis.`}
-          </p>
-          <div className="mt-2 flex items-center gap-3 text-xs">
-            {isPro ? (
-              <button type="button" onClick={showAll} className="text-gold-soft underline">Mostrar todos</button>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-muted"><ProBadge /> Todos juntos no Premium</span>
-            )}
-            <span className="text-line">|</span>
-            <button type="button" onClick={() => { setSelected([]); setNotice(""); }} className="text-gold-soft underline">Ocultar todos</button>
-          </div>
-
-          <div className="mt-3 space-y-4">
-            {GROUPS.map((g) => (
-              <div key={g.id}>
-                <h3 className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted">{g.label}</h3>
-                <ul>
-                  {INDICATORS.filter((d) => d.group === g.id).map((d) => {
-                    const on = selected.includes(d.id);
-                    const off = unavailable.has(d.id);
-                    const c = colorOf(d.id);
-                    return (
-                      <li key={d.id} className="flex items-center justify-between gap-3 border-b border-line/40 py-2 last:border-0">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c, opacity: on ? 1 : 0.35 }} />
-                          <span className="min-w-0">
-                            <span className={`block truncate text-sm ${on ? "font-medium text-white" : "text-muted"}`} title={d.name}>{d.name}</span>
-                            {on && <span className="block text-xs font-semibold" style={{ color: c }}>{valueOf(d.id)}</span>}
-                            {off && <span className="block text-[11px] text-muted">indisponível agora</span>}
-                          </span>
-                        </span>
-                        <button
-                          type="button" role="switch" aria-checked={on} aria-label={`${on ? "Desligar" : "Ligar"} ${d.name}`} disabled={off}
-                          onClick={() => toggle(d.id)}
-                          className="relative h-6 w-11 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-40"
-                          style={{ background: on ? "#16a34a" : "#2a3556" }}
-                        >
-                          <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all" style={{ left: on ? 22 : 2 }} />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </aside>
       </div>
 
       {selected.length > 0 && (
