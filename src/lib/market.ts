@@ -313,7 +313,7 @@ interface LlamaPool {
 }
 
 const DEX_PROJECT =
-  /(uniswap|pancakeswap|sushiswap|aerodrome|velodrome|camelot|curve|balancer|raydium|orca|meteora|thena|trader-?joe|lfj|maverick|ramses|quickswap|shadow|hyperswap|kyber|ambient|fluid-dex|bunni|izumi|dodo|solidly|equalizer|swapbased|alienbase|baseswap|syncswap|nile|cetus|turbos|hercules|mmf|wigoswap)/i;
+  /(uniswap|pancakeswap|sushiswap|aerodrome|velodrome|camelot|curve|balancer|raydium|orca|meteora|thena|trader-?joe|lfj|maverick|ramses|quickswap|shadow|hyperswap|kyber|ambient|fluid-dex|bunni|izumi|dodo|solidly|equalizer|swapbased|alienbase|baseswap|syncswap|nile|cetus|turbos|hercules|mmf|wigoswap|thorchain|thorswap)/i;
 
 /** Pool de liquidez em DEX: dois ou mais ativos e protocolo de exchange descentralizada. */
 export function isDexPool(project: string, exposure?: string | null): boolean {

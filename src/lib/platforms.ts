@@ -78,6 +78,7 @@ export const DEXES: Platform[] = [
   P("1inch", "1inch", "https://1inch.io", "dex", /^1inch(-|$)/, "DEX agregadora: busca o melhor preço entre várias DEX."),
   P("cowswap", "CoW Swap", "https://cow.fi", "dex", /^cow(-|swap|$)/, "DEX com trocas protegidas contra MEV."),
   P("kyber", "KyberSwap", "https://kyberswap.com", "dex", /^kyber(-|$)/, "Agregador e DEX multi-redes."),
+  P("thorswap", "THORSwap", "https://app.thorswap.finance", "dex", /^(thorswap|thorchain)(-|$)/, "Trocas entre redes diferentes (Bitcoin, Ethereum, Solana e outras) sem criar token embrulhado; roda sobre a THORChain."),
 ];
 
 export interface Exchange { name: string; url: string; origin: "Brasil" | "Global"; note: string }

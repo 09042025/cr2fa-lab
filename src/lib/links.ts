@@ -102,6 +102,7 @@ export const LINK_CATEGORIES: LinkCategory[] = [
       L(2, "Balancer", "Pools de liquidez com vários ativos.", "https://balancer.fi/"),
       L(2, "Uniswap (informações)", "Dados e pools da Uniswap.", "https://info.uniswap.org"),
       L(2, "Hook Rank", "Acompanhamento de liquidez na Uniswap.", "https://hookrank.io/"),
+      L(2, "THORSwap", "Troca entre redes diferentes (Bitcoin, Ethereum e outras) direto, sem ponte.", "https://app.thorswap.finance"),
       L(2, "Jupiter", "Agregador de trocas na Solana.", "https://jup.ag/swap/SOL-FUAfBo2jgks6gB4Z4LfZkqSZgzNucisEHqnNebaRxM1P"),
       L(2, "Raydium", "Corretora descentralizada da Solana.", "https://raydium.io/swap/?inputMint=Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB&outputMint=9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E"),
       L(2, "Orca", "Corretora e pools de liquidez da Solana.", "https://www.orca.so/pools"),
