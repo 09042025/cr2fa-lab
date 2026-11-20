@@ -53,11 +53,11 @@ export function parseTopCaps(html: string): TopCap[] {
 }
 
 export function getTopCaps() {
-  return cachedSwr<TopCap[]>("topcaps:v1", 10 * 60, async () => {
+  return cachedSwr<TopCap[]>("topcaps:v2", 10 * 60, async () => {
     const res = await fetch(`${SITE}/assets-by-market-cap/`, { headers: { "user-agent": "Mozilla/5.0 (compatible; NizaHub/1.0)", accept: "text/html" }, signal: AbortSignal.timeout(20000) });
     if (!res.ok) throw new Error(`HTTP ${res.status} em companiesmarketcap.com`);
     const rows = parseTopCaps(await res.text());
     if (rows.length < 5) throw new Error("não consegui ler a tabela (o site pode ter mudado de formato)");
-    return rows.slice(0, 20);
+    return rows.slice(0, 100);
   });
 }
