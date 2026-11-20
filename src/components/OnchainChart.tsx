@@ -46,7 +46,7 @@ const MAX_VISIBLE_AXES = 2;
 
 export const PRICE_COLOR = "#f3d27a";
 const MUTED = "#93a0c4";
-const GRID = "rgba(36,51,95,0.7)";
+const GRID = "rgba(80,95,140,0.45)";
 
 const makeScale = (lo: number, hi: number, log: boolean, top: number, height: number) => {
   if (log) {
@@ -496,7 +496,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         <button type="button" aria-label="Afastar o tempo (zoom out)" title="Afastar (zoom out)" onClick={() => { const w = zoomWindow(i0, i1, price.length, 1.5, 0.5); if (w) onZoom(w[0], w[1]); else onReset(); }} className="btn btn-ghost !h-7 !w-8 !px-0 !py-0 text-base leading-none">−</button>
         <button type="button" aria-label="Aproximar o tempo (zoom in)" title="Aproximar (zoom in)" onClick={() => { const w = zoomWindow(i0, i1, price.length, 0.67, 0.5); if (w) onZoom(w[0], w[1]); }} className="btn btn-ghost !h-7 !w-8 !px-0 !py-0 text-base leading-none">+</button>
       </div>
-      <div ref={wrap} className="w-full select-none">
+      <div ref={wrap} className="w-full select-none overflow-hidden rounded-lg border border-line/60 bg-black">
         <svg ref={svgRef} width={w} height={h} role="img" aria-label="Gráfico do preço do Bitcoin com indicadores on-chain" className="block" style={{ fontSize: fs, touchAction: "none" }} onTouchStart={penOn ? undefined : onTouchStart} onTouchMove={penOn ? undefined : onTouchMove} onTouchEnd={penOn ? undefined : onTouchEnd} onTouchCancel={penOn ? undefined : onTouchEnd}>
           <defs>
             <clipPath id={`clip-${uid}`}><rect x={padL} y={padT} width={geo.plotW} height={geo.plotH} /></clipPath>
