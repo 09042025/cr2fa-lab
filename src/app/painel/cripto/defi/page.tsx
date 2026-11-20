@@ -127,7 +127,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
 
         {pools.data && (
           <div className="overflow-x-auto">
-            <table className="data">
+            <table className="data compact">
               <thead>
                 {isDex ? (
                   <tr><th>Par</th><th>DEX</th><th>Rede</th><Th ordem="tvl">TVL</Th><Th ordem="vol">Volume 24h</Th><Th ordem="eficiencia">Giro</Th><Th ordem="taxas">APR taxas</Th><th className="num">APR recompensas</th><Th ordem="apy">APR total</Th><th className="num">Média 30d</th><th className="num">Perda imperm. 7d</th>{isPro && <th className="num">Estim. 30d</th>}</tr>
