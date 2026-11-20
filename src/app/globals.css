@@ -115,14 +115,15 @@ table.data td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-table.data.compact { font-size: 0.72rem; }
-table.data.compact th { font-size: 0.6rem; letter-spacing: 0; padding: 0.4rem 0.3rem; white-space: normal; vertical-align: bottom; line-height: 1.15; }
-table.data.compact { table-layout: fixed; }
-table.data.compact td { padding: 0.35rem 0.3rem; overflow: hidden; text-overflow: ellipsis; }
-table.data.compact th:first-child { width: 19%; }
-table.data.compact td:first-child { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
-table.data.compact td:first-child span { white-space: nowrap; }
-table.data.compact td:first-child, table.data.compact th:first-child { padding-left: 0.5rem; }
+@media (min-width: 1024px) {
+  table.data.compact { font-size: 0.72rem; table-layout: fixed; }
+  table.data.compact th { font-size: 0.6rem; letter-spacing: 0; padding: 0.4rem 0.3rem; white-space: normal; vertical-align: bottom; line-height: 1.15; }
+  table.data.compact td { padding: 0.35rem 0.3rem; overflow: hidden; text-overflow: ellipsis; }
+  table.data.compact th:first-child { width: 19%; }
+  table.data.compact td:first-child { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+  table.data.compact td:first-child span { white-space: nowrap; }
+  table.data.compact td:first-child, table.data.compact th:first-child { padding-left: 0.5rem; }
+}
 table.data.fit { table-layout: fixed; width: 100%; font-size: 0.78rem; }
 table.data.fit th, table.data.fit td { padding-left: 0.4rem; padding-right: 0.4rem; overflow: hidden; text-overflow: ellipsis; }
 table.data.fit th { white-space: normal; font-size: 0.65rem; vertical-align: bottom; }
