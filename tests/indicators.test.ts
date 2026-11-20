@@ -271,3 +271,18 @@ test("caneta do gráfico: distância a traços (borracha)", async () => {
   assert.equal(distToStroke(0, 0, [{ x: 3, y: 4 }]), 5);
   assert.equal(distToStroke(0, 0, []), Infinity);
 });
+
+test("gráfico on-chain: a janela pode passar das pontas dos dados (espaço vazio), mas sempre sobra dado à vista", async () => {
+  const { clampStart, overshoot, zoomWindow } = await import("../src/lib/timezoom");
+  const n = 1000, span = 200;
+  assert.equal(overshoot(span), 170);
+  assert.equal(clampStart(5000, span, n), n - 1 - span + 170); // direita: o último dado pode ir quase até a borda esquerda
+  assert.equal(clampStart(-5000, span, n), -170); // esquerda
+  assert.equal(clampStart(300, span, n), 300); // dentro: não mexe
+  // com a janela já deslocada para a direita, aproximar/afastar não a joga de volta para dentro
+  const w = zoomWindow(900, 1100, n, 0.5, 0.5)!;
+  assert.ok(w[1] > 999);
+  // pelo menos 15% da janela continua com dados
+  const a = clampStart(5000, span, n);
+  assert.ok((n - 1 - a) / span >= 0.14);
+});

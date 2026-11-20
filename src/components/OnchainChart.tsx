@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { zoomWindow } from "@/lib/timezoom";
+import { clampStart, zoomWindow } from "@/lib/timezoom";
 import { distToStroke, type PenStroke } from "@/lib/pen";
 import { dateTicks, extent, linePath, linearTicks, logTicks, padExtent, sampleIndices } from "@/lib/chartmath";
 import { dayToDate, formatValue, type Fmt } from "@/lib/onchain-defs";
@@ -188,8 +188,9 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
       const st = panRef.current;
       const span = st.i1 - st.i0;
       const n = price.length;
-      if (span < n - 1) {
-        const a = Math.max(0, Math.min(n - 1 - span, Math.round(st.i0 - ((px - drag.x0) / geo.plotW) * span)));
+      {
+        // o gráfico pode ser arrastado para além do último dado (e do primeiro), deixando espaço vazio como no TradingView
+        const a = clampStart(Math.round(st.i0 - ((px - drag.x0) / geo.plotW) * span), span, n);
         if (a !== i0) onZoom(a, a + span);
       }
       const dy = py - drag.y0;
@@ -340,7 +341,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         const span0 = p.i1 - p.i0;
         const span = Math.min(price.length - 1, Math.max(14, span0 * (p.dist / d)));
         const r = (p.c - p.i0) / span0;
-        const n0 = Math.max(0, Math.min(price.length - 1 - span, p.c - r * span));
+        const n0 = clampStart(p.c - r * span, span, price.length);
         onZoom(Math.round(n0), Math.round(n0 + span));
       }
     }
@@ -416,7 +417,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         e.preventDefault();
         const span = L.i1 - L.i0;
         const d = Math.round(((e.deltaY + e.deltaX) / L.plotW) * span * 1.5) || Math.sign(e.deltaY + e.deltaX);
-        const n0 = Math.max(0, Math.min(L.n - 1 - span, L.i0 + d));
+        const n0 = clampStart(L.i0 + d, span, L.n);
         if (n0 !== L.i0) L.onZoom(n0, n0 + span);
         return;
       }
@@ -466,25 +467,26 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   return (
     <div>
       <div className="mb-2 space-y-1.5 text-xs" aria-live="polite">
-        <p className="font-semibold text-white">
-          {hover === null ? <>Valores atuais <span className="font-normal text-muted">(preço ao vivo, demais dados até {fmtDate(start + latest)}). Passe o cursor sobre o gráfico para ver outra data.</span></> : fmtDate(day)}
-        </p>
+        {/* os dois textos ocupam a mesma célula, então a altura não muda ao entrar/sair do gráfico (era isso que fazia a tela tremer) */}
+        <div className="grid font-semibold text-white">
+          <p className={`col-start-1 row-start-1 ${hover === null ? "" : "invisible"}`} aria-hidden={hover !== null}>Valores atuais <span className="font-normal text-muted">(preço ao vivo, demais dados até {fmtDate(start + latest)}). Passe o cursor sobre o gráfico para ver outra data.</span></p>
+          <p className={`col-start-1 row-start-1 ${hover === null ? "invisible" : ""}`} aria-hidden={hover === null}>{fmtDate(day)}</p>
+        </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-4 rounded" style={{ background: PRICE_COLOR }} />
             <span className="text-muted">Preço BTC</span>
-            {hover === null && spot && <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-up"><span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-up" />ao vivo · {spot.source}</span>}
+            {spot && <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-up ${hover === null ? "" : "invisible"}`}><span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-up" />ao vivo · {spot.source}</span>}
             <span className="font-semibold" style={{ color: PRICE_COLOR }}>{priceNow === null || priceNow === undefined ? "—" : formatValue("usd", priceNow)}</span>
           </span>
           {lines.map((l) => {
             const v = hover === null ? (lastIndexOf(l.values) >= 0 ? l.values[lastIndexOf(l.values)] : null) : l.values[hover];
-            const stale = hover === null && lastIndexOf(l.values) >= 0 && lastIndexOf(l.values) < latest;
             return (
               <span key={l.key} className="inline-flex items-center gap-1.5">
                 <span className="inline-block h-0.5 w-4 rounded" style={{ background: l.color }} />
                 <span className="text-muted">{l.label}</span>
                 <span className="font-semibold" style={{ color: l.color }}>{v === null || v === undefined ? "—" : formatValue(l.fmt, v)}</span>
-                {stale && <span className="text-muted">({fmtDate(start + lastIndexOf(l.values))})</span>}
+                {lastIndexOf(l.values) >= 0 && lastIndexOf(l.values) < latest && <span className={`text-muted ${hover === null ? "" : "invisible"}`}>({fmtDate(start + lastIndexOf(l.values))})</span>}
               </span>
             );
           })}
@@ -659,7 +661,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
           {/* área de interação */}
           <rect
             x={padL} y={padT} width={geo.plotW} height={geo.plotH} fill="transparent"
-            style={{ cursor: drag?.kind === "pan" ? "grabbing" : "grab" }}
+            style={{ cursor: drag?.kind === "pan" ? "grabbing" : "crosshair" }}
             onPointerMove={onMove} onPointerDown={onDown} onPointerUp={onUp}
             onPointerLeave={() => { if (!drag) setHover(null); }}
             onPointerCancel={(e) => { if (e.pointerType !== "touch") setDrag(null); }}
