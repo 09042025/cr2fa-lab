@@ -25,15 +25,16 @@ export function parseMoneyText(t: string): number | null {
 export function parseTopCaps(html: string): TopCap[] {
   const out: TopCap[] = [];
   for (const row of html.split(/<tr[\s>]/i).slice(1)) {
-    if (!/\/marketcap\//i.test(row)) continue;
+    // linha de ativo = tem logo da tabela (Bitcoin e Ethereum não têm link para a página do ativo, então não dá para exigir "/marketcap/")
+    if (!/company-logos\//i.test(row) && !/\/marketcap\//i.test(row)) continue;
     const tds = [...row.matchAll(/<td([^>]*)>([\s\S]*?)<\/td>/gi)].map((m) => ({ attrs: m[1], inner: m[2], sort: /data-sort="([^"]*)"/i.exec(m[1])?.[1], txt: text(m[2]) }));
     const logoSrc = /<img[^>]*?(?:data-src|src)="([^"]*company-logos[^"]*)"/i.exec(row)?.[1];
-    const fromLogo = logoSrc ? decodeURIComponent(logoSrc.split("/").pop() ?? "").replace(/\.(png|webp|jpg|svg)$/i, "") : "";
+    const fromLogo = logoSrc ? decodeURIComponent(logoSrc.split("/").pop() ?? "").replace(/\.(png|webp|jpg|svg)$/i, "").replace(/\.(X|XM)$/i, "") : "";
     const code = /class="[^"]*company-code[^"]*"[^>]*>([\s\S]*?)<\/div>/i.exec(row)?.[1];
     const ticker = (code ? text(code) : "") || fromLogo;
     const nm = /class="[^"]*company-name[^"]*"[^>]*>([\s\S]*?)<\/div>/i.exec(row)?.[1];
     const alt = /<img[^>]*alt="([^"]*)"/i.exec(row)?.[1];
-    const name = (nm ? text(nm) : "") || (alt ? decode(alt) : "") || ticker;
+    const name = (nm ? text(nm) : "") || (alt ? decode(alt).replace(/\s+logo$/i, "") : "") || ticker;
     if (!ticker || !name) continue;
     // valor de mercado = primeira célula com número grande (as de posição e preço são menores ou vêm depois)
     const capIdx = tds.findIndex((t) => (num(t.sort) ?? 0) >= 1e6 || (t.sort === undefined && /\d\s*[TBM]\b/i.test(t.txt)));
@@ -53,7 +54,7 @@ export function parseTopCaps(html: string): TopCap[] {
 }
 
 export function getTopCaps() {
-  return cachedSwr<TopCap[]>("topcaps:v2", 10 * 60, async () => {
+  return cachedSwr<TopCap[]>("topcaps:v3", 10 * 60, async () => {
     const res = await fetch(`${SITE}/assets-by-market-cap/`, { headers: { "user-agent": "Mozilla/5.0 (compatible; NizaHub/1.0)", accept: "text/html" }, signal: AbortSignal.timeout(20000) });
     if (!res.ok) throw new Error(`HTTP ${res.status} em companiesmarketcap.com`);
     const rows = parseTopCaps(await res.text());

@@ -227,3 +227,18 @@ test("maiores valores de mercado: lê linhas da tabela da CompaniesMarketCap e i
   assert.equal(parseTopCaps("<html>sem tabela</html>").length, 0);
   assert.equal(parseMoneyText("$5.121 T"), 5.121e12);
 });
+
+test("maiores valores de mercado: Bitcoin e Ethereum (linhas sem link) também entram", async () => {
+  const { parseTopCaps } = await import("../src/lib/topcaps");
+  const btc = `<tr><td class="rank-td td-right" data-sort="14">14</td><td class="name-td"><div class="logo-container"><img class="company-logo" src="https://companiesmarketcap.com/img/company-logos/64/BTC.X.png" alt="Bitcoin logo"></div><div class="name-div"><div class="company-name">Bitcoin</div><div class="company-code">BTC</div></div></td><td class="td-right" data-sort="1282000000000">$1.282 T</td><td class="td-right" data-sort="63755">$63,755</td><td data-sort="-1.36"><span class="percentage-red">1.36%</span></td></tr>`;
+  const eth = `<tr><td class="rank-td td-right" data-sort="84">84</td><td class="name-td"><img class="company-logo" src="/img/company-logos/64/ETH.X.png" alt="Ethereum logo"></td><td class="td-right" data-sort="220320000000">$220.32 B</td><td class="td-right" data-sort="1802">$1,802</td><td><span class="percentage-red">0.46%</span></td></tr>`;
+  const gold = `<tr><td class="rank-td td-right" data-sort="1">1</td><td><img class="company-logo" src="/img/company-logos/64/GOLD.XM.png" alt="Gold logo"><a href="/gold/marketcap/"><div class="company-name">Gold</div><div class="company-code">GOLD</div></a></td><td class="td-right" data-sort="25999000000000">$25.999 T</td><td data-sort="3739">$3,739</td><td><span class="percentage-red">0.07%</span></td></tr>`;
+  const r = parseTopCaps(`<table>${gold}${btc}${eth}</table>`);
+  assert.deepEqual(r.map((x) => x.ticker), ["GOLD", "BTC", "ETH"]);
+  assert.equal(r[1].name, "Bitcoin");
+  assert.equal(r[1].marketCap, 1.282e12);
+  assert.equal(r[1].change30d, -1.36);
+  assert.equal(r[2].name, "Ethereum"); // sem company-name: nome vem do alt, sem a palavra "logo"
+  assert.equal(r[2].rank, 84);
+  assert.equal(r[2].logo, "https://companiesmarketcap.com/img/company-logos/64/ETH.X.png");
+});
