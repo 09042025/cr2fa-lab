@@ -202,3 +202,28 @@ test("proventos: mês atual ainda sem registro não derruba o 12 meses nem a reg
   assert.equal(monthsPaid(d2, today), 12);
   assert.ok(Math.abs(sum12(d2, today).cur - 1.2) < 1e-9);
 });
+
+test("maiores valores de mercado: lê linhas da tabela da CompaniesMarketCap e ignora o que não é linha de ativo", async () => {
+  const { parseTopCaps, parseMoneyText } = await import("../src/lib/topcaps");
+  const row = (rank: number, logo: string, name: string, code: string, cap: string, capNum: number, price: string, priceNum: number, cls: string, pct: string) =>
+    `<tr><td class="fav"></td><td class="rank-td td-right" data-sort="${rank}">${rank}</td><td class="name-td"><div class="logo-container"><img class="company-logo" src="/img/company-logos/64/${logo}.webp" alt="${name} logo"></div><a href="/${name.toLowerCase()}/marketcap/"><div class="name-div"><div class="company-name">${name}</div><div class="company-code"><span class="rank d-none"></span>${code}</div></div></a></td><td class="td-right" data-sort="${capNum}">${cap}</td><td class="td-right" data-sort="${priceNum}">${price}</td><td data-sort="1"><span class="${cls}">${pct}</span></td></tr>`;
+  const html = `<table><thead><tr><th>Rank</th></tr></thead><tbody>${[
+    row(1, "AAPL", "Apple", "AAPL", "$5.121 T", 5.121e12, "$352.45", 352.45, "percentage-green", "0.15%"),
+    row(2, "MSFT", "Microsoft", "MSFT", "$3.774 T", 3.774e12, "$508.29", 508.29, "percentage-red", "1.20%"),
+    row(3, "2222.SR", "Saudi Aramco", "2222.SR", "$1.703 T", 1.703e12, "$7.04", 7.04, "percentage-green", "0.5%"),
+    row(4, "NVDA", "NVIDIA", "NVDA", "$3.645 T", 3.645e12, "$150.96", 150.96, "percentage-green", "2%"),
+    row(5, "GOOG", "Alphabet &amp; Co", "GOOG", "$3.432 T", 3.432e12, "$279.20", 279.2, "percentage-red", "0.3%"),
+  ].join("")}</tbody></table>`;
+  const r = parseTopCaps(html);
+  assert.equal(r.length, 5);
+  assert.equal(r[0].ticker, "AAPL");
+  assert.equal(r[0].marketCap, 5.121e12);
+  assert.equal(r[0].price, 352.45);
+  assert.equal(r[0].change30d, 0.15);
+  assert.equal(r[1].change30d, -1.2);
+  assert.equal(r[2].ticker, "2222.SR");
+  assert.equal(r[2].logo, "https://companiesmarketcap.com/img/company-logos/64/2222.SR.webp");
+  assert.equal(r[4].name, "Alphabet & Co");
+  assert.equal(parseTopCaps("<html>sem tabela</html>").length, 0);
+  assert.equal(parseMoneyText("$5.121 T"), 5.121e12);
+});
