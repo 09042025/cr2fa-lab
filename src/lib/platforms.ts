@@ -79,6 +79,7 @@ export const DEXES: Platform[] = [
   P("cowswap", "CoW Swap", "https://cow.fi", "dex", /^cow(-|swap|$)/, "DEX com trocas protegidas contra MEV."),
   P("kyber", "KyberSwap", "https://kyberswap.com", "dex", /^kyber(-|$)/, "Agregador e DEX multi-redes."),
   P("thorswap", "THORSwap", "https://app.thorswap.finance", "dex", /^(thorswap|thorchain)(-|$)/, "Trocas entre redes diferentes (Bitcoin, Ethereum, Solana e outras) sem criar token embrulhado; roda sobre a THORChain."),
+  P("garden", "Garden", "https://garden.finance", "dex", /^garden(-|$)/, "Troca Bitcoin por WBTC (e outros ativos) entre redes, sem corretora no meio."),
 ];
 
 export interface Exchange { name: string; url: string; origin: "Brasil" | "Global"; note: string }
