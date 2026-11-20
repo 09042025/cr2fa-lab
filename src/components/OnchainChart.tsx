@@ -73,7 +73,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   const [w, setW] = useState(900);
   const [vh, setVh] = useState(800);
   const [hover, setHover] = useState<number | null>(null);
-  const [drag, setDrag] = useState<{ kind: "box" | "axis"; axis?: string; x0: number; x1: number; y0: number; y1: number } | null>(null);
+  const [drag, setDrag] = useState<{ kind: "box" | "axis" | "pan"; axis?: string; x0: number; x1: number; y0: number; y1: number } | null>(null);
   /** Zoom vertical por eixo ("price" ou o id do indicador), em valores reais. */
   const [yz, setYz] = useState<Record<string, YWin>>({});
 
@@ -177,17 +177,43 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     return null;
   };
 
+  const panRef = useRef<{ i0: number; i1: number; wins: Record<string, YWin & { log: boolean }> } | null>(null);
   const onMove = (e: React.PointerEvent) => {
     if (e.pointerType === "touch") return;
     const px = localX(e);
     if (!drag) { if (px >= padL && px <= padL + geo.plotW) setHover(idxFromPx(px)); return; }
+    const py = localY(e);
+    if (drag.kind === "pan" && panRef.current) {
+      // segurar e arrastar move o gráfico (como no TradingView): para os lados mexe no tempo; para cima/baixo, nas escalas verticais
+      const st = panRef.current;
+      const span = st.i1 - st.i0;
+      const n = price.length;
+      if (span < n - 1) {
+        const a = Math.max(0, Math.min(n - 1 - span, Math.round(st.i0 - ((px - drag.x0) / geo.plotW) * span)));
+        if (a !== i0) onZoom(a, a + span);
+      }
+      const dy = py - drag.y0;
+      if (Math.abs(dy) > 6) {
+        const sft = dy / geo.plotH;
+        const next: Record<string, YWin> = {};
+        for (const id of axisIds) { const q = st.wins[id]; if (q) next[id] = { lo: valueAt(q.lo, q.hi, q.log, sft), hi: valueAt(q.lo, q.hi, q.log, 1 + sft) }; }
+        setYz(next);
+      }
+      setHover(null);
+      setDrag({ ...drag, x1: px, y1: py });
+      return;
+    }
     setHover(drag.kind === "box" ? idxFromPx(px) : null);
-    setDrag({ ...drag, x1: px, y1: localY(e) });
+    setDrag({ ...drag, x1: px, y1: py });
   };
   const onDown = (e: React.PointerEvent<SVGRectElement>) => {
     if (e.pointerType === "touch") return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag({ kind: "box", x0: localX(e), x1: localX(e), y0: localY(e), y1: localY(e) });
+    if (e.shiftKey) { setDrag({ kind: "box", x0: localX(e), x1: localX(e), y0: localY(e), y1: localY(e) }); return; } // Shift + arrastar: janela de zoom
+    const wins: Record<string, YWin & { log: boolean }> = {};
+    for (const id of axisIds) { const a = axisInfo(id); wins[id] = { lo: a.lo, hi: a.hi, log: a.log }; }
+    panRef.current = { i0, i1, wins };
+    setDrag({ kind: "pan", x0: localX(e), x1: localX(e), y0: localY(e), y1: localY(e) });
   };
   const onAxisDown = (id: string) => (e: React.PointerEvent<SVGRectElement>) => {
     if (e.pointerType === "touch") return;
@@ -216,6 +242,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   const onUp = (e?: React.PointerEvent) => {
     if (e?.pointerType === "touch") return;
     if (drag) applyDrag(drag);
+    panRef.current = null;
     setDrag(null);
   };
 
@@ -632,7 +659,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
           {/* área de interação */}
           <rect
             x={padL} y={padT} width={geo.plotW} height={geo.plotH} fill="transparent"
-            style={{ cursor: "crosshair" }}
+            style={{ cursor: drag?.kind === "pan" ? "grabbing" : "grab" }}
             onPointerMove={onMove} onPointerDown={onDown} onPointerUp={onUp}
             onPointerLeave={() => { if (!drag) setHover(null); }}
             onPointerCancel={(e) => { if (e.pointerType !== "touch") setDrag(null); }}
@@ -645,7 +672,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
         </svg>
       </div>
       <p className="mt-1 text-[11px] text-muted">
-        Arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. A roda do mouse sobre o eixo das datas (embaixo) aproxima e afasta o tempo, e os botões − e + fazem o mesmo. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início. No celular: um toque e arrastar move o gráfico; para zoom, dê um toque rápido e, no segundo toque, arraste a janela (ou segure um canto com um dedo e marque o outro com o segundo dedo); pinça nos números à esquerda (preço), à direita (indicador) ou embaixo (tempo) muda só aquela escala.
+        Segure e arraste o gráfico para movê-lo (como no TradingView). Segure Shift e arraste uma caixa sobre o trecho que quer ver para aproximar (largura e altura). Arraste na vertical sobre um eixo (ex.: o rosa) para esticar só aquela escala; a roda do mouse sobre o eixo também. A roda do mouse sobre o eixo das datas (embaixo) aproxima e afasta o tempo, e os botões − e + fazem o mesmo. Ctrl/⌘ + roda move o gráfico para os lados. Clique duas vezes no gráfico para voltar ao início. No celular: um toque e arrastar move o gráfico; para zoom, dê um toque rápido e, no segundo toque, arraste a janela (ou segure um canto com um dedo e marque o outro com o segundo dedo); pinça nos números à esquerda (preço), à direita (indicador) ou embaixo (tempo) muda só aquela escala.
         {Object.keys(yz).length > 0 && <> <button type="button" className="text-gold-soft underline" onClick={() => setYz({})}>Desfazer zoom vertical</button></>}
       </p>
     </div>
