@@ -21,11 +21,11 @@ const Ext = ({ href, children }: { href: string; children: React.ReactNode }) =>
 function Chains({ info, selected }: { info?: TvlInfo; selected: string }) {
   const names = info ? Object.entries(info.chains).sort((a, b) => b[1] - a[1]).map(([c]) => c) : [];
   if (!names.length) return <span className="text-muted">—</span>;
-  const shown = names.slice(0, 5);
+  const shown = names.slice(0, 4);
   return (
-    <span className="flex flex-wrap gap-1">
-      {shown.map((c) => <span key={c} className={`rounded border px-1.5 text-xs ${c === selected ? "border-gold text-gold-soft" : "border-line text-muted"}`}>{c}</span>)}
-      {names.length > shown.length && <span className="text-xs text-muted" title={names.slice(5).join(", ")}>+{names.length - shown.length}</span>}
+    <span className="flex flex-wrap items-center gap-1 whitespace-normal">
+      {shown.map((c) => <span key={c} className={`whitespace-nowrap rounded border px-1.5 text-xs ${c === selected ? "border-gold text-gold-soft" : "border-line text-muted"}`}>{c}</span>)}
+      {names.length > shown.length && <span className="text-xs text-muted" title={names.slice(4).join(", ")}>+{names.length - shown.length}</span>}
     </span>
   );
 }
@@ -159,9 +159,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
                     const ch = info?.change7d ?? null;
                     return (
                       <tr key={p.id}>
-                        <td className={secao === "dex" ? "min-w-44" : "whitespace-nowrap"}><Ext href={p.url}>{p.name}</Ext>{secao === "dex" && <span className="block max-w-56 text-xs font-normal text-muted">{p.note}</span>}</td>
-                        {secao === "defi" && <td className="w-64 min-w-48 text-xs text-muted"><span className="mr-1 rounded border border-line px-1">{KIND_LABEL[p.kind]}</span>{p.note}</td>}
-                        <td className="w-44 min-w-36"><Chains info={info} selected={rede} /></td>
+                        <td className={secao === "dex" ? "min-w-44 whitespace-normal align-middle" : "whitespace-nowrap"}><Ext href={p.url}>{p.name}</Ext>{secao === "dex" && <span className="block whitespace-normal text-xs font-normal leading-snug text-muted">{p.note}</span>}</td>
+                        {secao === "defi" && <td className="w-64 min-w-48 whitespace-normal text-xs text-muted"><span className="mr-1 rounded border border-line px-1">{KIND_LABEL[p.kind]}</span>{p.note}</td>}
+                        <td className="w-56 min-w-40 whitespace-normal align-middle"><Chains info={info} selected={rede} /></td>
                         <td className="num">{usdCompact(tvlOn(p.id))}</td>
                         {secao === "defi" && <td className={`num ${ch === null ? "" : ch >= 0 ? "text-up" : "text-down"}`}>{ch === null ? "—" : `${ch >= 0 ? "+" : ""}${pct(ch, 1)}`}</td>}
                         {secao === "dex" && <><td className="num">{usdCompact(v?.v24h)}</td><td className="num">{usdCompact(v?.v7d)}</td><td className="num">{usdCompact(v?.v30d)}</td><td className="num">{usdCompact(v?.v1y)}</td></>}
