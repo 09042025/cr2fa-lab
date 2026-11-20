@@ -66,6 +66,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
   const wrap = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [w, setW] = useState(900);
+  const [vh, setVh] = useState(800);
   const [hover, setHover] = useState<number | null>(null);
   const [drag, setDrag] = useState<{ kind: "box" | "axis"; axis?: string; x0: number; x1: number; y0: number; y1: number } | null>(null);
   /** Zoom vertical por eixo ("price" ou o id do indicador), em valores reais. */
@@ -80,8 +81,15 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    const f = () => setVh(window.innerHeight);
+    f();
+    window.addEventListener("resize", f);
+    return () => window.removeEventListener("resize", f);
+  }, []);
   const compact = w < 560;
-  const h = compact ? 400 : 510;
+  // no computador o gráfico ocupa o resto da tela (altura da janela menos cabeçalho e controles); no celular, altura fixa
+  const h = compact ? 400 : Math.max(510, Math.min(980, vh - 250));
   const padL = compact ? 56 : 66;
   const padT = 12;
   const padB = compact ? 34 : 26;
