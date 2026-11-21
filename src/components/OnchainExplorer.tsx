@@ -45,6 +45,30 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
   const [logPrice, setLogPrice] = useState(true);
   const [showHalvings, setShowHalvings] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
+  const secRef = useRef<HTMLElement>(null);
+  const [full, setFull] = useState(false);
+  function toggleFull() {
+    const next = !full;
+    setFull(next);
+    // tenta a tela cheia real do navegador; se não houver (ex.: iPhone), fica a tela cheia dentro do app
+    try {
+      if (next) void secRef.current?.requestFullscreen?.().catch(() => {});
+      else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    } catch {}
+  }
+  useEffect(() => {
+    const onFs = () => { if (!document.fullscreenElement) setFull(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFull(false); };
+    document.addEventListener("fullscreenchange", onFs);
+    window.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("fullscreenchange", onFs); window.removeEventListener("keydown", onKey); };
+  }, []);
+  useEffect(() => {
+    if (!full) return;
+    const o = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = o; };
+  }, [full]);
   const [penOn, setPenOn] = useState(false);
   const [erase, setErase] = useState(false);
   const [penColor, setPenColor] = useState("#f43f5e");
@@ -247,7 +271,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
       {notice && <p className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-gold-soft">{notice} {!isPro && <Link href="/planos" className="underline">Ver planos</Link>}</p>}
 
       <div>
-        <section className="card min-w-0 p-4">
+        <section ref={secRef} className={full ? "fixed inset-0 z-50 min-w-0 overflow-auto bg-[#0b1020] p-3" : "card min-w-0 p-4"}>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="grid w-full grid-cols-5 gap-1.5 sm:flex sm:w-auto sm:flex-wrap" role="group" aria-label="Período">
               {RANGES.map((x) => (
@@ -258,6 +282,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
               {zoom && <button type="button" onClick={() => setZoom(null)} className="btn btn-ghost col-span-5 !px-3 !py-1.5 !text-xs">Desfazer zoom</button>}
             </div>
             <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto" role="group" aria-label="Caneta">
+              <button type="button" onClick={toggleFull} aria-pressed={full} className="btn btn-ghost !px-3 !py-1.5 !text-xs" title={full ? "Sair da tela cheia (Esc)" : "Abrir o gráfico em tela cheia"}>{full ? "✕ Sair da tela cheia" : "⛶ Tela cheia"}</button>
               <button type="button" onClick={() => { setPenOn((o) => !o); setErase(false); }} aria-pressed={penOn} className={`btn !px-3 !py-1.5 !text-xs ${penOn && !erase ? "btn-gold" : "btn-ghost"}`} title="Desenhar no gráfico para marcar pontos de atenção">✏️ Caneta</button>
               {penOn && (
                 <>
