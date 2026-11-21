@@ -110,7 +110,7 @@ export default async function Home() {
               comecei a investir em 2014 e, desde 2020, também em cripto.
             </p>
             <p>
-              O NIZA INVEST nasceu para organizar o que eu mesmo faço: dividir o patrimônio em blocos claros, olhar os dados antes de decidir e rebalancear com disciplina, sem
+              O NIZA HUB nasceu para organizar o que eu mesmo faço: dividir o patrimônio em blocos claros, olhar os dados antes de decidir e rebalancear com disciplina, sem
               depender de palpite.
             </p>
             <p>
