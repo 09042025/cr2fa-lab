@@ -5,7 +5,7 @@ const RULES: Record<string, { name: string; rule: string }> = {
   cripto: { name: "Criptomoedas", rule: "O bloco inteiro conta como dólar (Bitcoin, Ethereum e stablecoins)." },
   acoes: { name: "Ações", rule: "Metade do bloco no exterior: ações dos EUA, BDRs ou ETFs internacionais." },
   renda_fixa: { name: "Renda fixa", rule: "Metade do bloco em dólar: Treasuries, T-bills ou fundos de renda fixa em dólar." },
-  oportunidades: { name: "Reserva para oportunidades", rule: "Metade da reserva em dólar ou stablecoins (USDC, T-bills de curto prazo)." },
+  oportunidades: { name: "Reserva para oportunidades", rule: "Metade da reserva em dólar ou stablecoins: USDC, T-bills de curto prazo ou stablecoins rendendo (earn) em fintechs." },
 };
 
 export function DollarRule() {
@@ -34,7 +34,7 @@ export function DollarRule() {
         </table>
       </div>
       <p className="mt-3 text-xs text-muted">
-        Como o app reconhece: ações pelo código (EUA, BDR final 32 a 39 ou ETF internacional); renda fixa e reserva pelo nome da posição, então escreva “dólar”, “USD” ou “Treasury” (ou use o código da stablecoin, como USDC, na reserva).
+        Como o app reconhece: ações pelo código (EUA, BDR final 32 a 39 ou ETF internacional); renda fixa e reserva pelo nome da posição, então escreva “dólar”, “USD” ou “Treasury” (na reserva, também vale o código da stablecoin, como USDC, ou “earn” no nome).
       </p>
     </section>
   );

@@ -27,7 +27,7 @@ const DOLLAR_HOW: Record<string, { name: string; how: string }> = {
   cripto: { name: "Criptomoedas", how: "Bitcoin, Ethereum e stablecoins: o bloco inteiro conta como dólar." },
   acoes: { name: "Ações no exterior", how: "Metade do bloco de ações: ações dos EUA, BDRs ou ETFs internacionais." },
   renda_fixa: { name: "Renda fixa em dólar", how: "Metade do bloco: Treasuries, T-bills ou fundos de renda fixa em dólar." },
-  oportunidades: { name: "Reserva em dólar ou stablecoins", how: "Metade da reserva para oportunidades, pronta para aproveitar queda." },
+  oportunidades: { name: "Reserva em dólar ou stablecoins", how: "Metade da reserva para oportunidades: stablecoins, inclusive rendendo (earn) em fintechs, prontas para aproveitar queda." },
 };
 const DOLLAR_PARTS = BLOCKS.filter((b) => blockDollarShare(b) > 0).map((b) => ({ ...DOLLAR_HOW[b.key], pct: (b.pct * blockDollarShare(b)) / 100, color: b.color }));
 const WFS = [

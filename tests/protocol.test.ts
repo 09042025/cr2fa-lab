@@ -83,6 +83,7 @@ test("isDollarHolding: cripto sempre; ações por código/BDR/ETF; renda fixa e 
   assert.equal(isDollarHolding(h("renda_fixa", "Fundo renda fixa dólar")), true);
   assert.equal(isDollarHolding(h("oportunidades", "USDC", "USDC")), true);
   assert.equal(isDollarHolding(h("oportunidades", "Caixa em USD")), true);
+  assert.equal(isDollarHolding(h("oportunidades", "Earn fintech")), true);
   assert.equal(isDollarHolding(h("oportunidades", "CDB liquidez diária")), false);
   assert.equal(isDollarHolding(h("fiis", "HGLG11", "HGLG11")), false);
 });

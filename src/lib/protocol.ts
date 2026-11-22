@@ -85,7 +85,7 @@ export const BLOCKS: Block[] = [
     subs: [
       { label: "CDB com liquidez diária", pct: 25 },
       { label: "Tesouro Selic", pct: 25 },
-      { label: "Dólar ou stablecoins (USDC, T-bills de curto prazo)", pct: 50, usd: true },
+      { label: "Dólar ou stablecoins (USDC, T-bills de curto prazo, ou stablecoins rendendo em fintechs via earn)", pct: 50, usd: true },
     ],
   },
 ];
@@ -212,7 +212,7 @@ export interface DollarItem { block: BlockKey; label: string; ticker: string | n
 /**
  * Diz se a posição está dolarizada, pelas regras do Protocolo:
  * cripto = sempre; ações = código dos EUA, BDR (final 32 a 39) ou ETF internacional, ou nome que indique exterior;
- * renda fixa = nome com "dólar", "USD" ou "Treasury"; reserva para oportunidades = posição com código de cripto (ex.: USDC) ou nome em dólar.
+ * renda fixa = nome com "dólar", "USD" ou "Treasury"; reserva para oportunidades = posição com código de cripto (ex.: USDC), nome em dólar ou "earn" (stablecoin rendendo em fintech).
  */
 export function isDollarHolding(h: { block: BlockKey; label: string; ticker: string | null }): boolean {
   const t = (h.ticker ?? "").toUpperCase();
@@ -225,7 +225,7 @@ export function isDollarHolding(h: { block: BlockKey; label: string; ticker: str
     case "renda_fixa":
       return USD_LABEL.test(h.label);
     case "oportunidades":
-      return !!t || USD_STABLES.has(h.label.trim().toUpperCase()) || USD_LABEL.test(h.label);
+      return !!t || USD_STABLES.has(h.label.trim().toUpperCase()) || USD_LABEL.test(h.label) || /\bearn\b/i.test(h.label);
     default:
       return false;
   }
