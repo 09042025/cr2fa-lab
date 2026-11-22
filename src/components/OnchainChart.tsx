@@ -510,7 +510,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
               <span key={l.key} className="inline-flex items-center gap-1.5">
                 <span className="inline-block h-0.5 w-4 rounded" style={{ background: l.color }} />
                 <span className="text-muted">{l.label}</span>
-                <span className="font-semibold" style={{ color: l.color }}>{v === null || v === undefined ? "—" : formatValue(l.fmt, v)}</span>
+                <span className="font-semibold" style={{ color: l.bars && v !== null && v !== undefined ? (v < 0 ? "#f87171" : "#34d399") : l.color }}>{v === null || v === undefined ? "—" : formatValue(l.fmt, v)}</span>
                 {lastIndexOf(l.values) >= 0 && lastIndexOf(l.values) < latest && <span className={`text-muted ${hover === null ? "" : "invisible"}`}>({fmtDate(start + lastIndexOf(l.values))})</span>}
               </span>
             );
@@ -669,7 +669,7 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
                 const v = l.values[hover];
                 if (v === null || v === undefined) return null;
                 const y = yAt(l, v);
-                return y === null ? null : <circle key={l.key} cx={geo.x(hover)} cy={y} r={3.5} fill={l.color} />;
+                return y === null ? null : <circle key={l.key} cx={geo.x(hover)} cy={y} r={3.5} fill={l.bars && (l.values[hover] ?? 0) < 0 ? "#f87171" : l.color} />;
               })}
             </g>
           )}
