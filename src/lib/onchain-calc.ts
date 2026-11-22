@@ -237,6 +237,12 @@ const CALC: Record<string, Calc> = {
   },
   nupl: (b) => [combine(marketCap(b), b.rc as Series, (m, r) => (m > 0 ? 1 - r / m : null))],
   realized_price: (b) => [combine(b.rc as Series, b.supply as Series, (r, s) => (s > 0 ? r / s : null))],
+  realized_pnl: (b) => {
+    const rc = b.rc as Series;
+    const iss = issuanceUsd(b);
+    // variação diária do valor realizado = lucro − prejuízo realizados + valor das moedas novas (emissão); tira-se a emissão
+    return [rc.map((v, i) => (i === 0 || v === null || rc[i - 1] === null ? null : v - (rc[i - 1] as number) - (iss[i] ?? 0)))];
+  },
   realized_cap: (b) => [marketCap(b), (b.rc as Series).slice()],
   thermocap: (b) => {
     const mc = marketCap(b);

@@ -276,3 +276,19 @@ test("sem a dificuldade da fonte, estima pelo hash rate e os indicadores depende
   delete raw.series.HashRate;
   assert.deepEqual(unavailableIds(buildBase(raw)).filter((id) => ["difficulty", "difficulty_model", "pow_osc"].includes(id)).sort(), ["difficulty", "difficulty_model", "pow_osc"]);
 });
+
+test("lucro/prejuízo realizado líquido = variação do valor realizado menos a emissão", () => {
+  const raw = synth();
+  const b = buildBase(raw);
+  const r = computeIndicators(b, ["realized_pnl"]).realized_pnl[0];
+  assert.equal(r.length, raw.n);
+  assert.equal(r[0], null);
+  const rc = b.rc as Series;
+  const iss = issuance(b.supply as Series);
+  const i = 50;
+  assert.ok(Math.abs((r[i] as number) - ((rc[i] as number) - (rc[i - 1] as number) - (iss[i] ?? 0) * (b.price[i] as number))) < 1e-6);
+});
+
+test("formato em dólar mostra o sinal de valores negativos", () => {
+  assert.equal(formatValue("usd", -1.5e9), "-$1,5 bi");
+});

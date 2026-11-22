@@ -20,6 +20,8 @@ export interface IndicatorDef {
   fmt: Fmt;
   /** `color` fixa a cor da linha (senão vale a cor do indicador). */
   lines: { label: string; dashed?: boolean; color?: string }[];
+  /** Desenha barras a partir do zero (verde acima, vermelho abaixo) em vez de linha. */
+  bars?: boolean;
   /** Linhas de referência horizontais (no eixo do indicador). */
   refs?: number[];
   /** Séries-base necessárias além do preço. */
@@ -55,6 +57,11 @@ export const INDICATORS: IndicatorDef[] = [
     id: "realized_price", name: "Preço realizado", group: "valuation", axis: "price", scale: "log", fmt: "usd", needs: ["supply", "rc"],
     lines: [{ label: "Preço realizado" }],
     desc: "Valor realizado dividido pela oferta em circulação: o preço médio de custo da rede. Fica no mesmo eixo do preço. Preço abaixo da linha significa que o investidor médio está no prejuízo, situação típica dos fundos de bear market.",
+  },
+  {
+    id: "realized_pnl", name: "Lucro/prejuízo realizado líquido (por dia)", group: "valuation", axis: "own", scale: "linear", fmt: "usd", refs: [0], bars: true, needs: ["supply", "rc"],
+    lines: [{ label: "Lucro − prejuízo realizado (US$/dia)", color: "#34d399" }],
+    desc: "Quanto as moedas que se moveram na rede, em um dia, ganharam ou perderam em relação ao preço em que cada uma foi comprada. Barras verdes: dia em que o lucro realizado superou o prejuízo (investidores vendendo no lucro). Barras vermelhas: dia em que o prejuízo superou o lucro (venda no prejuízo, típica de capitulação). Picos verdes grandes apareceram perto de topos de ciclo e picos vermelhos em quedas fortes. É uma estimativa feita aqui: variação diária do valor realizado menos o valor das moedas recém-emitidas. Mostra só o saldo líquido; não separa lucro e prejuízo.",
   },
   {
     id: "realized_cap", name: "Valor de mercado vs. realizado", group: "valuation", axis: "own", scale: "log", fmt: "usd", needs: ["supply", "rc"],
@@ -205,6 +212,7 @@ export function formatValue(fmt: Fmt, v: number, axis = false): string {
     case "compact":
       return a >= 1e9 ? `${nf(v / 1e9, 0, 1)} bi` : a >= 1e6 ? `${nf(v / 1e6, 0, 1)} mi` : a >= 1e3 ? `${nf(v / 1e3, 0, axis ? 0 : 1)} mil` : nf(v, 0, 0);
     case "usd":
+      if (v < 0) return `-${formatValue(fmt, a, axis)}`;
       if (a >= 1e12) return `$${nf(v / 1e12, 0, 1)} tri`;
       if (a >= 1e9) return `$${nf(v / 1e9, 0, 1)} bi`;
       if (a >= 1e6) return `$${nf(v / 1e6, 0, 1)} mi`;
