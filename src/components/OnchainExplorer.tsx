@@ -175,6 +175,7 @@ export function OnchainExplorer({ initial, isPro }: { initial: string[]; isPro: 
           label: def.lines[li]?.label ?? def.name,
           color: def.lines[li]?.color ?? colorOf(id),
           dashed: !!def.lines[li]?.dashed,
+          bars: !!def.bars,
           values,
           scale: def.scale,
           fmt: def.fmt,

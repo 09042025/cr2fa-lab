@@ -15,6 +15,8 @@ export interface ChartLine {
   label: string;
   color: string;
   dashed: boolean;
+  /** Barras a partir do zero (verde/vermelho) em vez de linha. */
+  bars?: boolean;
   values: Series;
   scale: "linear" | "log";
   fmt: Fmt;
@@ -123,7 +125,8 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     const axes = ownIds.map((id, k) => {
       const group = lines.filter((l) => l.axisId === id);
       const log = group[0].scale === "log";
-      const ex = extent(group.map((l) => l.values), i0, i1, log);
+      let ex = extent(group.map((l) => l.values), i0, i1, log);
+      if (group[0].bars && ex) ex = [Math.min(ex[0], 0), Math.max(ex[1], 0)]; // barras sempre incluem o zero
       const [lo0, hi0] = padExtent(ex ?? [1, 10], log, 0.06);
       const lo = yz[id]?.lo ?? lo0;
       const hi = yz[id]?.hi ?? hi0;
@@ -147,10 +150,32 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
     const pricePath = linePath(idxCache(price), x, yPrice, price, gap);
     const paths = lines.map((l) => {
       const y = l.axisId === "price" ? yPrice : axes.find((a) => a.id === l.axisId)!.y;
+      if (l.bars) return "";
       return linePath(idxCache(l.values), x, y, l.values, gap);
     });
+    // barras: um grupo por faixa de pixels, com o valor de maior módulo; verde acima do zero, vermelho abaixo
+    const bars = lines.map((l) => {
+      if (!l.bars) return null;
+      const ax = axes.find((a) => a.id === l.axisId);
+      const y0 = ax?.y(0);
+      if (!ax || y0 === null || y0 === undefined) return null;
+      const lo = Math.max(0, i0), hi = Math.min(l.values.length - 1, i1);
+      const size = Math.max(1, Math.ceil((hi - lo + 1) / Math.max(1, Math.floor(plotW / 2))));
+      let pos = "", neg = "";
+      for (let s = lo; s <= hi; s += size) {
+        let best: number | null = null;
+        for (let i = s; i <= Math.min(hi, s + size - 1); i++) { const v = l.values[i]; if (v !== null && Number.isFinite(v) && (best === null || Math.abs(v) > Math.abs(best))) best = v; }
+        if (best === null) continue;
+        const yy = ax.y(best);
+        if (yy === null) continue;
+        const px = x(s + (size - 1) / 2).toFixed(1);
+        const seg = `M${px},${y0.toFixed(1)}V${yy.toFixed(1)}`;
+        if (best >= 0) pos += seg; else neg += seg;
+      }
+      return { pos, neg, w: Math.max(1, Math.min(6, (plotW / Math.max(1, (hi - lo + 1) / size)) * 0.8)) };
+    });
     const dt = dateTicks(start + i0, start + i1, compact ? 5 : 9);
-    return { plotW, plotH, padR, x, yPrice, priceTicks, axes, pricePath, paths, dt, pLo, pHi };
+    return { plotW, plotH, padR, x, yPrice, priceTicks, axes, pricePath, paths, bars, dt, pLo, pHi };
   }, [lines, price, w, h, padL, axisW, i0, i1, logPrice, start, compact, yz]);
 
   const idxFromPx = (px: number) => Math.min(i1, Math.max(i0, Math.round(i0 + ((px - padL) / geo.plotW) * (i1 - i0))));
@@ -572,7 +597,16 @@ export function OnchainChart({ spot, start, price: priceRaw, lines, halvings, sh
                 );
               });
             })}
-            {lines.map((l, k) => (
+            {lines.map((l, k) => {
+              const b = geo.bars[k];
+              return b ? (
+                <g key={l.key}>
+                  <path d={b.pos} stroke="#34d399" strokeWidth={b.w} opacity={0.85} />
+                  <path d={b.neg} stroke="#f87171" strokeWidth={b.w} opacity={0.85} />
+                </g>
+              ) : null;
+            })}
+            {lines.map((l, k) => l.bars ? null : (
               <path key={l.key} d={geo.paths[k]} fill="none" stroke={l.color} strokeWidth={1.6} strokeDasharray={l.dashed ? "6 4" : undefined} strokeLinejoin="round" />
             ))}
             <path d={geo.pricePath} fill="none" stroke={PRICE_COLOR} strokeWidth={1.8} strokeLinejoin="round" />
