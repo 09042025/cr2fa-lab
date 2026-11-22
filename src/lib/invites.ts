@@ -42,6 +42,10 @@ export function listInvites(): Invite[] {
 export function revokeInvite(id: number): boolean {
   return db().prepare("UPDATE vip_invites SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL AND redeemed_at IS NULL").run(now(), id).changes > 0;
 }
+/** Apaga o registro de um convite que não foi usado (ex.: e-mail digitado errado). Convites já usados ficam no histórico. */
+export function deleteInvite(id: number): boolean {
+  return db().prepare("DELETE FROM vip_invites WHERE id = ? AND redeemed_at IS NULL").run(id).changes > 0;
+}
 export function markEmailed(id: number) {
   db().prepare("UPDATE vip_invites SET emailed_at = ? WHERE id = ?").run(now(), id);
 }

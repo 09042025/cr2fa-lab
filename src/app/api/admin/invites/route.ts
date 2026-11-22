@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getUser } from "@/lib/auth";
-import { createInvite, getInvite, markEmailed, revokeInvite } from "@/lib/invites";
+import { createInvite, getInvite, markEmailed, revokeInvite, deleteInvite } from "@/lib/invites";
 import { inviteEmail, mailEnabled, sendMail } from "@/lib/mail";
 import { fail, json, sameOrigin } from "@/lib/http";
 
@@ -45,9 +45,10 @@ export async function PATCH(req: Request) {
   if (!sameOrigin(req)) return fail("Origem inválida.", 403);
   const admin = await getUser();
   if (!admin || admin.role !== "admin") return fail("Acesso restrito.", 403);
-  const parsed = z.object({ id: z.number().int().positive(), action: z.enum(["revoke", "resend"]) }).safeParse(await req.json().catch(() => null));
+  const parsed = z.object({ id: z.number().int().positive(), action: z.enum(["revoke", "resend", "delete"]) }).safeParse(await req.json().catch(() => null));
   if (!parsed.success) return fail("Dados inválidos.");
   if (parsed.data.action === "revoke") return revokeInvite(parsed.data.id) ? json({ ok: true }) : fail("Só convites pendentes podem ser cancelados.");
+  if (parsed.data.action === "delete") return deleteInvite(parsed.data.id) ? json({ ok: true }) : fail("Convites já usados não podem ser apagados.");
   const inv = getInvite(parsed.data.id);
   if (!inv || inv.revokedAt || inv.redeemedAt) return fail("Convite indisponível.");
   const err = await emailInvite(parsed.data.id);
