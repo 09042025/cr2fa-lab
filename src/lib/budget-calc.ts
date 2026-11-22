@@ -114,3 +114,44 @@ export function computeBudget(inp: BudgetInput): BudgetResult {
     totalActual: sumAmounts(actual),
   };
 }
+
+/* ---------- Acompanhamento mês a mês ---------- */
+
+export interface MonthEntry {
+  /** "AAAA-MM" */
+  ym: string;
+  income: number;
+  actual: Amounts;
+  /** Saldo da reserva de emergência no fim do mês (opcional). */
+  reserve: number | null;
+}
+
+export const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+export const validYm = (ym: string) => /^(20\d\d|2100)-(0[1-9]|1[0-2])$/.test(ym);
+export const ymOf = (year: number, monthIndex: number) => `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+
+export interface MonthStats {
+  total: number;
+  /** Renda menos tudo o que foi gasto e guardado no mês. */
+  sobra: number;
+  /** Por categoria: ideal do mês, realizado e diferença (realizado − ideal). Para "reserva", gastar menos que o ideal é ruim. */
+  rows: { id: CatId; label: string; ideal: number; real: number; diff: number; bad: boolean }[];
+  /** Gastos (sem a categoria reserva) acima do ideal. */
+  overspent: number;
+}
+
+export function monthStats(income: number, actual: Amounts): MonthStats {
+  const ideal = idealAmounts(clean(income));
+  const rows = BUDGET_CATS.map((c) => {
+    const real = actual[c.id] ?? 0;
+    const diff = Math.round((real - ideal[c.id]) * 100) / 100;
+    return { id: c.id, label: c.label, ideal: ideal[c.id], real, diff, bad: c.id === "reserva" ? diff < 0 : diff > 0 };
+  });
+  const total = sumAmounts({ ...emptyAmounts(), ...actual });
+  return {
+    total,
+    sobra: Math.round((clean(income) - total) * 100) / 100,
+    rows,
+    overspent: rows.filter((r) => r.id !== "reserva" && r.diff > 0).reduce((s, r) => s + r.diff, 0),
+  };
+}
