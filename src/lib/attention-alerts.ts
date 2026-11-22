@@ -21,14 +21,18 @@ export async function runAttentionAlerts(send: Sender = (to, m) => sendMail({ to
       if (!a) { incomplete = true; continue; }
       if (a.total === 0) { if (a.kind !== "cripto" ? a.notice !== null : true) incomplete = true; continue; }
       if (!isCritical(a)) { if (h.ack_at) db().prepare("UPDATE holdings SET ack_at = NULL WHERE id = ?").run(h.id); continue; }
+      if (!opts.ignoreAck && alertedToday(h.id)) continue; // já avisado hoje (evita repetir se o job rodar de novo)
       if (!h.ack_at || opts.ignoreAck) items.push({ label: h.ticker ?? h.label, bad: a.bad, total: a.total, id: h.id });
     }
     if (!items.length) continue;
     total += items.length;
-    try { await send(u.email, attentionEmail(u.name, items, base)); sent += 1; } catch (e) { if (opts.userId) throw e; console.error("[atenção] falha ao enviar para o usuário", u.id, e); }
+    try { await send(u.email, attentionEmail(u.name, items, base)); sent += 1; if (!opts.ignoreAck) for (const it of items) markAlerted(it.id); } catch (e) { if (opts.userId) throw e; console.error("[atenção] falha ao enviar para o usuário", u.id, e); }
   }
   return { sent, items: total, incomplete };
 }
+
+const alertedToday = (hid: number) => (db().prepare("SELECT day FROM job_runs WHERE name = ?").get(`attention-h${hid}`) as { day: string } | undefined)?.day === spNow().day;
+const markAlerted = (hid: number) => db().prepare("INSERT INTO job_runs (name, day) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET day = excluded.day").run(`attention-h${hid}`, spNow().day);
 
 const g = globalThis as unknown as { __attentionTimer?: NodeJS.Timeout };
 const spNow = () => {
@@ -47,8 +51,9 @@ export function startAttentionJob(): void {
     const done = db().prepare("SELECT day FROM job_runs WHERE name = 'attention2'").get() as { day: string } | undefined;
     if (done?.day === day) return;
     const r = await runAttentionAlerts();
-    // só dá o dia como feito quando todos os dados estavam disponíveis (a CVM pode ainda estar carregando logo após o deploy)
-    if (!r.incomplete || r.sent > 0) db().prepare("INSERT INTO job_runs (name, day) VALUES ('attention2', ?) ON CONFLICT(name) DO UPDATE SET day = excluded.day").run(day);
+    // só dá o dia como feito quando todos os dados estavam disponíveis (a CVM pode ainda estar carregando logo após o deploy);
+    // se faltou algum ativo, tenta de novo em 10 min e só envia os que ainda não foram avisados hoje
+    if (!r.incomplete) db().prepare("INSERT INTO job_runs (name, day) VALUES ('attention2', ?) ON CONFLICT(name) DO UPDATE SET day = excluded.day").run(day);
     if (r.sent > 0) console.log(`[atenção] ${r.sent} e-mail(s) de alerta enviado(s).`);
   };
   const safe = () => tick().catch((e) => console.error("[atenção] erro:", e));
