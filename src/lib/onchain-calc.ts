@@ -18,6 +18,8 @@ export interface RawOnchain {
   missing: string[];
   /** Métricas que falharam por erro passageiro (limite, rede). */
   failed: string[];
+  /** Quando o histórico completo foi baixado (segundos), para recarregar tudo depois do prazo mesmo se só houve repetições parciais. */
+  loadedAt?: number;
 }
 
 export interface Base {
