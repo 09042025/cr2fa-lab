@@ -89,14 +89,47 @@ function Pie({ slices, hover, setHover, label, caption }: { slices: { key: strin
   );
 }
 
-export function ProtocolDashboard({ slices, totalCents }: { slices: PieSlice[]; totalCents: number }) {
+export interface DollarView { pct: number; targetPct: number; gapCents: number; parts: { key: string; label: string; pct: number; targetPct: number }[] }
+
+/** Medidor de dolarização: quanto da carteira está em dólar (cripto, ações no exterior, renda fixa em dólar e reserva em dólar/stablecoins) contra a meta. */
+function DollarMeter({ d }: { d: DollarView }) {
+  const fill = Math.min(100, d.targetPct > 0 ? (d.pct / d.targetPct) * 100 : 0);
+  const below = d.pct < d.targetPct - 0.05;
+  return (
+    <div className="mt-4 rounded-xl border border-line bg-panel-2 p-3" role="group" aria-label="Dolarização da carteira">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold">Dolarização</h3>
+        <p className="text-sm"><strong className="text-gold-soft tabular-nums">{pct(d.pct)}</strong> <span className="text-muted">de {pct(d.targetPct, 0)}</span></p>
+      </div>
+      <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin={0} aria-valuemax={d.targetPct} aria-valuenow={Math.round(d.pct * 10) / 10} aria-label="Parte da carteira em dólar">
+        <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold-soft" style={{ width: `${fill}%` }} />
+      </div>
+      <p className="mt-1.5 text-[11px] text-muted">
+        {below ? <>Faltam <strong className="text-white">{pct(d.targetPct - d.pct)}</strong> da carteira ({brl(d.gapCents / 100)}) para a meta de {pct(d.targetPct, 0)} em dólar.</> : <>Meta de {pct(d.targetPct, 0)} em dólar atingida.</>}
+      </p>
+      <div className="mt-2 grid grid-cols-[minmax(0,1fr)_3.4rem_2.6rem] gap-x-2 border-b border-line px-1 pb-1 text-[10px] uppercase tracking-wider text-muted">
+        <span>Parte em dólar</span><span className="text-right">Atual</span><span className="text-right">Alvo</span>
+      </div>
+      {d.parts.map((p) => (
+        <div key={p.key} className="grid grid-cols-[minmax(0,1fr)_3.4rem_2.6rem] items-center gap-x-2 border-b border-line/50 px-1 py-1.5 last:border-b-0">
+          <span className="truncate">{p.label}</span>
+          <span className="text-right tabular-nums">{pct(p.pct)}</span>
+          <span className="text-right tabular-nums">{pct(p.targetPct, 0)}</span>
+        </div>
+      ))}
+      <p className="mt-2 text-[11px] leading-4 text-muted">Objetivo: não ficar preso a uma só moeda. Cripto conta 100% como dólar; nas ações, só a parte no exterior (código dos EUA, BDR ou ETF internacional); na renda fixa e na reserva, só o que estiver em dólar ou stablecoin. Para a renda fixa e a reserva contarem, coloque “dólar”, “USD” ou “Treasury” no nome da posição.</p>
+    </div>
+  );
+}
+
+export function ProtocolDashboard({ slices, totalCents, dollar }: { slices: PieSlice[]; totalCents: number; dollar?: DollarView }) {
   const [hover, setHover] = useState<string | null>(null);
   const total = totalCents / 100;
   const rows = slices.map((s) => ({ ...s, pct: total > 0 ? (s.value / total) * 100 : 0 }));
   return (
     <section className="card mb-6 p-4">
       <h2 className="mb-1 font-semibold">Carteira x Protocolo</h2>
-      <p className="mb-3 text-sm text-muted">À esquerda, como está a sua carteira. À direita, o alvo do Protocolo CR2FA (20% em cada bloco).</p>
+      <p className="mb-3 text-sm text-muted">À esquerda, como está a sua carteira. À direita, o alvo do Protocolo CR2FA (20% em cada bloco, com 50% da carteira em dólar).</p>
       <div className="grid items-center gap-4 [&>*]:min-w-0 grid-cols-2 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.6fr)]">
         <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.value }))} caption="Sua carteira" hover={hover} setHover={setHover} label="Distribuição atual da carteira" /></div>
         <div><Pie slices={rows.map((s) => ({ key: s.key, color: s.color, v: s.target }))} caption="Protocolo" hover={hover} setHover={setHover} label="Alvo do Protocolo: 20% em cada bloco" /></div>
@@ -116,6 +149,7 @@ export function ProtocolDashboard({ slices, totalCents }: { slices: PieSlice[]; 
               </div>
             );
           })}
+          {dollar && <DollarMeter d={dollar} />}
         </div>
       </div>
       <p className="mt-2 text-xs text-muted">Diferença em verde = abaixo do alvo (espaço para aportar); em vermelho = acima do alvo. A tabela de rebalanceamento abaixo mostra os valores em reais.</p>

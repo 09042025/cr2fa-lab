@@ -13,7 +13,7 @@ export const viewport: Viewport = { themeColor: "#0b1a4a", width: "device-width"
 export const metadata: Metadata = {
   title: { default: `${name} | Organize sua carteira em cinco blocos`, template: `%s | ${name}` },
   description:
-    "Dados de cripto, DeFi, ações, fundos imobiliários e renda fixa em um só lugar, organizados pelo Protocolo CR2FA: cinco blocos de 20% com diversificação em duas camadas.",
+    "Dados de cripto, DeFi, ações, fundos imobiliários e renda fixa em um só lugar, organizados pelo Protocolo CR2FA: cinco blocos de 20% com diversificação em duas camadas e meta de 50% da carteira em dólar.",
   appleWebApp: { capable: true, title: "NIZA HUB", statusBarStyle: "black" },
 };
 

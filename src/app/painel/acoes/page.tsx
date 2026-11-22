@@ -31,7 +31,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   if (!us && isPro && !cal) warmBr(all);
   return (
     <>
-      <PageTitle title="Ações" subtitle="Bloco de 20% do Protocolo: metade em ações brasileiras (dividida em energia, bancos, saneamento, telecom e seguros, 20% cada) e metade em ações internacionais." />
+      <PageTitle title="Ações" subtitle="Bloco de 20% do Protocolo: metade em ações brasileiras (dividida em energia, bancos, saneamento, telecom e seguros, 20% cada) e metade em ações internacionais (em dólar, o que conta para a meta de 50% da carteira em dólar)." />
       <CountryTabs path="/painel/acoes" pais={us ? "us" : "br"} />
       {us ? (
         <UsMarket kind="stocks" isPro={isPro} aba={sp.aba} setor={sp.setor} q={sp.q} mes={sp.mes} ordem={sp.ordem} />

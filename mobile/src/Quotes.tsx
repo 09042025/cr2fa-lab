@@ -21,7 +21,7 @@ export function Quotes({ kind }: { kind: "acoes" | "fiis" }) {
   return (
     <Screen
       title={fii ? "Fundos imobiliários" : "Ações"}
-      subtitle={fii ? "Bloco de 20% do Protocolo: 30% galpões logísticos, 30% shopping centers, 30% outros imóveis de tijolo e 10% fundos de papel." : "Bloco de 20% do Protocolo: metade em ações brasileiras (energia, bancos, saneamento, telecom e seguros, 20% cada) e metade em ações internacionais."}
+      subtitle={fii ? "Bloco de 20% do Protocolo: 30% galpões logísticos, 30% shopping centers, 30% outros imóveis de tijolo e 10% fundos de papel." : "Bloco de 20% do Protocolo: metade em ações brasileiras (energia, bancos, saneamento, telecom e seguros, 20% cada) e metade em ações internacionais (em dólar, o que conta para a meta de 50% da carteira em dólar)."}
     >
       <Status loading={loading && !data} error={error} onRetry={reload} />
       {data?.failed && <Muted>Não foi possível carregar as cotações agora. Tente de novo em instantes.</Muted>}

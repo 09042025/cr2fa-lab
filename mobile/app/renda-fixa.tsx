@@ -29,7 +29,7 @@ export default function RendaFixa() {
   const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
   const run = () => setQs("?" + Object.entries(f).filter(([, v]) => v !== "").map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&"));
   return (
-    <Screen title="Renda fixa" subtitle="Bloco de 20% do Protocolo: 30% Tesouro Selic, 30% CDBs e 40% LCI/LCA. A reserva para oportunidades também fica aqui, metade em CDB com liquidez diária e metade em Tesouro Selic.">
+    <Screen title="Renda fixa" subtitle="Bloco de 20% do Protocolo: 15% Tesouro Selic, 15% CDBs, 20% LCI/LCA e 50% em renda fixa em dólar (Treasuries, T-bills ou fundos em dólar), que conta para a meta de 50% da carteira em dólar. A reserva para oportunidades também fica aqui: 25% em CDB com liquidez diária, 25% em Tesouro Selic e 50% em dólar ou stablecoins (inclusive stablecoins rendendo em fintechs, o earn).">
       <Status loading={loading && !data} error={error} onRetry={reload} />
       {data && (
         <>

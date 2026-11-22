@@ -33,13 +33,13 @@ export const PROFILE_INFO: Record<Profile, { label: string; summary: string; cr2
   conservador: {
     label: "Conservador",
     summary: "Você valoriza segurança e previsibilidade, e se incomoda com perdas. Isso é um ponto forte: a base da sua carteira tende a ser renda fixa e reserva de emergência.",
-    cr2fa: "O CR2FA divide a carteira em cinco blocos de 20%, e parte deles é de renda variável e cripto, que oscilam bastante. Pode ser mais agressivo do que você aceita hoje. Estude o protocolo antes de aplicar e comece pelos blocos de menor risco.",
+    cr2fa: "O CR2FA divide a carteira em cinco blocos de 20%, e parte deles é de renda variável e cripto, que oscilam bastante. Pode ser mais agressivo do que você aceita hoje. Metade da carteira também fica em dólar, o que traz oscilação cambial. Estude o protocolo antes de aplicar e comece pelos blocos de menor risco.",
     focus: ["Renda fixa", "Fundos imobiliários"],
   },
   moderado: {
     label: "Moderado",
     summary: "Você busca equilíbrio: aceita alguma oscilação em troca de retorno melhor, mas não quer correr riscos exagerados.",
-    cr2fa: "O CR2FA pode combinar com você, com atenção ao tamanho das posições mais voláteis (cripto e DeFi) e à sua reserva de emergência. Os blocos de renda fixa e fundos imobiliários ajudam a dar estabilidade.",
+    cr2fa: "O CR2FA pode combinar com você, com atenção ao tamanho das posições mais voláteis (cripto e DeFi) e à sua reserva de emergência. Os blocos de renda fixa e fundos imobiliários ajudam a dar estabilidade, e a meta de 50% em dólar protege você de depender de uma só moeda.",
     focus: ["Fundos imobiliários", "Ações", "Renda fixa"],
   },
   arrojado: {

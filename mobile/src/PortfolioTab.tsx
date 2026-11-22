@@ -11,6 +11,7 @@ interface Row { key: string; name: string; color: string; currentCents: number; 
 interface Holding { id: number; block: string; label: string; valueCents: number; source: string; ticker: string | null; qty: number | null; avgPrice: number | null; price: number | null; resultPct: number | null }
 interface Data {
   totalCents: number; rows: Row[]; holdings: Holding[];
+  dollar: { pct: number; targetPct: number; gapCents: number; parts: { key: string; label: string; pct: number; targetPct: number }[] };
   change30: { cents: number; pct: number } | null;
   income: { month: string; total: number }[]; income12: number; dyPct: number | null;
   evolution: { m: string; value: number }[]; marketValue: number; invested: number;
@@ -171,6 +172,19 @@ export function PortfolioTab() {
                 <Text style={{ color: C.white, fontWeight: "600" }}>Rebalanceamento (meta 20% por bloco)</Text>
                 {d.rows.map((r) => <Text key={r.key} style={{ color: r.diffCents > 0 ? C.up : r.diffCents < 0 ? C.down : C.muted, fontSize: 13 }}>{r.name}: {r.diffCents > 0 ? "comprar " : r.diffCents < 0 ? "vender " : "em dia "}{r.diffCents !== 0 ? mask(brl(Math.abs(r.diffCents))) : ""}</Text>)}
                 <Muted>Antes de vender, considere impostos e custos da operação.</Muted>
+              </View>
+            )}
+            {view === "classe" && d.dollar && (
+              <View style={{ gap: 6, marginTop: 8 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <Text style={{ color: C.white, fontWeight: "600" }}>Dolarização</Text>
+                  <Text style={{ color: C.goldSoft, fontWeight: "700" }}>{hide ? "••••" : pct(d.dollar.pct)} <Text style={{ color: C.muted, fontWeight: "400" }}>de {pct(d.dollar.targetPct, 0)}</Text></Text>
+                </View>
+                <View style={{ height: 10, borderRadius: 999, backgroundColor: C.line, overflow: "hidden" }}>
+                  <View style={{ height: 10, borderRadius: 999, backgroundColor: C.gold, width: `${Math.min(100, d.dollar.targetPct > 0 ? (d.dollar.pct / d.dollar.targetPct) * 100 : 0)}%` }} />
+                </View>
+                {d.dollar.parts.map((p) => <Text key={p.key} style={{ color: C.muted, fontSize: 13 }}>{p.label}: {hide ? "••••" : pct(p.pct)} (alvo {pct(p.targetPct, 0)})</Text>)}
+                <Muted>{d.dollar.pct < d.dollar.targetPct - 0.05 ? `Faltam ${hide ? "••••" : pct(d.dollar.targetPct - d.dollar.pct)} da carteira (${mask(brl(d.dollar.gapCents))}) para a meta de ${pct(d.dollar.targetPct, 0)} em dólar. ` : `Meta de ${pct(d.dollar.targetPct, 0)} em dólar atingida. `}Objetivo: não ficar preso a uma só moeda. Na renda fixa e na reserva, coloque “dólar”, “USD” ou “Treasury” no nome da posição para contar.</Muted>
               </View>
             )}
           </Card>

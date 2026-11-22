@@ -11,7 +11,7 @@ export default async function FixedIncomePage() {
   const rates = await getRates();
   return (
     <>
-      <PageTitle title="Renda fixa" subtitle="Bloco de 20% do Protocolo: 30% Tesouro Selic, 30% CDBs e 40% LCI/LCA. A reserva para oportunidades também fica aqui, metade em CDB com liquidez diária e metade em Tesouro Selic." />
+      <PageTitle title="Renda fixa" subtitle="Bloco de 20% do Protocolo: 15% Tesouro Selic, 15% CDBs, 20% LCI/LCA e 50% em renda fixa em dólar (Treasuries, T-bills ou fundos em dólar), que conta para a meta de 50% da carteira em dólar. A reserva para oportunidades também fica aqui: 25% em CDB com liquidez diária, 25% em Tesouro Selic e 50% em dólar ou stablecoins (inclusive stablecoins rendendo em fintechs, o earn)." />
       <DataStatus result={rates} source="Banco Central do Brasil (SGS)" />
       <section className="mb-6 grid gap-4 sm:grid-cols-3">
         {[["Selic (meta)", rates.data?.selic], ["CDI (anualizado)", rates.data?.cdi], ["IPCA (12 meses)", rates.data?.ipca12m]].map(([label, v]) => (

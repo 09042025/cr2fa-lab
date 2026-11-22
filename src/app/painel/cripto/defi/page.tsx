@@ -51,7 +51,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageTitle title="HUB DEFI" subtitle="Pools de liquidez e rendimento em dezenas de redes. No Protocolo, 30% do bloco de cripto fica em stablecoins rendendo." />
+      <PageTitle title="HUB DEFI" subtitle="Pools de liquidez e rendimento em dezenas de redes. No Protocolo, 30% do bloco de cripto fica em stablecoins rendendo, e todo o bloco conta como dólar na meta de 50% da carteira." />
 
       <section id="pools" className="card p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
