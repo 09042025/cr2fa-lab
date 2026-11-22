@@ -22,15 +22,15 @@ interface CmPage {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function getPage(url: string): Promise<CmPage> {
-  try {
-    return await fetchJson<CmPage>(url, {}, 30000);
-  } catch (e) {
-    // A API gratuita limita a 10 pedidos a cada 6 segundos: espera e tenta de novo uma vez.
-    if (e instanceof Error && e.message.includes("429")) {
-      await sleep(7000);
-      return fetchJson<CmPage>(url, {}, 30000);
+  // A API gratuita limita a 10 pedidos a cada 6 segundos (e o limite é por endereço de rede, compartilhado):
+  // em caso de 429, espera e tenta de novo até 3 vezes.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetchJson<CmPage>(url, {}, 30000);
+    } catch (e) {
+      if (attempt < 3 && e instanceof Error && e.message.includes("429")) { await sleep(7000 + attempt * 4000); continue; }
+      throw e;
     }
-    throw e;
   }
 }
 
@@ -53,6 +53,7 @@ async function load(): Promise<RawOnchain> {
   const missing: string[] = [];
   const failed: string[] = [];
   for (const m of METRICS) {
+    if (Object.keys(maps).length) await sleep(900); // espaça os pedidos para não estourar o limite
     try {
       maps[m] = await fetchMetric(m);
       if (maps[m].size === 0) { delete maps[m]; missing.push(m); }
@@ -70,7 +71,26 @@ async function load(): Promise<RawOnchain> {
   const n = days[days.length - 1] - start + 1;
   const series: RawOnchain["series"] = {};
   for (const [m, map] of Object.entries(maps)) series[m] = alignSeries(map, start, n);
-  return { start, n, series, missing, failed };
+  return { start, n, series, missing, failed, loadedAt: now() };
+}
+
+/** Busca de novo só as métricas que falharam (limite de pedidos etc.) e junta ao que já estava em cache. */
+async function retryFailed(prev: RawOnchain): Promise<RawOnchain> {
+  const series = { ...prev.series };
+  const failed: string[] = [];
+  const missing = [...prev.missing];
+  for (const [k, m] of prev.failed.entries()) {
+    if (k > 0) await sleep(900);
+    try {
+      const map = await fetchMetric(m);
+      if (map.size === 0) missing.push(m);
+      else series[m] = alignSeries(map, prev.start, prev.n);
+    } catch (e) {
+      if (/HTTP 40[04]/.test(e instanceof Error ? e.message : "")) missing.push(m);
+      else failed.push(m);
+    }
+  }
+  return { ...prev, series, missing, failed };
 }
 
 let inflight: Promise<Cached<RawOnchain>> | null = null;
@@ -80,7 +100,8 @@ export function getBtcOnchain(): Promise<Cached<RawOnchain>> {
   if (inflight) return inflight;
   inflight = (async () => {
     let r = await cached<RawOnchain>(KEY, TTL, load);
-    if (r.data && r.data.failed?.length && r.fetchedAt && now() - r.fetchedAt > 600) r = await cached<RawOnchain>(KEY, 0, load);
+    if (r.data && r.data.loadedAt && now() - r.data.loadedAt > TTL) r = await cached<RawOnchain>(KEY, 0, load); // recarrega tudo depois de 6 h
+    else if (r.data && r.data.failed?.length && r.fetchedAt && now() - r.fetchedAt > 120) { const prev = r.data; r = await cached<RawOnchain>(KEY, 0, () => retryFailed(prev)); }
     return r;
   })().finally(() => {
     inflight = null;
