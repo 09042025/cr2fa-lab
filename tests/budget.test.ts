@@ -41,3 +41,28 @@ test("sem gastos preenchidos usa o ideal; sem aporte não há prazo", () => {
   assert.equal(fmtMonths(14), "1 ano e 2 meses");
   assert.equal(fmtMonths(24), "2 anos");
 });
+
+import { monthStats, validYm, ymOf } from "../src/lib/budget-calc";
+
+test("estatística do mês compara com o ideal e mostra a sobra", () => {
+  const actual = { ...emptyAmounts(), moradia: 3500, alimentacao: 1500, transporte: 800, saude: 700, lazer: 1000, reserva: 1000 };
+  const s = monthStats(10000, actual);
+  assert.equal(s.total, 8500);
+  assert.equal(s.sobra, 1500);
+  const mor = s.rows.find((r) => r.id === "moradia")!;
+  assert.equal(mor.ideal, 3000);
+  assert.equal(mor.diff, 500);
+  assert.equal(mor.bad, true);
+  const res = s.rows.find((r) => r.id === "reserva")!;
+  assert.equal(res.diff, -1000);
+  assert.equal(res.bad, true); // guardar menos que o ideal
+  assert.equal(s.overspent, 500 + 0 + 0 + 0 + 0 + 0 + (1000 - 1500 > 0 ? 0 : 0)); // só moradia passou (lazer 1000 < 1500)
+  assert.equal(monthStats(1000, { ...emptyAmounts(), moradia: 1200 }).sobra, -200);
+});
+
+test("meses válidos", () => {
+  assert.equal(ymOf(2026, 10), "2026-11");
+  assert.ok(validYm("2026-01"));
+  assert.ok(!validYm("2026-13"));
+  assert.ok(!validYm("26-01"));
+});
