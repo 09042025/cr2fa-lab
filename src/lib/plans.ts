@@ -13,7 +13,7 @@ export const PLAN_FEATURES = {
     "Ações, FIIs e ETFs com lista completa e filtros por setor",
     "Comparador de renda fixa com imposto de renda (CDB, LCI/LCA, Selic)",
     "Protocolo CR2FA completo, White Flame Society (chat, canais e Lives VIP) e Simulador de Financiamentos",
-    "Portfólio com rebalanceamento automático pelo Protocolo CR2FA",
+    "Portfólio com rebalanceamento automático e medição de dolarização (meta de 50%) pelo Protocolo CR2FA",
     "Exportação em CSV",
     "Suporte prioritário",
   ],

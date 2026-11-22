@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getUser } from "@/lib/auth";
-import { BLOCKS, EMERGENCY_RESERVE_MONTHS } from "@/lib/protocol";
+import { BLOCKS, DOLLAR_TARGET_PCT, EMERGENCY_RESERVE_MONTHS, blockDollarShare } from "@/lib/protocol";
 import { DIAMOND_FEATURES, DIAMOND_NAME, FREE_LIMITS, MENTORIA_SESSIONS, PLAN_FEATURES, diamondPriceCents, formatBRL, mentoriaPriceCents, priceCents } from "@/lib/plans";
 import { Diamond } from "@/components/Diamond";
 import { SpotsBadge } from "@/components/MentoriaCheckout";
@@ -15,13 +15,21 @@ import autor from "@/assets/emerson-niza.webp";
 import autorAvatar from "@/assets/emerson-niza-avatar.webp";
 
 const FEATURES: { icon: string; title: string; text: string; pro?: boolean }[] = [
-  { icon: "📊", title: "Protocolo CR2FA e Portfólio", text: "Cinco blocos de 20% e uma carteira que mostra quanto comprar ou vender para voltar ao desenho original. Importa suas posições e rebalanceia.", pro: true },
+  { icon: "📊", title: "Protocolo CR2FA e Portfólio", text: "Cinco blocos de 20%, com meta de 50% da carteira em dólar, e uma carteira que mostra quanto comprar ou vender para voltar ao desenho original. Importa suas posições, rebalanceia e mede a sua dolarização.", pro: true },
   { icon: "₿", title: "Cripto completo", text: "Visão de mercado, cotações, ETFs de cripto, futuros, RWA, DEX e plataformas DeFi, além do HUB DEFI e da Análise on Chain (MVRV, STH/LTH e outros indicadores do Bitcoin).", pro: true },
   { icon: "📈", title: "Ações e FIIs", text: "Cotações, filtros por setor e indicadores de ações, fundos imobiliários e ETFs, com gráficos e dados atualizados." },
   { icon: "🏦", title: "Renda fixa", text: "Selic, CDI, IPCA e um comparador de CDB, LCI/LCA e Tesouro já com imposto de renda." },
   { icon: "🧮", title: "Simuladores", text: "Juros compostos e Simulador de Financiamentos de imóveis e veículos (Price e SAC, parcela por prazo).", pro: true },
   { icon: "💬", title: "Feed, Mensagens e Notícias", text: "Rede social de investidores com posts, stories, mensagens privadas, notícias do mercado e Lives Abertas. Tradução em vários idiomas." },
 ];
+/** Partes dolarizadas do Protocolo, calculadas dos próprios blocos (cripto 20 + ações 10 + renda fixa 10 + reserva 10). */
+const DOLLAR_HOW: Record<string, { name: string; how: string }> = {
+  cripto: { name: "Criptomoedas", how: "Bitcoin, Ethereum e stablecoins: o bloco inteiro conta como dólar." },
+  acoes: { name: "Ações no exterior", how: "Metade do bloco de ações: ações dos EUA, BDRs ou ETFs internacionais." },
+  renda_fixa: { name: "Renda fixa em dólar", how: "Metade do bloco: Treasuries, T-bills ou fundos de renda fixa em dólar." },
+  oportunidades: { name: "Reserva em dólar ou stablecoins", how: "Metade da reserva para oportunidades, pronta para aproveitar queda." },
+};
+const DOLLAR_PARTS = BLOCKS.filter((b) => blockDollarShare(b) > 0).map((b) => ({ ...DOLLAR_HOW[b.key], pct: (b.pct * blockDollarShare(b)) / 100, color: b.color }));
 const WFS = [
   "Manifesto e Chat com canais temáticos, “Pergunte ao Niza” e Reuniões e Eventos",
   "Lives VIP e Masterclass em vídeo",
@@ -61,8 +69,8 @@ export default async function Home() {
             Cinco blocos de 20%. Diversificação em duas camadas com o Protocolo CR2FA.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-muted">
-            Cripto, fundos imobiliários, ações, renda fixa e uma reserva para oportunidades, com dados atualizados e uma carteira que mostra quanto comprar ou vender para voltar ao
-            desenho original.
+            Cripto, fundos imobiliários, ações, renda fixa e uma reserva para oportunidades, com metade da carteira em dólar para não depender de uma só moeda, dados atualizados e uma
+            carteira que mostra quanto comprar ou vender para voltar ao desenho original.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/cadastrar" className="btn btn-gold">{!user || user.trialAvailable ? `Testar o Premium ${trialDays()} dias grátis` : "Começar grátis"}</Link>
@@ -141,6 +149,25 @@ export default async function Home() {
             </ul>
           </div>
         ))}
+      </section>
+
+      <section id="dolarizacao" className="card mt-6 border-gold/50 p-5 md:p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Proteção cambial</p>
+        <h2 className="mt-1 font-display text-2xl font-bold text-gold-soft">Meta: {DOLLAR_TARGET_PCT}% da carteira em dólar</h2>
+        <p className="mt-2 max-w-3xl text-muted">
+          Para não ficar preso a uma só moeda, o Protocolo mede quanto da sua carteira está dolarizada. Cripto conta 100% como dólar; metade das ações é no exterior; metade da renda fixa é
+          em dólar; e metade da reserva para oportunidades fica em dólar ou stablecoins. O Portfólio mostra o seu percentual atual contra a meta, logo abaixo da reserva para oportunidades.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {DOLLAR_PARTS.map((p) => (
+            <div key={p.name} className="rounded-xl border border-line bg-panel-2 p-3">
+              <p className="text-2xl font-bold" style={{ color: p.color }}>{p.pct}%</p>
+              <p className="mt-1 text-sm font-semibold">{p.name}</p>
+              <p className="mt-1 text-xs text-muted">{p.how}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-muted">Os percentuais são da carteira inteira: 20% + 10% + 10% + 10% = {DOLLAR_TARGET_PCT}%. Conteúdo educativo, sem recomendação de investimento.</p>
       </section>
 
       <section className="card mt-6 flex items-start gap-4 border-gold/50 p-5">

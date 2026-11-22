@@ -1,6 +1,6 @@
 # CR2FA Lab
 
-Painel de dados e organização de carteira baseado no **Protocolo CR2FA**: cinco blocos de 20% com diversificação em duas camadas.
+Painel de dados e organização de carteira baseado no **Protocolo CR2FA**: cinco blocos de 20% com diversificação em duas camadas e meta de 50% da carteira em dólar (cripto 20% + ações no exterior 10% + renda fixa em dólar 10% + reserva em dólar ou stablecoins 10%).
 
 | Bloco | Divisão interna |
 |---|---|
@@ -20,7 +20,7 @@ Antes dos cinco blocos vem a reserva de emergência (12 meses de salário), sepa
 - Ações e FIIs da B3 organizados pelos setores do Protocolo
 - Renda fixa: taxas do Banco Central e comparador líquido (CDB x LCI/LCA x Tesouro Selic, com IR regressivo)
 - Calculadora do Protocolo e de juros compostos
-- Portfólio com rebalanceamento para os 20% de cada bloco (Pró)
+- Portfólio com rebalanceamento para os 20% de cada bloco e medição de dolarização contra a meta de 50% (Pró)
 - Login com e-mail e senha, usuário **admin** e painel administrativo
 - Planos **Grátis** e **Pró**
 - Pagamento por **Pix e cartão de crédito** (Mercado Pago) e por **Bitcoin**, com verificação direta na blockchain (o código também suporta redes EVM e Solana, ativadas só se o endereço for configurado)

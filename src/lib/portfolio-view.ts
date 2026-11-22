@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { BLOCKS, rebalance, type BlockKey } from "./protocol";
+import { BLOCKS, dollarization, rebalance, type BlockKey } from "./protocol";
 import { getQuote, type Quote } from "./dividends";
 import { evolution, lastMonths, monthlyIncome } from "./portfolio-calc";
 
@@ -19,6 +19,7 @@ export async function buildPortfolioView(userId: number) {
   for (const h of holdings) current[h.block] += valueCents(h);
   const rows = rebalance(current).map((r) => ({ key: r.block.key, name: r.block.name, color: r.block.color, currentCents: r.currentCents, currentPct: r.currentPct, targetCents: r.targetCents, diffCents: r.diffCents }));
   const totalCents = rows.reduce((a, r) => a + r.currentCents, 0);
+  const dollar = dollarization(holdings.map((h) => ({ block: h.block, label: h.label, ticker: h.ticker, cents: valueCents(h) })));
 
   // variação em ~30 dias (só dá para saber para posições com cotação)
   let nowT = 0, prevT = 0;
@@ -36,7 +37,7 @@ export async function buildPortfolioView(userId: number) {
   const invested = tracked.reduce((a, h) => a + (h.avg_price ? h.avg_price * (h.qty as number) : 0), 0);
 
   return {
-    totalCents, rows, change30, income, income12, dyPct: marketValue > 0 ? (income12 / marketValue) * 100 : null,
+    totalCents, rows, dollar, change30, income, income12, dyPct: marketValue > 0 ? (income12 / marketValue) * 100 : null,
     evolution: evo, marketValue, invested,
     holdings: holdings.map((h) => {
       const px = priceOf(h);

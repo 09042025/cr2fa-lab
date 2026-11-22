@@ -127,7 +127,7 @@ function Hub() {
 
 export default function Defi() {
   return (
-    <Screen title="HUB DEFI" subtitle="Pools de liquidez e rendimento em dezenas de redes. No Protocolo, 30% do bloco de cripto fica em stablecoins rendendo.">
+    <Screen title="HUB DEFI" subtitle="Pools de liquidez e rendimento em dezenas de redes. No Protocolo, 30% do bloco de cripto fica em stablecoins rendendo, e todo o bloco conta como dólar na meta de 50% da carteira.">
       <ProGate feature="HUB DEFI (exclusivo do plano Premium)"><Hub /></ProGate>
     </Screen>
   );

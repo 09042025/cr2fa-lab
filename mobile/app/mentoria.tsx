@@ -7,7 +7,7 @@ import { Card, GoldButton, H2, Muted, Screen, Status } from "../src/ui";
 interface Data { price: string; sessions: number; spots: { left: number; limit: number; turma: number; full: boolean }; mine: { id: number; createdAt: number; sessionsDone: number }[] }
 
 const TOPICS = [
-  { t: "Sua carteira frente ao Protocolo CR2FA", items: ["Avaliação da situação atual da sua carteira em relação ao Protocolo CR2FA", "Riscos envolvidos na carteira que você tem hoje", "Ajuda na composição da carteira, sempre sem indicar ativos: a decisão do que comprar e o risco são totalmente seus"] },
+  { t: "Sua carteira frente ao Protocolo CR2FA", items: ["Avaliação da situação atual da sua carteira em relação ao Protocolo CR2FA, incluindo o quanto dela está em dólar (meta de 50%)", "Riscos envolvidos na carteira que você tem hoje", "Ajuda na composição da carteira, sempre sem indicar ativos: a decisão do que comprar e o risco são totalmente seus"] },
   { t: "Criptomoedas do zero, na prática", items: ["Cadastro em uma corretora e verificação da conta", "Do Pix até a primeira fração de Bitcoin", "Primeira carteira (hot wallet), as 12/24 palavras e como guardá-las com segurança", "Como transferir ativos para a sua carteira (autocustódia)"] },
   { t: "Pools de liquidez (só o racional)", items: ["Como funcionam, sem recomendar nenhum ativo", "Riscos de Impermanent Loss e de desvalorização dos ativos", "Riscos de hacks e os cuidados para minimizá-los"] },
   { t: "Mercado tradicional (opcional)", items: ["Se você preferir, o básico de ações, FIIs, Tesouro, CDB, LCI e LCA", "O foco da mentoria continua sendo criptomoedas"] },

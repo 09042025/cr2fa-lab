@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { BLOCKS, rebalance, type BlockKey } from "@/lib/protocol";
+import { BLOCKS, dollarization, rebalance, type BlockKey } from "@/lib/protocol";
 import { Disclaimer, Locked, PageTitle } from "@/components/ui";
 import { PrivacyEye } from "@/components/PrivacyEye";
 import { PortfolioEntry } from "@/components/PortfolioEntry";
@@ -51,6 +51,7 @@ export default async function PortfolioPage() {
   for (const h of holdings) current[h.block] += valueOf(h);
   const rows = rebalance(current);
   const total = rows.reduce((a, r) => a + r.currentCents, 0);
+  const dollar = dollarization(holdings.map((h) => ({ block: h.block, label: h.label, ticker: h.ticker, cents: valueOf(h) })));
 
   const income = monthlyIncome(tracked.map((h) => ({ ticker: h.ticker as string, qty: h.qty as number, dividends: quotes.get(h.ticker as string)?.dividends ?? [] })), today);
   const fixed = holdings.filter((h) => !tracked.includes(h)).reduce((a, h) => a + valueOf(h), 0) / 100;
@@ -60,10 +61,10 @@ export default async function PortfolioPage() {
 
   return (
     <>
-      <div className="flex items-start justify-between gap-3"><PageTitle title="Portfólio" subtitle="Importe sua posição da B3 ou preencha manualmente, por bloco. A tabela mostra quanto comprar (+) ou vender (−) em cada bloco para voltar aos 20% do Protocolo." /><PrivacyEye /></div>
+      <div className="flex items-start justify-between gap-3"><PageTitle title="Portfólio" subtitle="Importe sua posição da B3 ou preencha manualmente, por bloco. A tabela mostra quanto comprar (+) ou vender (−) em cada bloco para voltar aos 20% do Protocolo. Abaixo da reserva para oportunidades, veja quanto da carteira está em dólar (meta de 50%)." /><PrivacyEye /></div>
       <PortfolioEntry startOnB3={holdings.length === 0} />
 
-      <div className="money"><ProtocolDashboard totalCents={total} slices={rows.map((r) => ({ key: r.block.key, name: r.block.name, color: r.block.color, value: r.currentCents / 100, target: r.block.pct }))} /></div>
+      <div className="money"><ProtocolDashboard totalCents={total} dollar={{ pct: dollar.pct, targetPct: dollar.targetPct, gapCents: dollar.gapCents, parts: dollar.parts }} slices={rows.map((r) => ({ key: r.block.key, name: r.block.name, color: r.block.color, value: r.currentCents / 100, target: r.block.pct }))} /></div>
 
       <section className="card mb-6 p-4">
         <h2 className="mb-1 font-semibold">Rebalanceamento</h2>

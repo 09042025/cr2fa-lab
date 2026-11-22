@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { planAllocation, projection, EMERGENCY_RESERVE_MONTHS, IPCA_MEDIO_20_ANOS } from "@/lib/protocol";
+import { planAllocation, projection, DOLLAR_TARGET_PCT, EMERGENCY_RESERVE_MONTHS, IPCA_MEDIO_20_ANOS } from "@/lib/protocol";
 import { brl } from "@/lib/format";
 import { CompoundChart } from "@/components/CompoundChart";
 
@@ -16,6 +16,7 @@ export function ProtocolCalculator() {
   const [unit, setUnit] = useState<"anos" | "meses">("anos");
 
   const plan = useMemo(() => planAllocation(Math.round(Math.max(0, total) * 100)), [total]);
+  const dollarCents = useMemo(() => plan.reduce((a, p) => a + p.lines.filter((l) => l.usd).reduce((b, l) => b + l.cents, 0), 0), [plan]);
   const months = Math.min(720, Math.max(1, Math.round(unit === "anos" ? span * 12 : span)));
   const series = useMemo(() => projection(Math.max(0, initial), Math.max(0, monthly), rate, months, inflation), [initial, monthly, rate, months, inflation]);
   const last = series[series.length - 1];
@@ -58,7 +59,7 @@ export function ProtocolCalculator() {
               <ul className="mt-2 space-y-1 text-sm">
                 {p.lines.map((l, i) => (
                   <li key={i} className={`flex justify-between gap-3 ${l.depth ? "pl-4 text-xs text-muted" : "text-muted"}`}>
-                    <span>{l.depth ? "↳ " : ""}{l.label}</span>
+                    <span>{l.depth ? "↳ " : ""}{l.label}{l.usd && <span className="ml-1.5 rounded border border-gold/50 px-1 text-[10px] font-semibold text-gold-soft" title="Conta para a meta de 50% da carteira em dólar">US$</span>}</span>
                     <span className="tabular-nums text-white">{brl(l.cents / 100)}</span>
                   </li>
                 ))}
@@ -67,6 +68,9 @@ export function ProtocolCalculator() {
           ))}
         </div>
         <p className="mt-3 text-xs text-muted">Cada subdivisão se refere ao seu bloco. Ex.: 60% de Bitcoin são 60% dos 20% de cripto.</p>
+        <p className="mt-2 text-sm text-muted">
+          Em dólar (linhas com <span className="rounded border border-gold/50 px-1 text-[10px] font-semibold text-gold-soft">US$</span>): <strong className="text-white">{brl(dollarCents / 100)}</strong>, ou {DOLLAR_TARGET_PCT}% do total. Cripto 20% + ações 10% + renda fixa 10% + reserva 10%.
+        </p>
       </div>
 
       <div className="card p-4">
