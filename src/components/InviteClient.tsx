@@ -65,8 +65,9 @@ export function InvitesPanel({ invites, mailOn }: { invites: InviteRow[]; mailOn
     router.refresh();
   }
 
-  async function act(id: number, action: "revoke" | "resend") {
+  async function act(id: number, action: "revoke" | "resend" | "delete") {
     if (action === "revoke" && !confirm("Cancelar este convite? O link deixa de funcionar.")) return;
+    if (action === "delete" && !confirm("Apagar este convite da lista? Isso não pode ser desfeito.")) return;
     const res = await fetch("/api/admin/invites", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, action }) });
     if (!res.ok) alert(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? "Erro.");
     else if (action === "resend") alert("E-mail reenviado.");
@@ -119,13 +120,14 @@ export function InvitesPanel({ invites, mailOn }: { invites: InviteRow[]; mailOn
                 <td><span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${badge(i.status)}`}>{i.status}</span>{i.emailed && i.status === "pendente" ? <span className="ml-1 text-[11px] text-muted">e-mail enviado</span> : null}</td>
                 <td>{i.expiresAt}</td>
                 <td className="whitespace-nowrap">
-                  {i.status === "pendente" && (
-                    <span className="flex gap-2">
+                  <span className="flex gap-2">
+                  {i.status === "pendente" && (<>
                       <button className="btn btn-ghost !px-2 !py-1 text-xs" onClick={() => copy(i.code)}>{copied === i.code ? "Copiado!" : "Copiar link"}</button>
                       {i.email && mailOn && <button className="btn btn-ghost !px-2 !py-1 text-xs" onClick={() => act(i.id, "resend")}>Reenviar</button>}
                       <button className="btn btn-ghost !px-2 !py-1 text-xs !text-down" onClick={() => act(i.id, "revoke")}>Cancelar</button>
-                    </span>
-                  )}
+                  </>)}
+                  {i.status !== "usado" && <button className="btn btn-ghost !px-2 !py-1 text-xs !text-down" onClick={() => act(i.id, "delete")}>Apagar</button>}
+                  </span>
                 </td>
               </tr>
             ))}
