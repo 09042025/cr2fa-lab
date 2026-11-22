@@ -31,6 +31,7 @@ const OTHERS: NavItem[] = [
   { href: "/painel/mentoria", label: "Mentoria com Niza", diamond: true },
   { href: "/painel/feed/mensagens", label: "Mensagens" },
   { href: "/painel/noticias", label: "Notícias" },
+  { href: "/painel/orcamento", label: "Orçamento familiar" },
   { href: "/painel/perfil-investidor", label: "Perfil de investidor" },
   { href: "/planos", label: "Planos e pagamento" },
   { href: "/painel/feed?t=salvos", label: "Posts Salvos", saved: true },
