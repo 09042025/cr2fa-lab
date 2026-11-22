@@ -395,6 +395,13 @@ function migrate(db: Database.Database) {
       viewed_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (story_id, viewer_id)
     );
+    CREATE TABLE IF NOT EXISTS family_budgets (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      income REAL NOT NULL DEFAULT 0,
+      actual TEXT NOT NULL DEFAULT '{}',
+      reserve_now REAL NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
     CREATE TABLE IF NOT EXISTS investor_profiles (
       user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       profile TEXT NOT NULL,
