@@ -51,7 +51,7 @@ export function DataStatus({ result, source }: { result: Cached<unknown>; source
   return (
     <p className="mb-2 text-xs text-muted">
       Fonte: {source}. Atualizado em {dateTime(result.fetchedAt)}.
-      {result.stale ? <span className="ml-1 text-gold-soft">Exibindo o último dado salvo, a fonte não respondeu.</span> : null}
+      {result.stale ? <span className="ml-1 text-gold-soft">Exibindo o último dado salvo, a fonte não respondeu{result.error ? ` (${result.error})` : ""}.</span> : null}
     </p>
   );
 }
