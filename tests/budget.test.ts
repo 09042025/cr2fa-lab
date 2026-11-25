@@ -66,3 +66,39 @@ test("meses válidos", () => {
   assert.ok(!validYm("2026-13"));
   assert.ok(!validYm("26-01"));
 });
+
+import { SUBS, combineActual, daysInMonth, expenseLabel, rankSpending, validDay, type Expense } from "../src/lib/budget-calc";
+
+const ex = (id: number, day: string, cat: Expense["cat"], sub: string, amount: number, note = ""): Expense => ({ id, day, cat, sub, amount, note });
+
+test("cada categoria tem 'Outros' no fim e datas são validadas", () => {
+  for (const list of Object.values(SUBS)) assert.equal(list[list.length - 1], "Outros");
+  assert.ok(validDay("2026-11-25"));
+  assert.ok(!validDay("2026-13-01"));
+  assert.ok(!validDay("2026-11-32"));
+  assert.equal(daysInMonth(2026, 1), 28);
+  assert.equal(expenseLabel({ sub: "Outros", note: "Pet shop" }), "Pet shop");
+  assert.equal(expenseLabel({ sub: "Mercado", note: "Carrefour" }), "Mercado");
+});
+
+test("gasto do mês soma o digitado com os lançamentos por dia", () => {
+  const list = [ex(1, "2026-11-02", "alimentacao", "Mercado", 300), ex(2, "2026-11-10", "alimentacao", "Açougue", 100), ex(3, "2026-10-30", "alimentacao", "Mercado", 999)];
+  const a = combineActual({ ...emptyAmounts(), alimentacao: 50, moradia: 1000 }, list, "2026-11");
+  assert.equal(a.alimentacao, 450);
+  assert.equal(a.moradia, 1000);
+});
+
+test("ranking anual agrupa por tipo de gasto, ignora a reserva e calcula percentuais", () => {
+  const list = [
+    ex(1, "2026-03-02", "alimentacao", "Mercado", 400), ex(2, "2026-04-02", "alimentacao", "Mercado", 600),
+    ex(3, "2026-03-05", "alimentacao", "Fast food", 150), ex(4, "2026-03-06", "lazer", "Outros", 200, "Pet shop"),
+    ex(5, "2026-03-07", "reserva", "Renda fixa", 5000), ex(6, "2025-03-07", "alimentacao", "Mercado", 9999),
+  ];
+  const months = [{ ym: "2026-03", income: 5000, actual: { ...emptyAmounts(), moradia: 1500 }, reserve: null }];
+  const r = rankSpending(list, months, 2026);
+  assert.deepEqual(r.items.map((i) => i.label), ["Moradia e contas da casa (sem detalhar)", "Mercado", "Pet shop", "Fast food"]);
+  assert.equal(r.items.find((i) => i.label === "Mercado")!.total, 1000);
+  assert.equal(r.totalSpend, 1500 + 1000 + 150 + 200);
+  assert.equal(r.totalIncome, 5000);
+  assert.ok(!r.items.some((i) => i.label === "Renda fixa"));
+});
