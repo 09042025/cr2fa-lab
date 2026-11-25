@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { pushAvgToPortfolio } from "@/lib/irpf-sync";
+import { applyInformes, readInforme, type InformeLine } from "@/lib/irpf-informe";
 import { buildIrpfPdf } from "@/lib/irpf-pdf";
 import { applyDec, parseDec, type DecResult } from "@/lib/irpf-dec";
 import { deviceSupported, forgetDevice, hasDevicePhrase, quickUnlock, saveDevicePhrase } from "@/lib/irpf-device";
@@ -15,7 +16,7 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const usd = (v: number) => v.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 type Stage = "gate" | "new" | "check" | "open" | "work";
-type Tab = "inicio" | "guia" | "importar" | "bens" | "isentos" | "exclusivos" | "exterior" | "salvar";
+type Tab = "inicio" | "guia" | "informes" | "seguir" | "importar" | "bens" | "isentos" | "exclusivos" | "exterior" | "salvar";
 /** Telas do programa da Receita, nos mesmos nomes e na mesma ordem da tela inicial dele. */
 const FICHAS: { tab: Tab | null; nome: string; icon: string }[] = [
   { tab: null, nome: "Identificação do Contribuinte", icon: "🪪" },
@@ -53,6 +54,9 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const [ws, setWs] = useState<Workspace | null>(null);
   const [tab, setTab] = useState<Tab>("inicio");
   const [openBem, setOpenBem] = useState<string | null>(null);
+  const [inf, setInf] = useState<InformeLine[]>([]);
+  const [infWarn, setInfWarn] = useState<string[]>([]);
+  const [infOn, setInfOn] = useState<Record<string, boolean>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -147,7 +151,7 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
   const makePdf = async () => {
     if (!ws) return;
     setBusy(true); setMsg(null);
-    try { const blob = await buildIrpfPdf({ year: ws.year, bens, custom: ws.custom, prov }); downloadBlob(`roteiro-irpf-${ws.year + 1}.pdf`, blob); setMsg("PDF gerado no seu aparelho. Ele não é criptografado: guarde com cuidado e apague depois de usar."); }
+    try { const blob = await buildIrpfPdf({ year: ws.year, bens, custom: ws.custom, prov, extras: ws.extras ?? [] }); downloadBlob(`roteiro-irpf-${ws.year + 1}.pdf`, blob); setMsg("PDF gerado no seu aparelho. Ele não é criptografado: guarde com cuidado e apague depois de usar."); }
     catch { setMsg("Não foi possível gerar o PDF."); }
     setBusy(false);
   };
@@ -258,7 +262,7 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
       {tab !== "inicio" && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
           <button type="button" className="btn btn-ghost !py-1" onClick={() => { setTab("inicio"); setOpenBem(null); }}>‹ Fichas da Declaração</button>
-          <span className="text-muted">/ {tab === "guia" ? "Passo a passo" : tab === "importar" ? "Importações" : tab === "bens" ? "Bens e Direitos" : tab === "isentos" ? "Rendimentos Isentos e Não Tributáveis" : tab === "exclusivos" ? "Rendimentos Sujeitos à Tributação Exclusiva/Definitiva" : tab === "exterior" ? "Ativos no exterior" : "Salvar e baixar"}</span>
+          <span className="text-muted">/ {tab === "guia" ? "Passo a passo" : tab === "informes" ? "Informes de rendimentos" : tab === "seguir" ? "Siga no programa real" : tab === "importar" ? "Importações" : tab === "bens" ? "Bens e Direitos" : tab === "isentos" ? "Rendimentos Isentos e Não Tributáveis" : tab === "exclusivos" ? "Rendimentos Sujeitos à Tributação Exclusiva/Definitiva" : tab === "exterior" ? "Ativos no exterior" : "Salvar e baixar"}</span>
         </div>
       )}
       {msg && <p role="status" className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold-soft">{msg}</p>}
@@ -278,7 +282,7 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
           </div>
           <h3 className="pt-2 text-sm font-semibold text-gold-soft">Ferramentas do Niza</h3>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {([["importar", "📥", "Importações (.DEC do ano passado)"], ["guia", "📖", "Passo a passo"], ["salvar", "💾", "Salvar e baixar (cofre e PDF)"]] as [Tab, string, string][]).map(([k, ic, nm]) => (
+            {([["informes", "📄", "Informes de rendimentos (upload)"], ["importar", "📥", "Importações (.DEC do ano passado)"], ["seguir", "✅", "Siga no programa real"], ["guia", "📖", "Passo a passo"], ["salvar", "💾", "Salvar e baixar (cofre e PDF)"]] as [Tab, string, string][]).map(([k, ic, nm]) => (
               <button key={k} type="button" onClick={() => setTab(k)} className="card flex min-h-[6rem] flex-col items-center justify-center gap-2 p-3 text-center text-xs hover:border-gold"><span className="text-2xl" aria-hidden>{ic}</span><span>{nm}</span></button>
             ))}
             {items.some((i) => i.kind === "acao_us") && <button type="button" onClick={() => setTab("exterior")} className="card flex min-h-[6rem] flex-col items-center justify-center gap-2 p-3 text-center text-xs hover:border-gold"><span className="text-2xl" aria-hidden>🇺🇸</span><span>Ativos no exterior (EUA)</span></button>}
@@ -287,6 +291,77 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
       )}
 
       {tab === "guia" && <Guide year={ws.year} hasPrev={ws.previous.length > 0} />}
+
+      {tab === "informes" && (
+        <div className="space-y-4">
+          <section className="card border-gold/30 p-4 text-sm">
+            <h3 className="font-semibold">Subir os informes de rendimentos</h3>
+            <p className="mt-1 text-xs text-muted">Quando os informes saírem (bancos e corretoras, em geral até fim de fevereiro), suba os PDFs aqui. A leitura é feita <strong className="text-white">no seu navegador</strong>: os arquivos não são enviados a lugar nenhum e não ficam guardados, só os valores que você confirmar entram no cofre.</p>
+            <p className="mt-1 text-xs text-yellow-300">A leitura é automática, mas pode errar. Sempre confira cada linha com o informe antes de aplicar. PDFs que são só imagem (escaneados) não podem ser lidos.</p>
+            <input type="file" multiple accept=".pdf,.csv,.txt" className="input mt-3 w-full" onChange={(e) => void (async () => {
+              const files = Array.from(e.target.files ?? []); if (!files.length) return;
+              setBusy(true); const all: InformeLine[] = []; const warns: string[] = [];
+              for (const f of files) { try { const r = await readInforme(f); all.push(...r.lines); warns.push(...r.warnings); } catch { warns.push(`Não consegui abrir "${f.name}".`); } }
+              setInf(all); setInfWarn(warns); setInfOn(Object.fromEntries(all.map((l) => [l.id, true]))); setBusy(false); e.target.value = "";
+            })()} />
+            {busy && <p className="mt-2 text-xs text-muted">Lendo…</p>}
+            {infWarn.map((w) => <p key={w} className="mt-2 text-xs text-yellow-300">● {w}</p>)}
+          </section>
+          {inf.length > 0 && (
+            <section className="card p-4 text-sm">
+              <h3 className="font-semibold">Confira o que foi lido ({inf.length})</h3>
+              <p className="mt-1 text-xs text-muted">Desmarque o que estiver errado e corrija valores. Se o CNPJ for de um ativo seu, o valor vai direto para ele; o restante entra como rendimento avulso.</p>
+              <ul className="mt-3 space-y-2">
+                {inf.map((l) => (
+                  <li key={l.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg border border-line p-2 text-xs">
+                    <input type="checkbox" aria-label="Incluir" checked={infOn[l.id] !== false} onChange={(e) => setInfOn((o) => ({ ...o, [l.id]: e.target.checked }))} />
+                    <span className="min-w-0"><span className="block truncate font-semibold text-white">{l.fonte || "(sem nome)"}</span><span className="text-muted">{l.cnpj} · {l.tipo === "dividendos" ? "09 Dividendos" : l.tipo === "jcp" ? "10 JCP" : l.tipo === "fii" ? "Fundo imobiliário" : `código ${l.codigo}`} · {l.arquivo}</span></span>
+                    <input className="input w-28 text-right" inputMode="decimal" aria-label="Valor" value={String(l.valor).replace(".", ",")} onChange={(e) => setInf((a) => a.map((x) => (x.id === l.id ? { ...x, valor: parseNum(e.target.value) ?? 0 } : x)))} />
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-3 flex gap-2">
+                <button type="button" className="btn btn-gold" onClick={() => { const sel = inf.filter((l) => infOn[l.id] !== false); update((w) => applyInformes(w, sel, items)); setInf([]); setMsg(`${sel.length} linha(s) aplicadas. Veja nas fichas de rendimentos e gere o PDF de novo.`); setTab("inicio"); }}>Aplicar as marcadas</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setInf([])}>Descartar</button>
+              </div>
+            </section>
+          )}
+          {(ws.extras ?? []).length > 0 && (
+            <section className="card p-4 text-sm">
+              <h3 className="font-semibold">Rendimentos avulsos já aplicados</h3>
+              <ul className="mt-2 space-y-1 text-xs text-muted">{(ws.extras ?? []).map((x) => <li key={x.id} className="flex items-center justify-between gap-2"><span>{x.fonte || x.cnpj} · {x.tipo === "jcp" ? "10 JCP" : `código ${x.codigo}`} · {brl(x.valor)}</span><button type="button" className="text-down underline" onClick={() => update((w) => ({ ...w, extras: (w.extras ?? []).filter((e) => e.id !== x.id) }))}>remover</button></li>)}</ul>
+            </section>
+          )}
+        </div>
+      )}
+
+      {tab === "seguir" && (() => {
+        const done = ws.done ?? {};
+        const tick = (k: string) => update((w) => ({ ...w, done: { ...(w.done ?? {}), [k]: !(w.done ?? {})[k] } }));
+        const steps: { k: string; t: string; d: string; go?: Tab }[] = [
+          { k: "abrir", t: "Abra o programa IRPF e a declaração", d: `No programa da Receita (baixado só em gov.br/receitafederal), crie a declaração de ${ws.year + 1} ou abra a pré-preenchida/importada. Preencha Identificação do Contribuinte, Dependentes e rendimentos de salário direto no programa.` },
+          { k: "isentos", t: "Rendimentos Isentos e Não Tributáveis", d: "Menu lateral > Rendimentos Isentos e Não Tributáveis > Novo. Use o Tipo de Rendimento, CNPJ, Nome e Valor da ficha do Niza (botão Copiar).", go: "isentos" },
+          { k: "excl", t: "Rendimentos Sujeitos à Tributação Exclusiva/Definitiva", d: "Mesmo caminho: Novo, e copie JCP (código 10) pelo valor líquido.", go: "exclusivos" },
+          { k: "bens", t: "Bens e Direitos", d: "Bens e Direitos > Novo, um bem de cada vez: Grupo, Código, País, CNPJ, Discriminação e as duas Situações. Marque Negociados em Bolsa e informe o Código de Negociação.", go: "bens" },
+          { k: "ext", t: "Ativos no exterior (Lei 14.754)", d: "Ações dos EUA: preencha também Rendimento ou Perda, Imposto Pago no Exterior e Lucros e Dividendos do bem, convertendo pelo dólar da data.", go: "exterior" },
+          { k: "outras", t: "Imposto Pago/Retido, Pagamentos Efetuados, Dívidas e Renda Variável", d: "Preencha direto no programa com os informes do emprego, plano de saúde, financiamentos e notas de corretagem." },
+          { k: "verif", t: "Verificar pendências", d: "No programa: Ferramentas > Verificar Pendências. Corrija os avisos antes de seguir." },
+          { k: "resumo", t: "Comparar com o PDF do Niza", d: "Confira os totais de Bens e Direitos e dos rendimentos com o PDF gerado aqui (aba Salvar e baixar).", go: "salvar" },
+          { k: "entregar", t: "Entregar e guardar o recibo", d: "Declaração > Transmitir (ou gerar o arquivo e transmitir pelo Receitanet). Guarde o recibo e o arquivo .DEC: ano que vem você o importa aqui." },
+        ];
+        const n = steps.filter((x) => done[x.k]).length;
+        return (
+          <div className="space-y-3">
+            <p className="text-sm text-muted">Siga na ordem, marcando cada passo no programa real. Seu progresso é salvo junto com o cofre. <strong className="text-white">{n} de {steps.length}</strong> feitos.</p>
+            {steps.map((x, i) => (
+              <section key={x.k} className={`card p-4 ${done[x.k] ? "opacity-60" : ""}`}>
+                <label className="flex cursor-pointer items-start gap-3"><input type="checkbox" className="mt-1" checked={!!done[x.k]} onChange={() => tick(x.k)} /><span><span className="block font-semibold">{i + 1}. {x.t}</span><span className="mt-1 block text-xs text-muted">{x.d}</span></span></label>
+                {x.go && <button type="button" className="btn btn-ghost mt-2 !py-1 text-xs" onClick={() => setTab(x.go as Tab)}>Abrir a ficha no Niza</button>}
+              </section>
+            ))}
+          </div>
+        );
+      })()}
 
       {tab === "importar" && (
         <div className="space-y-4">
@@ -444,6 +519,16 @@ export function IrpfApp({ items, year }: { items: PortfolioItem[]; year: number 
                 </section>
               );
             })}
+            {(ws.extras ?? []).filter((x) => (tab === "exclusivos" ? x.tipo === "jcp" : tab === "isentos" ? x.tipo !== "jcp" : false)).map((x) => (
+              <section key={x.id} className="rounded-xl border border-gold/40 bg-black/20 p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold-soft">Do informe ({x.origem}) · {ficha} › Novo</p>
+                <Mirror label="Tipo de Rendimento" value={`${x.codigo} - ${x.tipo === "jcp" ? "Juros sobre capital próprio" : x.codigo === "09" ? "Lucros e dividendos recebidos" : x.codigo === "26" ? "Outros" : "Código " + x.codigo}`} />
+                <Mirror label="Beneficiário" value="Titular" />
+                <Mirror label="CNPJ da Fonte Pagadora" value={x.cnpj} />
+                <Mirror label="Nome da Fonte Pagadora" value={x.fonte} />
+                <Mirror label="Valor" value={fmtField(x.valor)} />
+              </section>
+            ))}
             {rows.length > 0 && <p className="text-sm text-muted">Total desta ficha: <strong className="text-white">{tab === "exterior" ? usd(sum) : brl(sum)}</strong></p>}
             {others.length > 0 && <p className="text-xs text-muted">Os demais proventos estão nas outras fichas, na tela inicial.</p>}
             <p className="text-xs text-muted">Regra nova (Lei 15.270/2025): desde 1/1/2026, dividendos acima de R$ 50 mil por mês de uma mesma empresa para você têm 10% retidos na fonte. Se acontecer, o informe mostra o valor. Confirme com um contador.</p>

@@ -28,7 +28,12 @@ export interface Workspace {
   snapshot?: PrevBem[];
   /** Totais da declaração anterior importada do .DEC (só para comparar). */
   lastYear?: LastYear;
+  /** Rendimentos vindos de informes que não casam com nenhum ativo da carteira. */
+  extras?: ExtraProv[];
+  /** Passos já feitos no programa real da Receita ("siga no programa"). */
+  done?: Record<string, boolean>;
 }
+export interface ExtraProv { id: string; tipo: ProvType | "outro"; codigo: string; cnpj: string; fonte: string; valor: number; irrf: number; origem: string }
 export const emptyWorkspace = (year: number): Workspace => ({ v: 1, year, previous: [], custom: [], edits: {}, prov: {}, notes: "", savedAt: "" });
 
 export type ProvType = "dividendos" | "jcp" | "fii" | "exterior";
