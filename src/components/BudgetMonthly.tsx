@@ -189,7 +189,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                 {st ? (
                   <>
                     <div className="mt-1 text-sm font-bold">{brl(st.total)}</div>
-                    <div className={`text-[11px] ${st.sobra < 0 ? "text-down" : "text-up"}`}>{st.sobra < 0 ? `falta ${brl(-st.sobra)}` : `sobra ${brl(st.sobra)}`}</div>
+                    {st.sobra < 0 && <div className="text-[11px] text-down">falta {brl(-st.sobra)}</div>}
                   </>
                 ) : <div className="mt-1 text-[11px]">{m.future ? "—" : "registrar"}</div>}
               </button>
