@@ -10,6 +10,7 @@ const add = z.object({
   sub: z.string().trim().min(1).max(40),
   amount: z.number().positive().max(1e8),
   note: z.string().trim().max(80).default(""),
+  receiptId: z.number().int().positive().nullable().optional(),
 });
 
 /** Lança um gasto em um dia. Recurso gratuito. */

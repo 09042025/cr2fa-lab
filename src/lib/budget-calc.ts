@@ -177,6 +177,8 @@ export interface Expense {
   sub: string;
   amount: number;
   note: string;
+  /** Comprovante anexado (foto ou PDF), se houver. */
+  receiptId: number | null;
 }
 
 export const validDay = (d: string) => /^(20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(d);

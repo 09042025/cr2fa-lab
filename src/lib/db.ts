@@ -236,6 +236,10 @@ function migrate(db: Database.Database) {
     );
   `);
 
+  // Comprovante opcional em cada lançamento do orçamento.
+  const be = db.prepare("PRAGMA table_info(budget_expenses)").all() as { name: string }[];
+  if (!be.some((x) => x.name === "receipt_id")) db.exec("ALTER TABLE budget_expenses ADD COLUMN receipt_id INTEGER");
+
   // Mensagens diretas (estilo WhatsApp): imagens e áudios enviados numa conversa ficam marcados como privados
   // e só quem participa da conversa consegue abri-los.
   for (const t of ["community_images", "community_audios"]) {
@@ -422,6 +426,13 @@ function migrate(db: Database.Database) {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE INDEX IF NOT EXISTS idx_budget_expenses_user_day ON budget_expenses (user_id, day);
+    CREATE TABLE IF NOT EXISTS budget_receipts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      mime TEXT NOT NULL,
+      data BLOB NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
     CREATE TABLE IF NOT EXISTS investor_profiles (
       user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       profile TEXT NOT NULL,
