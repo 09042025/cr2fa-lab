@@ -11,6 +11,8 @@ const brl = money0;
 const brl2 = money2;
 const num = (v: number | null) => (v ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "");
 const COLORS: Record<CatId, string> = { moradia: "#1f77b4", alimentacao: "#ff7f0e", transporte: "#2ca02c", saude: "#9467bd", lazer: "#e377c2", reserva: "#17becf" };
+/** Valor curto para caber em cima da barra: 40, 850, 1,2 mil, 15 mil. */
+const compactBRL = (v: number) => (v >= 10000 ? `${Math.round(v / 1000)} mil` : v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil` : String(Math.round(v)));
 const catLabel = (id: CatId) => BUDGET_CATS.find((c) => c.id === id)!.label;
 const post = (url: string, method: string, body: unknown) => fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
@@ -383,11 +385,16 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
               </table>
             </div>
 
-            <h3 className="mt-5 text-sm font-semibold">Gasto mês a mês</h3>
-            <div className="mt-2 flex h-32 items-end gap-1.5 border-b border-line">
+            <h3 className="mt-5 text-sm font-semibold">Gasto mês a mês <span className="font-normal text-muted">(valor em R$ sobre cada barra)</span></h3>
+            <div className="mt-2 flex h-40 items-end gap-1.5 border-b border-line">
               {months.map((m) => {
                 const v = m.actual ? m.st!.total - m.actual.reserva : 0;
-                return <div key={m.ym} className="flex h-full flex-1 flex-col justify-end">{v > 0 && <div className="w-full rounded-t bg-gold/70" style={{ height: `${(v / maxMonth) * 100}%` }} title={`${m.name}: ${brl(v)}`} />}</div>;
+                return (
+                  <div key={m.ym} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
+                    {v > 0 && <span className="mb-0.5 whitespace-nowrap text-[9px] font-semibold text-gold-soft" title={`${m.name}: ${brl2(v)}`}>{hidden ? "••" : compactBRL(v)}</span>}
+                    {v > 0 && <div className="w-full rounded-t bg-gold/70" style={{ height: `${(v / maxMonth) * 78}%` }} />}
+                  </div>
+                );
               })}
             </div>
             <div className="mt-1 flex gap-1.5 text-center text-[10px] text-muted">{months.map((m) => <span key={m.ym} className="flex-1">{m.name.slice(0, 1)}</span>)}</div>
