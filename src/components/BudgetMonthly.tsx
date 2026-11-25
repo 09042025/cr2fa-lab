@@ -36,6 +36,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   const [file, setFile] = useState<File | null>(null);
   const camRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
 
   const goalBase = useMemo(() => (base ? computeBudget(base).goal : 0), [base]);
   const incomeOf = (ym: string) => entries[ym]?.income ?? base?.income ?? 0;
@@ -79,7 +80,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
     setDay(d); setDayMsg(""); setAmount(""); setNote(""); clearFile();
   }
   function pickCat(c: CatId) { setCat(c); setSub(SUBS[c][0]); }
-  function clearFile() { setFile(null); if (camRef.current) camRef.current.value = ""; if (fileRef.current) fileRef.current.value = ""; }
+  function clearFile() { setFile(null); if (camRef.current) camRef.current.value = ""; if (fileRef.current) fileRef.current.value = ""; if (pdfRef.current) pdfRef.current.value = ""; }
 
   /** Reduz fotos grandes do celular (máx. 1600 px, JPEG) para não pesar. PDF segue como está. */
   async function shrink(f: File): Promise<File> {
@@ -253,8 +254,10 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                     <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                    <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                     <button type="button" className="btn" onClick={() => camRef.current?.click()}>📷 Tirar foto</button>
                     <button type="button" className="btn" onClick={() => fileRef.current?.click()}>📎 Anexar comprovante</button>
+                    <button type="button" className="btn" onClick={() => pdfRef.current?.click()}>📄 Anexar boleto (PDF)</button>
                     <span className="text-muted">(opcional)</span>
                   </div>
                   <button type="button" className="btn btn-gold w-full" onClick={addExpense} disabled={busy}>{busy ? "Salvando..." : "Lançar"}</button>
@@ -266,7 +269,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                     {dayList.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2 py-1.5">
                         <span className="flex min-w-0 items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[e.cat] }} /><span className="truncate">{expenseLabel(e)}{e.sub !== OTHER_SUB && e.note ? <span className="text-muted"> · {e.note}</span> : null}</span></span>
-                        <span className="flex shrink-0 items-center gap-2"><span className="font-semibold">{brl2(e.amount)}</span>{e.receiptId ? <a className="text-xs text-gold-soft underline" href={`/api/budget/receipt?id=${e.receiptId}`} target="_blank" rel="noopener noreferrer">📎 comprovante</a> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button></span>
+                        <span className="flex shrink-0 items-center gap-2"><span className="font-semibold">{brl2(e.amount)}</span>{e.receiptId ? <a className="text-xs text-gold-soft underline" href={`/api/budget/receipt?id=${e.receiptId}`} target="_blank" rel="noopener noreferrer">📎 comprovante/boleto</a> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button></span>
                       </li>
                     ))}
                     <li className="flex justify-between pt-1.5 text-sm font-bold"><span>Total do dia</span><span>{brl2(dayList.reduce((s, e) => s + e.amount, 0))}</span></li>
