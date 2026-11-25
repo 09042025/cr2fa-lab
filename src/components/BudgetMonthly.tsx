@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   BUDGET_CATS, MONTH_NAMES, OTHER_SUB, SUBS, combineActual, computeBudget, dayOf, daysInMonth, expenseLabel, idealAmounts, monthStats, parseBRL, rankSpending, ymOf,
   type Amounts, type BudgetInput, type CatId, type Expense, type MonthEntry,
@@ -33,6 +33,9 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [dayMsg, setDayMsg] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const camRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const goalBase = useMemo(() => (base ? computeBudget(base).goal : 0), [base]);
   const incomeOf = (ym: string) => entries[ym]?.income ?? base?.income ?? 0;
@@ -73,9 +76,24 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   }
 
   function pickDay(d: string) {
-    setDay(d); setDayMsg(""); setAmount(""); setNote("");
+    setDay(d); setDayMsg(""); setAmount(""); setNote(""); clearFile();
   }
   function pickCat(c: CatId) { setCat(c); setSub(SUBS[c][0]); }
+  function clearFile() { setFile(null); if (camRef.current) camRef.current.value = ""; if (fileRef.current) fileRef.current.value = ""; }
+
+  /** Reduz fotos grandes do celular (máx. 1600 px, JPEG) para não pesar. PDF segue como está. */
+  async function shrink(f: File): Promise<File> {
+    if (!f.type.startsWith("image/") || f.type === "image/gif") return f;
+    try {
+      const bmp = await createImageBitmap(f);
+      const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+      c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+      const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.8));
+      return blob ? new File([blob], "comprovante.jpg", { type: "image/jpeg" }) : f;
+    } catch { return f; }
+  }
 
   async function addExpense() {
     if (!day) return;
@@ -83,12 +101,21 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
     if (v <= 0) { setDayMsg("Informe o valor."); return; }
     if (sub === OTHER_SUB && !note.trim()) { setDayMsg("Em \"Outros\", descreva o gasto no campo ao lado."); return; }
     setBusy(true); setDayMsg("");
-    const res = await post("/api/budget/expenses", "POST", { day, cat, sub, amount: v, note: note.trim() });
+    let receiptId: number | null = null;
+    if (file) {
+      const fd = new FormData();
+      fd.append("file", await shrink(file));
+      const up = await fetch("/api/budget/receipt", { method: "POST", body: fd });
+      const ud = (await up.json().catch(() => null)) as { id?: number; error?: string } | null;
+      if (!up.ok || !ud?.id) { setBusy(false); setDayMsg(ud?.error ?? "Não foi possível enviar o comprovante. Tire-o ou lance sem anexo."); return; }
+      receiptId = ud.id;
+    }
+    const res = await post("/api/budget/expenses", "POST", { day, cat, sub, amount: v, note: note.trim(), receiptId });
     setBusy(false);
     const data = (await res.json().catch(() => null)) as { expense?: Expense; error?: string } | null;
     if (!res.ok || !data?.expense) { setDayMsg(data?.error ?? "Não foi possível salvar."); return; }
     setExpenses((p) => [...p, data.expense!]);
-    setAmount(""); setNote(""); setDayMsg("Lançado.");
+    setAmount(""); setNote(""); clearFile(); setDayMsg("Lançado.");
   }
 
   async function delExpense(id: number) {
@@ -204,32 +231,42 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
             {day && (
               <div className="mt-4 rounded-lg border border-line p-3">
                 <h5 className="text-sm font-bold">Dia {Number(day.slice(8))} de {MONTH_NAMES[openMi].toLowerCase()}</h5>
-                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Categoria">
-                  {BUDGET_CATS.map((c) => (
-                    <button key={c.id} type="button" onClick={() => pickCat(c.id)} aria-pressed={cat === c.id}
-                      className={`rounded-full border px-2.5 py-1 text-xs ${cat === c.id ? "border-gold bg-panel-2 font-semibold" : "border-line text-muted"}`}>
-                      <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: COLORS[c.id] }} />{c.label}
-                    </button>
-                  ))}
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <label className="block text-xs text-muted">Categoria
+                    <select className={`${field} mt-1 w-full`} value={cat} onChange={(e) => pickCat(e.target.value as CatId)}>
+                      {BUDGET_CATS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="block text-xs text-muted">Gasto específico
+                    <select className={`${field} mt-1 w-full`} value={sub} onChange={(e) => setSub(e.target.value)}>
+                      {SUBS[cat].map((x) => <option key={x} value={x}>{x}</option>)}
+                    </select>
+                  </label>
+                  <label className="block text-xs text-muted">Valor (R$)
+                    <input className={`${field} mt-1 w-full`} inputMode="decimal" placeholder="0,00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                  </label>
+                  <label className="block text-xs text-muted">{sub === OTHER_SUB ? "Descreva o gasto (obrigatório)" : "Observação (opcional)"}
+                    <input className={`${field} mt-1 w-full`} maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} />
+                  </label>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Tipo de gasto">
-                  {SUBS[cat].map((s) => (
-                    <button key={s} type="button" onClick={() => setSub(s)} aria-pressed={sub === s}
-                      className={`rounded-md border px-2 py-1 text-xs ${sub === s ? "border-gold bg-gold/15 font-semibold text-gold-soft" : "border-line text-muted"}`}>{s}</button>
-                  ))}
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                    <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                    <button type="button" className="btn" onClick={() => camRef.current?.click()}>📷 Tirar foto</button>
+                    <button type="button" className="btn" onClick={() => fileRef.current?.click()}>📎 Anexar comprovante</button>
+                    <span className="text-muted">(opcional)</span>
+                  </div>
+                  <button type="button" className="btn btn-gold w-full" onClick={addExpense} disabled={busy}>{busy ? "Salvando..." : "Lançar"}</button>
                 </div>
-                <div className="mt-3 grid gap-2 md:grid-cols-[1fr_2fr_auto]">
-                  <input className={field} inputMode="decimal" placeholder="Valor (R$)" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Valor" />
-                  <input className={field} placeholder={sub === OTHER_SUB ? "Descreva o gasto (obrigatório)" : "Observação (opcional)"} maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} aria-label="Descrição" />
-                  <button type="button" className="btn btn-gold" onClick={addExpense} disabled={busy}>Lançar</button>
-                </div>
+                {file && <p className="mt-1 text-xs text-muted">Anexo: <span className="text-gold-soft">{file.name}</span> <button type="button" className="ml-1 text-down underline" onClick={clearFile}>remover</button></p>}
                 {dayMsg && <p className="mt-1 text-xs text-muted" role="status">{dayMsg}</p>}
                 {dayList.length > 0 ? (
                   <ul className="mt-3 divide-y divide-line/50 text-sm">
                     {dayList.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2 py-1.5">
                         <span className="flex min-w-0 items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[e.cat] }} /><span className="truncate">{expenseLabel(e)}{e.sub !== OTHER_SUB && e.note ? <span className="text-muted"> · {e.note}</span> : null}</span></span>
-                        <span className="flex shrink-0 items-center gap-2"><span className="font-semibold">{brl2(e.amount)}</span><button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button></span>
+                        <span className="flex shrink-0 items-center gap-2"><span className="font-semibold">{brl2(e.amount)}</span>{e.receiptId ? <a className="text-xs text-gold-soft underline" href={`/api/budget/receipt?id=${e.receiptId}`} target="_blank" rel="noopener noreferrer">📎 comprovante</a> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button></span>
                       </li>
                     ))}
                     <li className="flex justify-between pt-1.5 text-sm font-bold"><span>Total do dia</span><span>{brl2(dayList.reduce((s, e) => s + e.amount, 0))}</span></li>

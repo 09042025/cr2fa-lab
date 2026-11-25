@@ -69,7 +69,7 @@ test("meses válidos", () => {
 
 import { SUBS, combineActual, daysInMonth, expenseLabel, rankSpending, validDay, type Expense } from "../src/lib/budget-calc";
 
-const ex = (id: number, day: string, cat: Expense["cat"], sub: string, amount: number, note = ""): Expense => ({ id, day, cat, sub, amount, note });
+const ex = (id: number, day: string, cat: Expense["cat"], sub: string, amount: number, note = ""): Expense => ({ id, day, cat, sub, amount, note, receiptId: null });
 
 test("cada categoria tem 'Outros' no fim e datas são validadas", () => {
   for (const list of Object.values(SUBS)) assert.equal(list[list.length - 1], "Outros");

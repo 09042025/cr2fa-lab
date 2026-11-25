@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { sniffImage } from "./community";
 import { BUDGET_CATS, clean, emptyAmounts, validDay, validYm, type BudgetInput, type CatId, type Expense, type MonthEntry } from "./budget-calc";
 
 export * from "./budget-calc";
@@ -49,17 +50,46 @@ export function deleteMonth(userId: number, ym: string): boolean {
 }
 
 export function listExpenses(userId: number): Expense[] {
-  return db().prepare("SELECT id, day, cat, sub, amount, note FROM budget_expenses WHERE user_id = ? ORDER BY day, id LIMIT 20000").all(userId) as Expense[];
+  return db().prepare("SELECT id, day, cat, sub, amount, note, receipt_id receiptId FROM budget_expenses WHERE user_id = ? ORDER BY day, id LIMIT 20000").all(userId) as Expense[];
 }
 
-export function addExpense(userId: number, e: { day: string; cat: CatId; sub: string; amount: number; note: string }): Expense | null {
+export const MAX_RECEIPT_BYTES = 3 * 1024 * 1024;
+
+/** Foto (PNG, JPG, WebP, GIF) ou PDF, conferidos pelos primeiros bytes. */
+export function sniffReceipt(buf: Buffer): string | null {
+  if (buf.length >= 5 && buf.toString("latin1", 0, 5) === "%PDF-") return "application/pdf";
+  return sniffImage(buf);
+}
+
+export function saveReceipt(userId: number, buf: Buffer): number | null {
+  const mime = sniffReceipt(buf);
+  if (!mime || buf.length > MAX_RECEIPT_BYTES) return null;
+  return Number(db().prepare("INSERT INTO budget_receipts (user_id, mime, data) VALUES (?, ?, ?)").run(userId, mime, buf).lastInsertRowid);
+}
+
+/** Só o dono enxerga o próprio comprovante. */
+export function getReceipt(userId: number, id: number): { mime: string; data: Buffer } | null {
+  return (db().prepare("SELECT mime, data FROM budget_receipts WHERE id = ? AND user_id = ?").get(id, userId) as { mime: string; data: Buffer } | undefined) ?? null;
+}
+
+export function addExpense(userId: number, e: { day: string; cat: CatId; sub: string; amount: number; note: string; receiptId?: number | null }): Expense | null {
   if (!validDay(e.day) || !BUDGET_CATS.some((c) => c.id === e.cat)) return null;
   const amount = clean(e.amount);
   if (amount <= 0) return null;
-  const r = db().prepare("INSERT INTO budget_expenses (user_id, day, cat, sub, amount, note) VALUES (?, ?, ?, ?, ?, ?)").run(userId, e.day, e.cat, e.sub.slice(0, 40), amount, e.note.slice(0, 80));
-  return { id: Number(r.lastInsertRowid), day: e.day, cat: e.cat, sub: e.sub.slice(0, 40), amount, note: e.note.slice(0, 80) };
+  let receiptId: number | null = null;
+  if (e.receiptId) {
+    if (!getReceipt(userId, e.receiptId)) return null; // comprovante de outra pessoa ou inexistente
+    receiptId = e.receiptId;
+  }
+  const sub = e.sub.slice(0, 40), note = e.note.slice(0, 80);
+  const r = db().prepare("INSERT INTO budget_expenses (user_id, day, cat, sub, amount, note, receipt_id) VALUES (?, ?, ?, ?, ?, ?, ?)").run(userId, e.day, e.cat, sub, amount, note, receiptId);
+  return { id: Number(r.lastInsertRowid), day: e.day, cat: e.cat, sub, amount, note, receiptId };
 }
 
 export function deleteExpense(userId: number, id: number): boolean {
-  return db().prepare("DELETE FROM budget_expenses WHERE user_id = ? AND id = ?").run(userId, id).changes > 0;
+  const row = db().prepare("SELECT receipt_id rid FROM budget_expenses WHERE user_id = ? AND id = ?").get(userId, id) as { rid: number | null } | undefined;
+  if (!row) return false;
+  db().prepare("DELETE FROM budget_expenses WHERE user_id = ? AND id = ?").run(userId, id);
+  if (row.rid) db().prepare("DELETE FROM budget_receipts WHERE user_id = ? AND id = ?").run(userId, row.rid);
+  return true;
 }
