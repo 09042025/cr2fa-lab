@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { maskStyle, money0, useHideValues } from "@/lib/hide-values";
 import { BUDGET_CATS, computeBudget, fmtMonths, idealAmounts, parseBRL, sumAmounts, type Amounts, type BudgetInput, type CatId } from "@/lib/budget-calc";
 
 const COLORS: Record<CatId, string> = { moradia: "#1f77b4", alimentacao: "#ff7f0e", transporte: "#2ca02c", saude: "#9467bd", lazer: "#e377c2", reserva: "#17becf" };
 const FREE_COLOR = "#64748b";
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const brl = money0;
 const num = (v: number) => (v ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "");
 
 interface Slice { id: string; label: string; value: number; color: string }
@@ -54,6 +55,7 @@ function Gauge({ pct }: { pct: number }) {
 }
 
 export function BudgetView({ saved }: { saved: BudgetInput | null }) {
+  const { hidden, toggle } = useHideValues();
   const [income, setIncome] = useState(num(saved?.income ?? 0));
   const [reserveNow, setReserveNow] = useState(num(saved?.reserveNow ?? 0));
   const [actual, setActual] = useState<Record<CatId, string>>(() => Object.fromEntries(BUDGET_CATS.map((c) => [c.id, num(saved?.actual[c.id] ?? 0)])) as Record<CatId, string>);
@@ -87,24 +89,24 @@ export function BudgetView({ saved }: { saved: BudgetInput | null }) {
   return (
     <div className="space-y-6">
       <section className="card p-4 md:p-5">
-        <h2 className="font-display text-lg font-bold text-gold-soft">1. Sua realidade hoje</h2>
+        <div className="flex items-center justify-between gap-2"><h2 className="font-display text-lg font-bold text-gold-soft">1. Sua realidade hoje</h2><button type="button" className="btn btn-ghost !px-3 !py-1 text-xs" onClick={toggle} aria-pressed={hidden}>{hidden ? "👁 Mostrar valores" : "🙈 Ocultar valores"}</button></div>
         <p className="mt-1 text-sm text-muted">Preencha com valores mensais, do jeito que é a sua vida hoje. Não precisa ser exato: uma boa estimativa já funciona.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="block">
             <span className="text-sm font-semibold">Renda líquida mensal da família</span>
             <span className="block text-xs text-muted">O que realmente cai na conta, depois dos descontos.</span>
-            <input className={field} inputMode="decimal" placeholder="Ex.: 8.000" value={income} onChange={(e) => setIncome(e.target.value)} />
+            <input className={field} style={maskStyle(hidden)} inputMode="decimal" placeholder="Ex.: 8.000" value={income} onChange={(e) => setIncome(e.target.value)} />
           </label>
           <label className="block">
             <span className="text-sm font-semibold">Reserva de emergência que você já tem</span>
             <span className="block text-xs text-muted">Dinheiro guardado com liquidez, só para imprevistos.</span>
-            <input className={field} inputMode="decimal" placeholder="Ex.: 5.000" value={reserveNow} onChange={(e) => setReserveNow(e.target.value)} />
+            <input className={field} style={maskStyle(hidden)} inputMode="decimal" placeholder="Ex.: 5.000" value={reserveNow} onChange={(e) => setReserveNow(e.target.value)} />
           </label>
           {BUDGET_CATS.map((c) => (
             <label key={c.id} className="block">
               <span className="flex items-center gap-2 text-sm font-semibold"><span className="h-3 w-3 rounded-sm" style={{ background: COLORS[c.id] }} />{c.label}</span>
               <span className="block text-xs text-muted">{c.hint}{hasIncome ? ` Ideal: ${brl(ideal[c.id])} (${c.ideal}%).` : ""}</span>
-              <input className={field} inputMode="decimal" placeholder="R$ por mês" value={actual[c.id]} onChange={(e) => setActual({ ...actual, [c.id]: e.target.value })} />
+              <input className={field} style={maskStyle(hidden)} inputMode="decimal" placeholder="R$ por mês" value={actual[c.id]} onChange={(e) => setActual({ ...actual, [c.id]: e.target.value })} />
             </label>
           ))}
         </div>
