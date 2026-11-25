@@ -1,19 +1,21 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { maskStyle, money0, money2, useHideValues } from "@/lib/hide-values";
 import {
   BUDGET_CATS, MONTH_NAMES, OTHER_SUB, SUBS, combineActual, computeBudget, dayOf, daysInMonth, expenseLabel, idealAmounts, monthStats, parseBRL, rankSpending, ymOf,
   type Amounts, type BudgetInput, type CatId, type Expense, type MonthEntry,
 } from "@/lib/budget-calc";
 
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const brl2 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brl = money0;
+const brl2 = money2;
 const num = (v: number | null) => (v ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "");
 const COLORS: Record<CatId, string> = { moradia: "#1f77b4", alimentacao: "#ff7f0e", transporte: "#2ca02c", saude: "#9467bd", lazer: "#e377c2", reserva: "#17becf" };
 const catLabel = (id: CatId) => BUDGET_CATS.find((c) => c.id === id)!.label;
 const post = (url: string, method: string, body: unknown) => fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
 export function BudgetMonthly({ initial, base, initialExpenses }: { initial: MonthEntry[]; base: BudgetInput | null; initialExpenses: Expense[] }) {
+  const { hidden, toggle } = useHideValues();
   const today = new Date();
   const curYm = ymOf(today.getFullYear(), today.getMonth());
   const curDay = `${curYm}-${String(today.getDate()).padStart(2, "0")}`;
@@ -167,7 +169,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   return (
     <>
       <section className="card p-4 md:p-5" id="acompanhamento">
-        <h2 className="font-display text-lg font-bold text-gold-soft">3. Acompanhamento mês a mês e dia a dia</h2>
+        <div className="flex items-center justify-between gap-2"><h2 className="font-display text-lg font-bold text-gold-soft">3. Acompanhamento mês a mês e dia a dia</h2><button type="button" className="btn btn-ghost !px-3 !py-1 text-xs" onClick={toggle} aria-pressed={hidden}>{hidden ? "👁 Mostrar valores" : "🙈 Ocultar valores"}</button></div>
         <p className="mt-1 text-sm text-muted">Toque em um mês e depois em um dia para lançar cada gasto (mercado, aluguel, combustível…). Tudo se soma no mês e alimenta o ranking do ano.</p>
 
         <div className="mt-4 flex items-center justify-between gap-2">
@@ -244,7 +246,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                     </select>
                   </label>
                   <label className="block text-xs text-muted">Valor (R$)
-                    <input className={`${field} mt-1 w-full`} inputMode="decimal" placeholder="0,00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                    <input className={`${field} mt-1 w-full`} style={maskStyle(hidden)} inputMode="decimal" placeholder="0,00" value={amount} onChange={(e) => setAmount(e.target.value)} />
                   </label>
                   <label className="block text-xs text-muted">{sub === OTHER_SUB ? "Descreva o gasto (obrigatório)" : "Observação (opcional)"}
                     <input className={`${field} mt-1 w-full`} maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -305,10 +307,10 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
               <summary className="cursor-pointer text-sm font-semibold">Renda do mês, reserva e valores totais sem detalhar</summary>
               <p className="mt-1 text-xs text-muted">Use para informar a renda do mês e o saldo da reserva. Se preferir, também dá para digitar o total de uma categoria sem lançar dia a dia: ele soma com os lançamentos diários.</p>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <label className="block"><span className="text-sm font-semibold">Renda do mês</span><input className={field} inputMode="decimal" placeholder="R$" value={income} onChange={(e) => setIncome(e.target.value)} /></label>
-                <label className="block"><span className="text-sm font-semibold">Saldo da reserva de emergência no fim do mês</span><input className={field} inputMode="decimal" placeholder="R$ (opcional)" value={reserve} onChange={(e) => setReserve(e.target.value)} /></label>
+                <label className="block"><span className="text-sm font-semibold">Renda do mês</span><input className={field} style={maskStyle(hidden)} inputMode="decimal" placeholder="R$" value={income} onChange={(e) => setIncome(e.target.value)} /></label>
+                <label className="block"><span className="text-sm font-semibold">Saldo da reserva de emergência no fim do mês</span><input className={field} style={maskStyle(hidden)} inputMode="decimal" placeholder="R$ (opcional)" value={reserve} onChange={(e) => setReserve(e.target.value)} /></label>
                 {BUDGET_CATS.map((c) => (
-                  <label key={c.id} className="block"><span className="text-sm font-semibold">{c.label} (total sem detalhar)</span><input className={field} inputMode="decimal" placeholder="R$ no mês" value={vals[c.id]} onChange={(e) => setVals({ ...vals, [c.id]: e.target.value })} /></label>
+                  <label key={c.id} className="block"><span className="text-sm font-semibold">{c.label} (total sem detalhar)</span><input className={field} style={maskStyle(hidden)} inputMode="decimal" placeholder="R$ no mês" value={vals[c.id]} onChange={(e) => setVals({ ...vals, [c.id]: e.target.value })} /></label>
                 ))}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
