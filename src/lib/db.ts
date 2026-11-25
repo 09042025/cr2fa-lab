@@ -411,6 +411,17 @@ function migrate(db: Database.Database) {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (user_id, ym)
     );
+    CREATE TABLE IF NOT EXISTS budget_expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      day TEXT NOT NULL,
+      cat TEXT NOT NULL,
+      sub TEXT NOT NULL,
+      amount REAL NOT NULL CHECK (amount > 0),
+      note TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_budget_expenses_user_day ON budget_expenses (user_id, day);
     CREATE TABLE IF NOT EXISTS investor_profiles (
       user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       profile TEXT NOT NULL,

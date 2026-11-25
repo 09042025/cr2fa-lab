@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { getBudget, listMonths } from "@/lib/budget";
+import { getBudget, listExpenses, listMonths } from "@/lib/budget";
 import { BudgetView } from "@/components/BudgetView";
 import { BudgetMonthly } from "@/components/BudgetMonthly";
 import { PageTitle } from "@/components/ui";
@@ -15,7 +15,7 @@ export default async function Page() {
       <a href="#acompanhamento" className="btn btn-ghost mb-4 !py-1.5 !text-sm">📅 Ir para o acompanhamento mês a mês</a>
       <div className="space-y-6">
         <BudgetView saved={saved} />
-        <BudgetMonthly initial={listMonths(user.id)} base={saved} />
+        <BudgetMonthly initial={listMonths(user.id)} base={saved} initialExpenses={listExpenses(user.id)} />
       </div>
     </>
   );

@@ -155,3 +155,84 @@ export function monthStats(income: number, actual: Amounts): MonthStats {
     overspent: rows.filter((r) => r.id !== "reserva" && r.diff > 0).reduce((s, r) => s + r.diff, 0),
   };
 }
+
+/* ---------- Lançamentos por dia ---------- */
+
+/** Subcategorias de cada categoria. A última é sempre "Outros", com campo livre para descrever. */
+export const SUBS: Record<CatId, string[]> = {
+  moradia: ["Aluguel", "Prestação da casa", "Condomínio", "Luz", "Água", "Internet e telefone", "Gás", "IPTU", "Manutenção e reparos", "Outros"],
+  alimentacao: ["Mercado", "Açougue", "Padaria", "Feira e hortifrúti", "Fast food", "Restaurante", "Delivery", "Outros"],
+  transporte: ["Combustível", "Aplicativo (Uber/99)", "Transporte público", "Estacionamento e pedágio", "Prestação do carro", "Seguro do carro", "Manutenção do carro", "Outros"],
+  saude: ["Plano de saúde", "Farmácia", "Consultas e exames", "Escola ou faculdade", "Cursos", "Outros"],
+  lazer: ["Passeios e viagens", "Assinaturas (streaming)", "Roupas e calçados", "Presentes", "Cuidados pessoais", "Hobbies", "Outros"],
+  reserva: ["Reserva de emergência", "Renda fixa", "Ações e FIIs", "Cripto", "Outros"],
+};
+export const OTHER_SUB = "Outros";
+
+export interface Expense {
+  id: number;
+  /** "AAAA-MM-DD" */
+  day: string;
+  cat: CatId;
+  sub: string;
+  amount: number;
+  note: string;
+}
+
+export const validDay = (d: string) => /^(20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(d);
+export const daysInMonth = (year: number, monthIndex: number) => new Date(year, monthIndex + 1, 0).getDate();
+export const dayOf = (ym: string, d: number) => `${ym}-${String(d).padStart(2, "0")}`;
+
+/** Nome mostrado: em "Outros", vale o que a pessoa escreveu. */
+export const expenseLabel = (e: Pick<Expense, "sub" | "note">) => (e.sub === OTHER_SUB && e.note.trim() ? e.note.trim() : e.sub);
+
+/** Soma dos lançamentos por categoria em um mês ("AAAA-MM"). */
+export function actualFromExpenses(list: Expense[], ym: string): Amounts {
+  const out = emptyAmounts();
+  for (const e of list) if (e.day.startsWith(ym)) out[e.cat] += e.amount;
+  for (const c of BUDGET_CATS) out[c.id] = Math.round(out[c.id] * 100) / 100;
+  return out;
+}
+
+/** Gasto do mês = valores digitados no mês (sem detalhar) + lançamentos por dia. */
+export function combineActual(manual: Amounts | null, list: Expense[], ym: string): Amounts {
+  const d = actualFromExpenses(list, ym);
+  const out = emptyAmounts();
+  for (const c of BUDGET_CATS) out[c.id] = Math.round(((manual?.[c.id] ?? 0) + d[c.id]) * 100) / 100;
+  return out;
+}
+
+export interface RankItem { label: string; cat: CatId; total: number; pctSpend: number; pctIncome: number | null }
+
+/**
+ * Ranking anual dos maiores gastos (sem a categoria "Reserva e investimentos"), do maior para o menor.
+ * Valores digitados no mês sem detalhar entram como "<categoria> (sem detalhar)".
+ */
+export function rankSpending(list: Expense[], months: MonthEntry[], year: number, limit = 10): { items: RankItem[]; totalSpend: number; totalIncome: number } {
+  const prefix = `${year}-`;
+  const map = new Map<string, { label: string; cat: CatId; total: number }>();
+  const add = (key: string, label: string, cat: CatId, v: number) => {
+    if (v <= 0) return;
+    const cur = map.get(key) ?? { label, cat, total: 0 };
+    cur.total += v;
+    map.set(key, cur);
+  };
+  for (const e of list) {
+    if (!e.day.startsWith(prefix) || e.cat === "reserva") continue;
+    const label = expenseLabel(e);
+    add(`${e.cat}|${label.toLowerCase()}`, label, e.cat, e.amount);
+  }
+  let totalIncome = 0;
+  for (const m of months) {
+    if (!m.ym.startsWith(prefix)) continue;
+    totalIncome += m.income;
+    for (const c of BUDGET_CATS) if (c.id !== "reserva") add(`${c.id}|__manual`, `${c.label} (sem detalhar)`, c.id, m.actual[c.id] ?? 0);
+  }
+  const all = [...map.values()].sort((a, b) => b.total - a.total);
+  const totalSpend = all.reduce((s, x) => s + x.total, 0);
+  return {
+    items: all.slice(0, limit).map((x) => ({ label: x.label, cat: x.cat, total: Math.round(x.total * 100) / 100, pctSpend: totalSpend > 0 ? (x.total / totalSpend) * 100 : 0, pctIncome: totalIncome > 0 ? (x.total / totalIncome) * 100 : null })),
+    totalSpend: Math.round(totalSpend * 100) / 100,
+    totalIncome,
+  };
+}
