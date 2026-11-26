@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Diamond } from "./Diamond";
+import { VipBadge } from "./ui";
 
 const TABS = [
   { href: "/painel/comunidade/manifesto", label: "Manifesto" },
@@ -15,7 +16,7 @@ const TABS = [
   { href: "/painel/financiamento", label: "Financiamentos" },
   { href: "/painel/negocios", label: "Negócios" },
   { href: "/painel/mentoria", label: "Mentoria com Niza", diamond: true },
-  { href: "/painel/black", label: "Black Diamond VIP", black: true },
+  { href: "/painel/black", label: "Black Diamond", black: true },
   { href: "/painel/protocolo", label: "Protocolo CR2FA" },
 ];
 const AREA = ["/painel/comunidade", "/painel/cursos", "/painel/links", "/painel/portfolio", "/painel/irpf", "/painel/financiamento", "/painel/negocios", "/painel/mentoria", "/painel/black", "/painel/protocolo"];
@@ -34,7 +35,7 @@ export function CommunityTabs(_props: { pro?: boolean }) {
         return (
           <Link key={t.href} href={t.href} aria-current={active ? "page" : undefined}
             className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${active ? "border-gold text-gold-soft" : "border-transparent text-muted hover:text-white"}`}>
-            {"diamond" in t && <Diamond size={14} className="mr-1.5 inline-block -translate-y-px" />}{"black" in t && <Diamond black size={14} className="mr-1.5 inline-block -translate-y-px" />}{t.label}
+            {"diamond" in t && <Diamond size={14} className="mr-1.5 inline-block -translate-y-px" />}{"black" in t && <Diamond black size={14} className="mr-1.5 inline-block -translate-y-px" />}{t.label}{"black" in t && <span className="ml-1.5 inline-block align-middle"><VipBadge /></span>}
           </Link>
         );
       })}
