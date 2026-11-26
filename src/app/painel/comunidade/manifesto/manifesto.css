@@ -59,3 +59,9 @@
 .wfm-final .wfm-lines p { margin: 0.1em 0; }
 .wfm-final .wfm-body p:not(.wfm-big) { font-family: "IM Fell English", "EB Garamond", Georgia, serif; font-size: clamp(1.2rem, 2.9vw, 1.42rem); }
 .wfm-final .wfm-big { font-family: "IM Fell English", Georgia, serif; }
+
+/* Juramento (área VIP): letras claras e fáceis de ler à primeira vista. */
+.wfm-oath { text-align: center; }
+.wfm-oath p { font-family: "EB Garamond", Georgia, serif; font-style: normal; font-weight: 500; font-size: clamp(1.3rem, 4.2vw, 1.65rem); line-height: 1.5; color: #fbf3da; margin: 0.9em 0; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85); }
+.wfm-oath .wfm-oath-box { font-family: "Cinzel", Georgia, serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: clamp(1.05rem, 4vw, 1.5rem); line-height: 1.45; color: #fff0c2; margin: 1.4rem 0; padding: 1.1rem 1rem; border: 1px solid rgba(217, 169, 60, 0.7); border-radius: 0.6rem; background: linear-gradient(180deg, rgba(60, 38, 8, 0.55), rgba(10, 8, 6, 0.7)); box-shadow: 0 0 26px rgba(217, 140, 30, 0.22), inset 0 0 18px rgba(217, 169, 60, 0.12); }
+.wfm-oath .wfm-oath-sign { font-family: "Cinzel", Georgia, serif; font-weight: 500; text-transform: uppercase; white-space: nowrap; text-align: center; letter-spacing: 0.1em; font-size: clamp(0.5rem, 2.4vw, 0.95rem); color: #d9b45a; margin: 2rem 0 1rem; }
