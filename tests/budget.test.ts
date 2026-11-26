@@ -69,7 +69,7 @@ test("meses válidos", () => {
 
 import { SUBS, combineActual, daysInMonth, expenseLabel, rankSpending, validDay, type Expense } from "../src/lib/budget-calc";
 
-const ex = (id: number, day: string, cat: Expense["cat"], sub: string, amount: number, note = ""): Expense => ({ id, day, cat, sub, amount, note, receiptId: null });
+const ex = (id: number, day: string, cat: Expense["cat"], sub: string, amount: number, note = ""): Expense => ({ id, day, cat, sub, amount, note, receiptId: null, seriesId: null });
 
 test("cada categoria tem 'Outros' no fim e datas são validadas", () => {
   for (const list of Object.values(SUBS)) assert.equal(list[list.length - 1], "Outros");
@@ -101,4 +101,15 @@ test("ranking anual agrupa por tipo de gasto, ignora a reserva e calcula percent
   assert.equal(r.totalSpend, 1500 + 1000 + 150 + 200);
   assert.equal(r.totalIncome, 5000);
   assert.ok(!r.items.some((i) => i.label === "Renda fixa"));
+});
+
+import { repeatDays } from "../src/lib/budget-calc";
+
+test("gasto fixo repete no mesmo dia de cada mês e respeita meses curtos e virada de ano", () => {
+  assert.deepEqual(repeatDays("2026-11-10", 3), ["2026-11-10", "2026-12-10", "2027-01-10"]);
+  assert.deepEqual(repeatDays("2026-01-31", 3), ["2026-01-31", "2026-02-28", "2026-03-31"]);
+  assert.equal(repeatDays("2026-11-05", 24).at(-1), "2028-10-05");
+  assert.equal(repeatDays("2026-11-05", 9999).length, 120);
+  assert.deepEqual(repeatDays("2026-11-05", 1), ["2026-11-05"]);
+  assert.deepEqual(repeatDays("lixo", 3), []);
 });
