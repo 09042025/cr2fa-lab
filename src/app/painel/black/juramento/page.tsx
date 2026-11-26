@@ -21,15 +21,13 @@ export default async function Page() {
         <div className="wfm-orn" aria-hidden>✦</div>
       </header>
 
-      <div className="wfm-final">
-        <div className="wfm-body" style={{ textAlign: "center" }}>
-          {OATH.map((l) => <p key={l} className="wfm-big" style={{ fontSize: "clamp(1.3rem,3.6vw,1.7rem)", margin: "0.9em 0" }}>{l}</p>)}
-          <p className="wfm-big">Não buscarei dominar o mundo.</p>
-          <p className="wfm-big">Buscarei governar a mim mesmo.</p>
-          <div className="wfm-quote">A MAIOR LUTA É A MENTE.</div>
-          <div className="wfm-quote">A MAIOR CONQUISTA É A LIBERDADE.</div>
-          <p className="wfm-cin mt-6 text-xs tracking-[0.35em] text-[#c7a24a]">WHITE FLAME SOCIETY — THE ETERNAL AWAKENING</p>
-        </div>
+      <div className="wfm-body wfm-oath">
+        {OATH.map((l) => <p key={l}>{l}</p>)}
+        <p>Não buscarei dominar o mundo.</p>
+        <p>Buscarei governar a mim mesmo.</p>
+        <div className="wfm-oath-box">A maior luta é a mente.</div>
+        <div className="wfm-oath-box">A maior conquista é a liberdade.</div>
+        <p className="wfm-oath-sign">White Flame Society — The Eternal Awakening</p>
       </div>
     </WfmShell>
   );
