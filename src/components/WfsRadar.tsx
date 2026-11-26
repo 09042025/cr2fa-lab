@@ -40,7 +40,7 @@ export function WfsRadar({ history }: { history: RadarEntry[] }) {
 
   return (
     <div className="wfm-body" style={{ maxWidth: "46rem" }}>
-      <svg viewBox="0 0 300 300" className="mx-auto w-full max-w-sm" role="img" aria-label={`Radar de evolução pessoal, índice ${total} de 100`}>
+      <svg viewBox="-55 0 410 300" className="mx-auto w-full max-w-lg" role="img" aria-label={`Radar de evolução pessoal, índice ${total} de 100`}>
         {rings.map((r, i) => <polygon key={i} points={r} fill="none" stroke="rgba(199,162,74,0.25)" />)}
         {RADAR_DIMS.map((_, i) => { const [x, y] = pt(i, 10); return <line key={i} x1={C} y1={C} x2={x} y2={y} stroke="rgba(199,162,74,0.2)" />; })}
         {prev && <polygon points={poly(prev.scores)} fill="none" stroke="rgba(255,255,255,0.55)" strokeDasharray="4 3" />}
