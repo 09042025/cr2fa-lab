@@ -27,6 +27,7 @@ export default async function Page() {
         <p>Buscarei governar a mim mesmo.</p>
         <div className="wfm-oath-box">A maior luta é a mente.</div>
         <div className="wfm-oath-box">A maior conquista é a liberdade.</div>
+        <p style={{ fontSize: "1rem", opacity: 0.75 }}>Este compromisso é pessoal e voluntário.</p>
         <p className="wfm-oath-sign">White Flame Society — The Eternal Awakening</p>
       </div>
     </WfmShell>
