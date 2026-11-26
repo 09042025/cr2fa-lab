@@ -4,6 +4,7 @@ import { VipLocked } from "@/components/VipLocked";
 import { WfsTracker } from "@/components/WfsTracker";
 import { canAccessVip, getProgress } from "@/lib/wfs";
 import { CYCLE } from "@/lib/wfs-content";
+import { STEPS } from "@/lib/wfs-steps";
 import ciclo from "@/assets/wfs/ciclo.webp";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,7 @@ export default async function Page() {
         <p className="wfm-big">O verdadeiro White Flame Wolf não é aquele que possui todas as respostas. É aquele que nunca perde a coragem de questioná-las.</p>
       </div>
 
-      <WfsTracker initial={getProgress(user.id)} />
+      <WfsTracker initial={getProgress(user.id)} steps={STEPS} />
     </WfmShell>
   );
 }
