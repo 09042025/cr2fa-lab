@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { Diamond } from "@/components/Diamond";
-import { Locked } from "@/components/ui";
+import { Locked, VipBadge } from "@/components/ui";
 import { MentoriaCheckout } from "@/components/MentoriaCheckout";
 import { InviteByEmail, InviteRow, RequestInvite } from "@/components/BlackActions";
 import { mentoriaCheckoutProps } from "@/lib/mentoria-view";
@@ -32,7 +32,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       <section className="relative mb-6 overflow-hidden rounded-2xl border border-gold/40 bg-gradient-to-br from-[#0b0b10] via-[#0a0d18] to-black p-6 md:p-8">
         <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[30%] items-center justify-center md:flex"><Diamond black size={190} className="drop-shadow-[0_0_34px_rgba(212,175,55,0.35)]" /></div>
         <p className="relative flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-gold/90"><Diamond black size={16} /> Por convite · Início em São Paulo</p>
-        <h1 className="relative mt-1 font-display text-2xl font-bold text-gold-soft md:text-4xl">{BLACK_NAME}</h1>
+        <h1 className="relative mt-1 font-display text-2xl font-bold text-gold-soft md:text-4xl">Black Diamond <VipBadge /></h1>
         <p className="relative mt-3 max-w-2xl text-sm leading-relaxed text-muted md:text-base">
           Um grupo seleto de pessoas de alto nível em conhecimento e sucesso financeiro, que se encontram pessoalmente para falar de negócios e fazer network. Troca de experiências reais de quem já construiu, para expandir horizontes, furar a bolha da percepção de mundo atual e evoluir em riqueza, empreendedorismo, negócios e investimentos.
         </p>

@@ -30,6 +30,11 @@ export function ProBadge() {
   return <span className="rounded-md bg-gold/20 px-1 py-0.5 text-[9px] font-bold tracking-wide text-gold-soft">PREMIUM</span>;
 }
 
+/** Selo VIP, no mesmo estilo do selo PREMIUM (amarelo em negrito). */
+export function VipBadge() {
+  return <span className="rounded-md bg-gold/20 px-1 py-0.5 text-[9px] font-extrabold tracking-wide text-gold-soft">VIP</span>;
+}
+
 export function PageTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <header className="mb-6">
