@@ -346,6 +346,13 @@ function migrate(db: Database.Database) {
       laps INTEGER NOT NULL DEFAULT 0,
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+    CREATE TABLE IF NOT EXISTS wfs_radar (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      ym TEXT NOT NULL,
+      scores TEXT NOT NULL,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (user_id, ym)
+    );
     CREATE TABLE IF NOT EXISTS event_rsvps (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       event_id INTEGER NOT NULL REFERENCES meeting_events(id) ON DELETE CASCADE,

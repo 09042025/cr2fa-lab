@@ -20,3 +20,16 @@ export function saveProgress(userId: number, p: WfsProgress): void {
   const laps = Math.min(999, Math.max(0, Math.trunc(p.laps) || 0));
   db().prepare("INSERT INTO wfs_progress (user_id, weeks, stage, laps) VALUES (?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET weeks = excluded.weeks, stage = excluded.stage, laps = excluded.laps, updated_at = unixepoch()").run(userId, weeks, stage, laps);
 }
+
+export interface RadarEntry { ym: string; scores: number[] }
+
+export function listRadar(userId: number): RadarEntry[] {
+  const rows = db().prepare("SELECT ym, scores FROM wfs_radar WHERE user_id = ? ORDER BY ym DESC LIMIT 24").all(userId) as { ym: string; scores: string }[];
+  return rows.map((r) => ({ ym: r.ym, scores: r.scores.split(",").map(Number) })).filter((r) => r.scores.length === 10);
+}
+
+export function saveRadar(userId: number, ym: string, scores: number[]): boolean {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(ym) || scores.length !== 10 || scores.some((n) => !Number.isInteger(n) || n < 0 || n > 10)) return false;
+  db().prepare("INSERT INTO wfs_radar (user_id, ym, scores) VALUES (?, ?, ?) ON CONFLICT(user_id, ym) DO UPDATE SET scores = excluded.scores, updated_at = unixepoch()").run(userId, ym, scores.join(","));
+  return true;
+}

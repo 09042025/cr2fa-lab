@@ -65,3 +65,27 @@
 .wfm-oath p { font-family: "EB Garamond", Georgia, serif; font-style: normal; font-weight: 500; font-size: clamp(1.3rem, 4.2vw, 1.65rem); line-height: 1.5; color: #fbf3da; margin: 0.9em 0; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85); }
 .wfm-oath .wfm-oath-box { font-family: "Cinzel", Georgia, serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: clamp(1.05rem, 4vw, 1.5rem); line-height: 1.45; color: #fff0c2; margin: 1.4rem 0; padding: 1.1rem 1rem; border: 1px solid rgba(217, 169, 60, 0.7); border-radius: 0.6rem; background: linear-gradient(180deg, rgba(60, 38, 8, 0.55), rgba(10, 8, 6, 0.7)); box-shadow: 0 0 26px rgba(217, 140, 30, 0.22), inset 0 0 18px rgba(217, 169, 60, 0.12); }
 .wfm-oath .wfm-oath-sign { font-family: "Cinzel", Georgia, serif; font-weight: 500; text-transform: uppercase; white-space: nowrap; text-align: center; letter-spacing: 0.1em; font-size: clamp(0.5rem, 2.4vw, 0.95rem); color: #d9b45a; margin: 2rem 0 1rem; }
+
+/* Passos do protocolo (área VIP): cartões que abrem e fecham. */
+.wfm-step { margin: 0.7rem 0; border: 1px solid rgba(217, 169, 60, 0.35); border-radius: 0.7rem; background: rgba(0, 0, 0, 0.55); }
+.wfm-step[open] { border-color: rgba(217, 169, 60, 0.75); box-shadow: 0 0 22px rgba(217, 140, 30, 0.15); }
+.wfm-step > summary { cursor: pointer; list-style: none; padding: 0.9rem 1rem; display: flex; align-items: center; gap: 0.8rem; }
+.wfm-step > summary::-webkit-details-marker { display: none; }
+.wfm-step > summary::after { content: "＋"; margin-left: auto; color: #d9b45a; font-size: 1.3rem; }
+.wfm-step[open] > summary::after { content: "－"; }
+.wfm-step .num { font-family: "Cinzel", serif; font-weight: 700; color: #d9b45a; font-size: 0.8rem; letter-spacing: 0.2em; white-space: nowrap; }
+.wfm-step .ttl { font-family: "Cinzel", serif; font-weight: 700; color: #fff; font-size: clamp(1rem, 3.4vw, 1.25rem); line-height: 1.2; }
+.wfm-step .sub { display: block; font-style: italic; color: #f1e3b4; font-size: 1rem; font-weight: 400; font-family: "EB Garamond", serif; }
+.wfm-step-body { padding: 0 1rem 1.1rem; font-size: 1.1rem; line-height: 1.65; }
+.wfm-step-body h4 { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: 0.18em; font-size: 0.78rem; color: #c7a24a; margin: 1.3rem 0 0.4rem; text-transform: uppercase; }
+.wfm-step-body p { margin: 0 0 0.7em; }
+.wfm-step-body ul, .wfm-step-body ol { margin: 0 0 0.8em; padding-left: 1.3rem; }
+.wfm-step-body ul { list-style: disc; } .wfm-step-body ol { list-style: decimal; }
+.wfm-step-body li { margin: 0.2em 0; }
+.wfm-step-body .phrase { margin-top: 1.3rem; padding: 0.9rem 1rem; text-align: center; font-style: italic; font-size: 1.2rem; color: #fff0c2; border: 1px solid rgba(217, 169, 60, 0.6); border-radius: 0.6rem; background: linear-gradient(180deg, rgba(60, 38, 8, 0.5), rgba(10, 8, 6, 0.6)); }
+.wfm-h2 { font-family: "UnifrakturMaguntia", serif; text-align: center; font-size: clamp(1.8rem, 6vw, 2.6rem); margin: 2rem 0 0.8rem; }
+.wfm-table { width: 100%; text-align: left; font-size: 1.05rem; line-height: 1.4; border-collapse: collapse; }
+.wfm-table th { font-family: "Cinzel", serif; font-size: 0.72rem; letter-spacing: 0.15em; color: #c7a24a; padding: 0.5rem 0.6rem 0.5rem 0; text-transform: uppercase; }
+.wfm-table td { padding: 0.55rem 0.6rem 0.55rem 0; border-top: 1px solid rgba(199, 162, 74, 0.25); vertical-align: top; }
+.wfm-card { border: 1px solid rgba(199, 162, 74, 0.3); background: rgba(0, 0, 0, 0.45); border-radius: 0.6rem; padding: 0.8rem 1rem; margin: 0.6rem 0; }
+.wfm-card b { font-family: "Cinzel", serif; letter-spacing: 0.1em; color: #e3c36a; font-size: 0.95rem; display: block; margin-bottom: 0.15rem; }

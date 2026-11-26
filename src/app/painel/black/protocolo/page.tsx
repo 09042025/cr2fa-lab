@@ -2,7 +2,10 @@ import { requireUser } from "@/lib/auth";
 import { WfmShell } from "@/components/WfmShell";
 import { VipLocked } from "@/components/VipLocked";
 import { canAccessVip } from "@/lib/wfs";
-import { PILLARS, PILLS, THINKERS, WEEKS } from "@/lib/wfs-content";
+import { THINKERS } from "@/lib/wfs-content";
+import { INTRO, PHASES, PILLARS_FULL } from "@/lib/wfs-doctrine";
+import { STEPS } from "@/lib/wfs-steps";
+import { StepCard } from "@/components/WfsBits";
 import pillsImg from "@/assets/wfs/pills.webp";
 import logo from "@/assets/wfs/logo-wolf.webp";
 
@@ -25,7 +28,9 @@ export default async function Page() {
       </header>
 
       <div className="wfm-body">
-        <p>Existe uma premissa fundamental: a Black Pill não deve ser uma passagem obrigatória. Ela representa uma armadilha possível durante o despertar. E a White Pill não representa um estado de iluminação definitiva, mas o início de uma vida de aprendizado consciente.</p>
+        <h2 className="wfm-h2 wfm-silver">1. Introdução</h2>
+        {INTRO.map((t) => <p key={t}>{t}</p>)}
+        <p><em>Existe uma premissa fundamental: a Black Pill não deve ser uma passagem obrigatória. Ela representa uma armadilha possível durante o despertar. E a White Pill não representa um estado de iluminação definitiva, mas o início de uma vida de aprendizado consciente.</em></p>
       </div>
 
       <div className="wfm-pills">
@@ -36,32 +41,33 @@ export default async function Page() {
         </figure>
       </div>
 
-      {PILLS.map((p) => (
+      <div className="wfm-body" style={{ paddingBottom: 0 }}><h2 className="wfm-h2 wfm-silver">2. As quatro fases da consciência</h2></div>
+      {PHASES.map((p) => (
         <section key={p.tone} className={`wfm-pill wfm-pill-${p.tone}`}>
           <h2 className="wfm-goth"><span className="wfm-cap" aria-hidden />{p.name}</h2>
           <h3>{p.steps.toUpperCase()} · {p.sub.toUpperCase()}</h3>
           <div className="wfm-body !px-0 !pt-0 !pb-0 !text-[#d7dcea]">
-            <p>{p.text}</p>
-            <ol className="list-none space-y-1 pl-0" style={{ fontSize: "1.05rem" }}>
-              {WEEKS.filter((w) => w.tone === p.tone).map((w) => <li key={w.n}><span className="wfm-cin text-[#c7a24a]">PASSO {String(w.n).padStart(2, "0")}</span> — {w.title}</li>)}
-            </ol>
+            {p.body.map((t) => <p key={t}>{t}</p>)}
+            <p><strong>Objetivo:</strong> {p.goal}</p>
           </div>
         </section>
       ))}
+
+      <div className="wfm-body" style={{ paddingBottom: 0 }}>
+        <h2 className="wfm-h2 wfm-silver">3. Os 12 passos da evolução da consciência</h2>
+        <p className="text-center" style={{ fontSize: "1rem", opacity: 0.8 }}>Toque em um passo para abrir os detalhes: princípio, filosofia, o que estudar, leitura, exercício, desafio, reflexão e critério de evolução.</p>
+        {STEPS.map((st) => <StepCard key={st.n} s={st} />)}
+      </div>
 
       <div className="wfm-body">
         <p>O membro que chega ao 12º passo retorna continuamente ao primeiro, mas com novas experiências, conhecimentos e responsabilidades.</p>
         <p className="wfm-big">A evolução não é linear. É uma espiral de aprendizado.</p>
         <div className="wfm-orn" aria-hidden>✦</div>
-        <h2 className="wfm-goth wfm-silver text-center" style={{ fontSize: "clamp(1.8rem,6vw,2.6rem)" }}>Os quatro pilares</h2>
-        <div className="grid grid-cols-2 gap-3" style={{ margin: "1rem 0 2rem" }}>
-          {PILLARS.map((p) => (
-            <div key={p.name} className="wfm-quote" style={{ margin: 0, padding: "0.9rem 0.6rem" }}>
-              <div className="wfm-cin text-sm">{p.name.toUpperCase()}</div>
-              <div style={{ fontFamily: "EB Garamond, serif", fontWeight: 400, letterSpacing: 0, fontSize: "1rem", marginTop: "0.3rem" }}>{p.text}</div>
-            </div>
-          ))}
-        </div>
+        <h2 className="wfm-goth wfm-silver text-center" style={{ fontSize: "clamp(1.8rem,6vw,2.6rem)" }}>4. Os quatro pilares da White Flame Society</h2>
+        {PILLARS_FULL.map((p) => (
+          <div key={p.name} className="wfm-card"><b>{p.n} — {p.name.toUpperCase()}</b><em>{p.tag}</em><div style={{ fontSize: "1.05rem" }}>{p.text}</div></div>
+        ))}
+        <div style={{ height: "1.5rem" }} />
 
         <h2 className="wfm-goth wfm-silver text-center" style={{ fontSize: "clamp(1.8rem,6vw,2.6rem)" }}>A fundamentação filosófica</h2>
         <div className="overflow-x-auto" style={{ margin: "1rem 0" }}>

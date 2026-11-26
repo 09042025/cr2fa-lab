@@ -6,6 +6,9 @@ import { VipSeal } from "./WfmShell";
 const TABS = [
   { href: "/painel/black", label: "Visão geral", vip: false },
   { href: "/painel/black/protocolo", label: "Protocolo", vip: true },
+  { href: "/painel/black/jornada", label: "Jornada", vip: true },
+  { href: "/painel/black/radar", label: "Radar", vip: true },
+  { href: "/painel/black/doutrina", label: "Doutrina", vip: true },
   { href: "/painel/black/juramento", label: "Juramento", vip: true },
   { href: "/painel/black/ciclo", label: "Ciclo", vip: true },
 ];
