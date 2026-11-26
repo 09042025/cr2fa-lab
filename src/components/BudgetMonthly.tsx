@@ -393,6 +393,8 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                 </li>
               ))}
             </ol>
+            <div className="mt-3 flex items-baseline justify-between gap-2 border-t border-gold/40 pt-2 text-sm font-bold"><span>Total de gastos no ano</span><span>{brl(rank.totalSpend)}</span></div>
+            <p className="mt-1 text-xs text-muted">Soma de todos os gastos de {year}, sem contar o que foi guardado. Os 10 maiores somam {brl(rank.items.reduce((t, r) => t + r.total, 0))} ({rank.totalSpend > 0 ? Math.round((rank.items.reduce((t, r) => t + r.total, 0) / rank.totalSpend) * 100) : 0}%).</p>
             <p className="mt-2 text-xs text-muted">Os 3 primeiros (em vermelho) são onde um corte pequeno mais faz diferença.</p>
 
             <h3 className="mt-5 text-sm font-semibold">Ano por categoria: realizado x ideal</h3>
@@ -412,6 +414,14 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                     );
                   })}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t border-gold/50 font-bold">
+                    <td>Total no ano</td>
+                    <td className="num">{brl(catTotals.reduce((t, c) => t + c.idealYear, 0))}</td>
+                    <td className="num">{brl(catTotals.reduce((t, c) => t + c.total, 0))}</td>
+                    <td className="num">{(() => { const d = catTotals.reduce((t, c) => t + c.total - c.idealYear, 0); return `${d > 0 ? "+" : ""}${brl(d)}`; })()}</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
