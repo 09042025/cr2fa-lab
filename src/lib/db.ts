@@ -239,6 +239,7 @@ function migrate(db: Database.Database) {
   // Comprovante opcional em cada lançamento do orçamento.
   const be = db.prepare("PRAGMA table_info(budget_expenses)").all() as { name: string }[];
   if (!be.some((x) => x.name === "receipt_id")) db.exec("ALTER TABLE budget_expenses ADD COLUMN receipt_id INTEGER");
+  if (!be.some((x) => x.name === "series_id")) db.exec("ALTER TABLE budget_expenses ADD COLUMN series_id INTEGER");
 
   // Mensagens diretas (estilo WhatsApp): imagens e áudios enviados numa conversa ficam marcados como privados
   // e só quem participa da conversa consegue abri-los.

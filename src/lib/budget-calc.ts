@@ -179,6 +179,8 @@ export interface Expense {
   note: string;
   /** Comprovante anexado (foto ou PDF), se houver. */
   receiptId: number | null;
+  /** Mesmo número em todos os lançamentos de um gasto fixo repetido. */
+  seriesId: number | null;
 }
 
 export const validDay = (d: string) => /^(20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(d);
@@ -237,4 +239,19 @@ export function rankSpending(list: Expense[], months: MonthEntry[], year: number
     totalSpend: Math.round(totalSpend * 100) / 100,
     totalIncome,
   };
+}
+
+export const MAX_REPEAT_MONTHS = 120;
+
+/** Datas de um gasto fixo: o mesmo dia de cada mês, por `count` meses (em meses curtos usa o último dia). */
+export function repeatDays(day: string, count: number): string[] {
+  if (!validDay(day)) return [];
+  const n = Math.min(MAX_REPEAT_MONTHS, Math.max(1, Math.trunc(count) || 1));
+  const y = Number(day.slice(0, 4)), m = Number(day.slice(5, 7)) - 1, d = Number(day.slice(8, 10));
+  const out: string[] = [];
+  for (let k = 0; k < n; k++) {
+    const yy = y + Math.floor((m + k) / 12), mm = (m + k) % 12;
+    out.push(dayOf(ymOf(yy, mm), Math.min(d, daysInMonth(yy, mm))));
+  }
+  return out;
 }
