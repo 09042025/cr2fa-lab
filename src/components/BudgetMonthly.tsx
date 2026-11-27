@@ -12,7 +12,8 @@ const brl2 = money2;
 const num = (v: number | null) => (v ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "");
 const COLORS: Record<CatId, string> = { moradia: "#1f77b4", alimentacao: "#ff7f0e", transporte: "#2ca02c", saude: "#9467bd", lazer: "#e377c2", reserva: "#17becf" };
 /** Valor curto para caber em cima da barra: 40, 850, 1,2 mil, 15 mil. */
-const compactBRL = (v: number) => (v >= 10000 ? `${Math.round(v / 1000)} mil` : v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil` : String(Math.round(v)));
+const compactBRL = (v: number) => (v >= 10000 ? `${Math.round(v / 1000)}k` : v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k` : String(Math.round(v)));
+const nr = (v: number) => money0(v).replace(/R\$\s?/, "");
 const catLabel = (id: CatId) => BUDGET_CATS.find((c) => c.id === id)!.label;
 const post = (url: string, method: string, body: unknown) => fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
@@ -403,18 +404,19 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
             <p className="mt-2 text-xs text-muted">Os 3 primeiros (em vermelho) são onde um corte pequeno mais faz diferença.</p>
 
             <h3 className="mt-5 text-sm font-semibold">Ano por categoria: realizado x ideal</h3>
-            <div className="mt-2 overflow-x-auto">
-              <table className="data w-full text-sm">
-                <thead><tr><th>Categoria</th><th className="num">Ideal no ano</th><th className="num">Realizado</th><th className="num">Diferença</th></tr></thead>
+            <div className="mt-2">
+              <p className="text-[11px] text-muted">Valores em R$</p>
+              <table className="data compact w-full">
+                <thead><tr><th style={{ width: "31%" }}>Categoria</th><th className="num" style={{ width: "23%" }}>Ideal</th><th className="num" style={{ width: "23%" }}>Realizado</th><th className="num" style={{ width: "23%" }}>Dif.</th></tr></thead>
                 <tbody>
                   {catTotals.map((c) => {
                     const diff = c.total - c.idealYear;
                     const bad = c.id === "reserva" ? diff < 0 : diff > 0;
                     return (
                       <tr key={c.id}>
-                        <td><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm" style={{ background: COLORS[c.id] }} />{c.label}</td>
-                        <td className="num">{brl(c.idealYear)}</td><td className="num">{brl(c.total)}</td>
-                        <td className={`num ${c.total > 0 ? (bad ? "text-down" : "text-up") : "text-muted"}`}>{c.total > 0 ? `${diff > 0 ? "+" : ""}${brl(diff)}` : "—"}</td>
+                        <td className="!whitespace-normal"><span className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: COLORS[c.id] }} />{c.label}</td>
+                        <td className="num">{nr(c.idealYear)}</td><td className="num">{nr(c.total)}</td>
+                        <td className={`num ${c.total > 0 ? (bad ? "text-down" : "text-up") : "text-muted"}`}>{c.total > 0 ? `${diff > 0 ? "+" : ""}${nr(diff)}` : "—"}</td>
                       </tr>
                     );
                   })}
@@ -422,9 +424,9 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                 <tfoot>
                   <tr className="border-t border-gold/50 font-bold">
                     <td>Total no ano</td>
-                    <td className="num">{brl(catTotals.reduce((t, c) => t + c.idealYear, 0))}</td>
-                    <td className="num">{brl(catTotals.reduce((t, c) => t + c.total, 0))}</td>
-                    <td className="num">{(() => { const d = catTotals.reduce((t, c) => t + c.total - c.idealYear, 0); return `${d > 0 ? "+" : ""}${brl(d)}`; })()}</td>
+                    <td className="num">{nr(catTotals.reduce((t, c) => t + c.idealYear, 0))}</td>
+                    <td className="num">{nr(catTotals.reduce((t, c) => t + c.total, 0))}</td>
+                    <td className="num">{(() => { const d = catTotals.reduce((t, c) => t + c.total - c.idealYear, 0); return `${d > 0 ? "+" : ""}${nr(d)}`; })()}</td>
                   </tr>
                 </tfoot>
               </table>
