@@ -40,6 +40,8 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   const [dayMsg, setDayMsg] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [reimb, setReimb] = useState(false);
+  const [viewReceipt, setViewReceipt] = useState<number | null>(null);
+  const [pdfView, setPdfView] = useState(false);
   const [openRank, setOpenRank] = useState<string | null>(null);
   const [fixed, setFixed] = useState(false);
   const [fixedN, setFixedN] = useState("12");
@@ -310,7 +312,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                     {dayList.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2 py-1.5">
                         <span className="flex min-w-0 items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[e.cat] }} /><span className="truncate">{e.seriesId ? "🔁 " : ""}{e.reimb ? "🏢 " : ""}{expenseLabel(e)}{e.sub !== OTHER_SUB && e.note ? <span className="text-muted"> · {e.note}</span> : null}</span></span>
-                        <span className="flex shrink-0 items-center gap-2"><span className={`font-semibold ${e.reimb ? "text-down" : ""}`}>{e.reimb ? "-" : ""}{brl2(e.amount)}</span>{e.reimb ? <span className="text-[10px] text-down">reembolso</span> : null}{e.receiptId ? <a className="text-xs text-gold-soft underline" href={`/api/budget/receipt?id=${e.receiptId}`} target="_blank" rel="noopener noreferrer">📎 comprovante/boleto</a> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button>{e.seriesId ? <button type="button" className="text-xs text-down underline" onClick={() => { if (window.confirm("Apagar este gasto fixo e os dos próximos meses?")) delExpense(e.id, true); }}>apagar este e os próximos</button> : null}</span>
+                        <span className="flex shrink-0 items-center gap-2"><span className={`font-semibold ${e.reimb ? "text-down" : ""}`}>{e.reimb ? "-" : ""}{brl2(e.amount)}</span>{e.reimb ? <span className="text-[10px] text-down">reembolso</span> : null}{e.receiptId ? <button type="button" className="text-xs text-gold-soft underline" onClick={() => { setPdfView(false); setViewReceipt(e.receiptId); }}>📎 comprovante/boleto</button> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button>{e.seriesId ? <button type="button" className="text-xs text-down underline" onClick={() => { if (window.confirm("Apagar este gasto fixo e os dos próximos meses?")) delExpense(e.id, true); }}>apagar este e os próximos</button> : null}</span>
                       </li>
                     ))}
                     <li className="flex justify-between pt-1.5 text-sm font-bold"><span>Total do dia</span><span>{(() => { const v = dayList.reduce((s, e) => s + (e.reimb ? -e.amount : e.amount), 0); return v < 0 ? <span className="text-down">-{brl2(-v)}</span> : brl2(v); })()}</span></li>
@@ -478,6 +480,24 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
           </>
         )}
       </section>
+
+      {viewReceipt !== null && (
+        <div className="fixed inset-0 z-[70] flex flex-col bg-black/95" role="dialog" aria-label="Comprovante">
+          <div className="flex items-center justify-between gap-3 border-b border-line bg-ink px-4 py-3">
+            <span className="text-sm font-semibold text-gold-soft">Comprovante</span>
+            <div className="flex items-center gap-4">
+              <a className="text-xs text-muted underline" href={`/api/budget/receipt?id=${viewReceipt}`} target="_blank" rel="noreferrer">Abrir em nova aba</a>
+              <button type="button" onClick={() => setViewReceipt(null)} aria-label="Fechar comprovante" className="rounded-full border border-gold/60 px-3 py-1 text-xl leading-none text-gold-soft">×</button>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto p-2">
+            {pdfView
+              ? <iframe title="Comprovante" src={`/api/budget/receipt?id=${viewReceipt}`} className="h-full w-full rounded bg-white" />
+              // eslint-disable-next-line @next/next/no-img-element
+              : <img alt="Comprovante" src={`/api/budget/receipt?id=${viewReceipt}`} onError={() => setPdfView(true)} className="mx-auto max-h-full max-w-full object-contain" />}
+          </div>
+        </div>
+      )}
     </>
   );
 }
