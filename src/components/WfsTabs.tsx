@@ -10,6 +10,7 @@ const TABS = [
   { href: "/painel/black/jornada", label: "Jornada", vip: true },
   { href: "/painel/black/radar", label: "Radar", vip: true },
   { href: "/painel/black/ciclo", label: "Ciclo", vip: true },
+  { href: "/painel/black/wallet", label: "Niza Wallet", vip: true },
 ];
 
 /** Abas internas do Black Diamond VIP. As três da White Flame levam o selo VIP. */
