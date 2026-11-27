@@ -409,8 +409,44 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                     const sib = rankAll.items.filter((x) => x.cat === r.cat);
                     const catSum = sib.reduce((t, x) => t + x.total, 0);
                     const maxS = Math.max(...sib.map((x) => x.total), 1);
+                    const entries = done.filter((e) => !e.reimb && e.day.startsWith(`${year}-`) && e.cat === r.cat && expenseLabel(e) === r.label);
+                    const groups = new Map<string, { label: string; total: number; n: number }>();
+                    for (const e of entries) {
+                      const nt = e.note.trim();
+                      const k = nt ? nt.toLowerCase() : "";
+                      const g = groups.get(k) ?? { label: nt || "(sem descrição)", total: 0, n: 0 };
+                      g.total += e.amount; g.n += 1; groups.set(k, g);
+                    }
+                    const gl = [...groups.values()].sort((a, b) => b.total - a.total);
+                    const maxG = Math.max(...gl.map((g) => g.total), 1);
+                    const recent = [...entries].sort((a, b) => (a.day < b.day ? 1 : -1)).slice(0, 12);
                     return (
                     <div className="ml-8 mt-2 rounded-lg border border-gold/30 bg-panel-2/50 p-3">
+                      {entries.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-xs font-semibold text-gold-soft">O que tem dentro de “{r.label}” em {year}</p>
+                          <p className="text-[11px] text-muted">Agrupado pela descrição que você escreveu em cada lançamento.</p>
+                          <ol className="mt-2 space-y-2">
+                            {gl.map((g) => (
+                              <li key={g.label} className="text-xs">
+                                <div className="flex items-baseline justify-between gap-2">
+                                  <span className="min-w-0 truncate">{g.label} <span className="text-muted">· {g.n}x</span></span>
+                                  <span className="shrink-0 font-semibold">{brl(g.total)} <span className="font-normal text-muted">({((g.total / r.total) * 100).toFixed(0)}%)</span></span>
+                                </div>
+                                <div className="mt-0.5 h-1.5 overflow-hidden rounded bg-panel"><div className="h-full rounded bg-gold/70" style={{ width: `${(g.total / maxG) * 100}%` }} /></div>
+                              </li>
+                            ))}
+                          </ol>
+                          {gl.length === 1 && gl[0].label === "(sem descrição)" && <p className="mt-2 text-[11px] text-muted">Dica: escreva uma descrição (ex.: barbeiro, academia) ao lançar para ver aqui onde está o gasto.</p>}
+                          <p className="mt-3 text-[11px] font-semibold text-muted">Últimos lançamentos</p>
+                          <ul className="mt-1 divide-y divide-line/40 text-xs">
+                            {recent.map((e) => (
+                              <li key={e.id} className="flex justify-between gap-2 py-1"><span className="min-w-0 truncate"><span className="text-muted">{e.day.slice(8)}/{e.day.slice(5, 7)}</span> {e.note.trim() || "—"}</span><span className="shrink-0">{brl2(e.amount)}</span></li>
+                            ))}
+                          </ul>
+                          {entries.length > recent.length && <p className="mt-1 text-[11px] text-muted">+ {entries.length - recent.length} lançamentos mais antigos.</p>}
+                        </div>
+                      )}
                       <p className="text-xs font-semibold text-gold-soft">{catLabel(r.cat)}: acumulado em {year} por tipo de gasto</p>
                       <p className="text-[11px] text-muted">Total da categoria: {brl(catSum)}</p>
                       <ol className="mt-2 space-y-2">
