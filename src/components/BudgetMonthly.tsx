@@ -162,7 +162,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   const openMi = open ? Number(open.slice(5)) - 1 : 0;
   const dayTotals = useMemo(() => {
     const m = new Map<string, number>();
-    for (const e of expenses) if (!e.reimb) m.set(e.day, (m.get(e.day) ?? 0) + e.amount);
+    for (const e of expenses) m.set(e.day, (m.get(e.day) ?? 0) + (e.reimb ? -e.amount : e.amount));
     return m;
   }, [expenses]);
   const dayList = day ? expenses.filter((e) => e.day === day) : [];
@@ -238,9 +238,9 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                 const fut = d > curDay;
                 return (
                   <button key={d} type="button" disabled={fut} onClick={() => pickDay(d)} aria-pressed={day === d}
-                    className={`rounded-lg border p-1 text-center ${day === d ? "border-gold bg-panel-2" : t > 0 ? "border-gold/40" : "border-line"} ${fut ? "opacity-30" : "hover:bg-panel-2"} ${d === curDay ? "ring-1 ring-gold/60" : ""}`}>
+                    className={`rounded-lg border p-1 text-center ${day === d ? "border-gold bg-panel-2" : t !== 0 ? "border-gold/40" : "border-line"} ${fut ? "opacity-30" : "hover:bg-panel-2"} ${d === curDay ? "ring-1 ring-gold/60" : ""}`}>
                     <div className="text-xs font-semibold">{i + 1}</div>
-                    <div className={`h-3 truncate text-[9px] ${t > 0 ? "text-gold-soft" : "text-transparent"}`}>{t > 0 ? brl(t) : "·"}</div>
+                    <div className={`h-3 truncate text-[9px] ${t < 0 ? "font-semibold text-down" : t > 0 ? "text-gold-soft" : "text-transparent"}`}>{t !== 0 ? (t < 0 ? `-${brl(-t)}` : brl(t)) : "·"}</div>
                   </button>
                 );
               })}
@@ -307,10 +307,10 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                     {dayList.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2 py-1.5">
                         <span className="flex min-w-0 items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[e.cat] }} /><span className="truncate">{e.seriesId ? "🔁 " : ""}{e.reimb ? "🏢 " : ""}{expenseLabel(e)}{e.sub !== OTHER_SUB && e.note ? <span className="text-muted"> · {e.note}</span> : null}</span></span>
-                        <span className="flex shrink-0 items-center gap-2"><span className={`font-semibold ${e.reimb ? "text-muted line-through" : ""}`}>{brl2(e.amount)}</span>{e.reimb ? <span className="text-[10px] text-up">reembolsado</span> : null}{e.receiptId ? <a className="text-xs text-gold-soft underline" href={`/api/budget/receipt?id=${e.receiptId}`} target="_blank" rel="noopener noreferrer">📎 comprovante/boleto</a> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button>{e.seriesId ? <button type="button" className="text-xs text-down underline" onClick={() => { if (window.confirm("Apagar este gasto fixo e os dos próximos meses?")) delExpense(e.id, true); }}>apagar este e os próximos</button> : null}</span>
+                        <span className="flex shrink-0 items-center gap-2"><span className={`font-semibold ${e.reimb ? "text-down" : ""}`}>{e.reimb ? "-" : ""}{brl2(e.amount)}</span>{e.reimb ? <span className="text-[10px] text-down">reembolso</span> : null}{e.receiptId ? <a className="text-xs text-gold-soft underline" href={`/api/budget/receipt?id=${e.receiptId}`} target="_blank" rel="noopener noreferrer">📎 comprovante/boleto</a> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button>{e.seriesId ? <button type="button" className="text-xs text-down underline" onClick={() => { if (window.confirm("Apagar este gasto fixo e os dos próximos meses?")) delExpense(e.id, true); }}>apagar este e os próximos</button> : null}</span>
                       </li>
                     ))}
-                    <li className="flex justify-between pt-1.5 text-sm font-bold"><span>Total do dia</span><span>{brl2(dayList.reduce((s, e) => s + (e.reimb ? 0 : e.amount), 0))}</span></li>
+                    <li className="flex justify-between pt-1.5 text-sm font-bold"><span>Total do dia</span><span>{(() => { const v = dayList.reduce((s, e) => s + (e.reimb ? -e.amount : e.amount), 0); return v < 0 ? <span className="text-down">-{brl2(-v)}</span> : brl2(v); })()}</span></li>
                   </ul>
                 ) : <p className="mt-3 text-xs text-muted">Nenhum lançamento neste dia ainda.</p>}
               </div>
@@ -336,7 +336,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
               <p className={`mt-2 text-sm ${stats.sobra < 0 ? "text-down" : "text-muted"}`}>
                 Total do mês: {brl(stats.total)}. {stats.sobra < 0 ? `Você gastou ${brl(-stats.sobra)} a mais do que ganhou.` : stats.sobra === 0 ? "Toda a renda teve destino." : `Sobraram ${brl(stats.sobra)}.`}
                 {stats.overspent > 0 ? ` Nas categorias de gasto, passou ${brl(stats.overspent)} do ideal.` : ""}
-              {reimbMonth > 0 ? ` 🏢 Reembolso empresa já abatido: ${brl(reimbMonth)}.` : ""}
+              {reimbMonth > 0 ? ` 🏢 Reembolso empresa abatido: ${brl(reimbMonth)}.` : ""}
               </p>
             )}
 
