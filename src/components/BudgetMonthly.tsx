@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { maskStyle, money0, money2, useHideValues } from "@/lib/hide-values";
 import {
-  BUDGET_CATS, MONTH_NAMES, OTHER_SUB, SUBS, combineActual, computeBudget, dayOf, daysInMonth, expenseLabel, idealAmounts, monthStats, parseBRL, rankSpending, repeatDays, ymOf,
+  BUDGET_CATS, MONTH_NAMES, OTHER_SUB, SUBS, combineActual, computeBudget, dayOf, daysInMonth, expenseLabel, idealAmounts, monthStats, parseBRL, rankSpending, reimbursedTotal, repeatDays, ymOf,
   type Amounts, type BudgetInput, type CatId, type Expense, type MonthEntry,
 } from "@/lib/budget-calc";
 
@@ -38,6 +38,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   const [note, setNote] = useState("");
   const [dayMsg, setDayMsg] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [reimb, setReimb] = useState(false);
   const [fixed, setFixed] = useState(false);
   const [fixedN, setFixedN] = useState("12");
   const [fixedUnit, setFixedUnit] = useState<"meses" | "anos">("meses");
@@ -64,6 +65,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
     const actual = Object.fromEntries(BUDGET_CATS.map((c) => [c.id, parseBRL(vals[c.id])])) as Amounts;
     return { actual, income: parseBRL(income), reserve: reserve.trim() ? parseBRL(reserve) : null };
   }, [vals, income, reserve]);
+  const reimbMonth = useMemo(() => (open ? reimbursedTotal(done, open) : 0), [done, open]);
   const stats = useMemo(() => monthStats(draft.income, open ? combineActual(draft.actual, done, open) : draft.actual), [draft, done, open]);
 
   async function save() {
@@ -123,12 +125,12 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
       if (!up.ok || !ud?.id) { setBusy(false); setDayMsg(ud?.error ?? "Não foi possível enviar o comprovante. Tire-o ou lance sem anexo."); return; }
       receiptId = ud.id;
     }
-    const res = await post("/api/budget/expenses", "POST", { day, cat, sub, amount: v, note: note.trim(), receiptId, ...(repeatMonths > 1 ? { repeatMonths } : {}) });
+    const res = await post("/api/budget/expenses", "POST", { day, cat, sub, amount: v, note: note.trim(), receiptId, ...(reimb ? { reimb: true } : {}), ...(repeatMonths > 1 ? { repeatMonths } : {}) });
     setBusy(false);
     const data = (await res.json().catch(() => null)) as { expenses?: Expense[]; error?: string } | null;
     if (!res.ok || !data?.expenses?.length) { setDayMsg(data?.error ?? "Não foi possível salvar."); return; }
     setExpenses((p) => [...p, ...data.expenses!]);
-    setAmount(""); setNote(""); clearFile(); setFixed(false);
+    setAmount(""); setNote(""); clearFile(); setFixed(false); setReimb(false);
     setDayMsg(data.expenses.length > 1 ? `Gasto fixo lançado em ${data.expenses.length} meses (até ${monthLabel(data.expenses[data.expenses.length - 1].day)}).` : "Lançado.");
   }
 
@@ -160,7 +162,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   const openMi = open ? Number(open.slice(5)) - 1 : 0;
   const dayTotals = useMemo(() => {
     const m = new Map<string, number>();
-    for (const e of expenses) m.set(e.day, (m.get(e.day) ?? 0) + e.amount);
+    for (const e of expenses) if (!e.reimb) m.set(e.day, (m.get(e.day) ?? 0) + e.amount);
     return m;
   }, [expenses]);
   const dayList = day ? expenses.filter((e) => e.day === day) : [];
@@ -266,6 +268,8 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                   </label>
                 </div>
                 <div className="mt-3 rounded-lg border border-line p-3">
+                  <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={reimb} onChange={(e) => setReimb(e.target.checked)} className="h-4 w-4 accent-[#d9b45a]" /> 🏢 Reembolso empresa</label>
+                  {reimb && <p className="mb-2 text-xs text-muted">Gasto corporativo (alimentação, estacionamento…) que a empresa devolve: o valor é abatido dos gastos do mês.</p>}
                   <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={fixed} onChange={(e) => setFixed(e.target.checked)} className="h-4 w-4 accent-[#d9b45a]" /> 🔁 Gasto fixo (repete todo mês)</label>
                   {fixed && (
                     <div className="mt-2 space-y-2">
@@ -302,11 +306,11 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                   <ul className="mt-3 divide-y divide-line/50 text-sm">
                     {dayList.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2 py-1.5">
-                        <span className="flex min-w-0 items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[e.cat] }} /><span className="truncate">{e.seriesId ? "🔁 " : ""}{expenseLabel(e)}{e.sub !== OTHER_SUB && e.note ? <span className="text-muted"> · {e.note}</span> : null}</span></span>
-                        <span className="flex shrink-0 items-center gap-2"><span className="font-semibold">{brl2(e.amount)}</span>{e.receiptId ? <a className="text-xs text-gold-soft underline" href={`/api/budget/receipt?id=${e.receiptId}`} target="_blank" rel="noopener noreferrer">📎 comprovante/boleto</a> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button>{e.seriesId ? <button type="button" className="text-xs text-down underline" onClick={() => { if (window.confirm("Apagar este gasto fixo e os dos próximos meses?")) delExpense(e.id, true); }}>apagar este e os próximos</button> : null}</span>
+                        <span className="flex min-w-0 items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[e.cat] }} /><span className="truncate">{e.seriesId ? "🔁 " : ""}{e.reimb ? "🏢 " : ""}{expenseLabel(e)}{e.sub !== OTHER_SUB && e.note ? <span className="text-muted"> · {e.note}</span> : null}</span></span>
+                        <span className="flex shrink-0 items-center gap-2"><span className={`font-semibold ${e.reimb ? "text-muted line-through" : ""}`}>{brl2(e.amount)}</span>{e.reimb ? <span className="text-[10px] text-up">reembolsado</span> : null}{e.receiptId ? <a className="text-xs text-gold-soft underline" href={`/api/budget/receipt?id=${e.receiptId}`} target="_blank" rel="noopener noreferrer">📎 comprovante/boleto</a> : null}<button type="button" className="text-xs text-down underline" onClick={() => delExpense(e.id)}>apagar</button>{e.seriesId ? <button type="button" className="text-xs text-down underline" onClick={() => { if (window.confirm("Apagar este gasto fixo e os dos próximos meses?")) delExpense(e.id, true); }}>apagar este e os próximos</button> : null}</span>
                       </li>
                     ))}
-                    <li className="flex justify-between pt-1.5 text-sm font-bold"><span>Total do dia</span><span>{brl2(dayList.reduce((s, e) => s + e.amount, 0))}</span></li>
+                    <li className="flex justify-between pt-1.5 text-sm font-bold"><span>Total do dia</span><span>{brl2(dayList.reduce((s, e) => s + (e.reimb ? 0 : e.amount), 0))}</span></li>
                   </ul>
                 ) : <p className="mt-3 text-xs text-muted">Nenhum lançamento neste dia ainda.</p>}
               </div>
@@ -332,6 +336,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
               <p className={`mt-2 text-sm ${stats.sobra < 0 ? "text-down" : "text-muted"}`}>
                 Total do mês: {brl(stats.total)}. {stats.sobra < 0 ? `Você gastou ${brl(-stats.sobra)} a mais do que ganhou.` : stats.sobra === 0 ? "Toda a renda teve destino." : `Sobraram ${brl(stats.sobra)}.`}
                 {stats.overspent > 0 ? ` Nas categorias de gasto, passou ${brl(stats.overspent)} do ideal.` : ""}
+              {reimbMonth > 0 ? ` 🏢 Reembolso empresa já abatido: ${brl(reimbMonth)}.` : ""}
               </p>
             )}
 

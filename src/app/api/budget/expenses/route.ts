@@ -12,6 +12,8 @@ const add = z.object({
   note: z.string().trim().max(80).default(""),
   receiptId: z.number().int().positive().nullable().optional(),
   /** Gasto fixo: repete no mesmo dia de cada mês, por este número de meses. */
+  /** Reembolso da empresa: abate o valor dos gastos do mês. */
+  reimb: z.boolean().optional(),
   repeatMonths: z.number().int().min(1).max(MAX_REPEAT_MONTHS).optional(),
 });
 

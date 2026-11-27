@@ -69,7 +69,7 @@ test("meses válidos", () => {
 
 import { SUBS, combineActual, daysInMonth, expenseLabel, rankSpending, validDay, type Expense } from "../src/lib/budget-calc";
 
-const ex = (id: number, day: string, cat: Expense["cat"], sub: string, amount: number, note = ""): Expense => ({ id, day, cat, sub, amount, note, receiptId: null, seriesId: null });
+const ex = (id: number, day: string, cat: Expense["cat"], sub: string, amount: number, note = ""): Expense => ({ id, day, cat, sub, amount, note, receiptId: null, seriesId: null, reimb: false });
 
 test("cada categoria tem 'Outros' no fim e datas são validadas", () => {
   for (const list of Object.values(SUBS)) assert.equal(list[list.length - 1], "Outros");
@@ -112,4 +112,14 @@ test("gasto fixo repete no mesmo dia de cada mês e respeita meses curtos e vira
   assert.equal(repeatDays("2026-11-05", 9999).length, 120);
   assert.deepEqual(repeatDays("2026-11-05", 1), ["2026-11-05"]);
   assert.deepEqual(repeatDays("lixo", 3), []);
+});
+
+import { reimbursedTotal } from "../src/lib/budget-calc";
+
+test("reembolso da empresa abate o valor do mês, do ranking e aparece à parte", () => {
+  const list: Expense[] = [ex(1, "2026-11-03", "alimentacao", "Restaurante", 80), { ...ex(2, "2026-11-04", "alimentacao", "Restaurante", 50), reimb: true }, { ...ex(3, "2026-11-05", "transporte", "Estacionamento e pedágio", 30), reimb: true }];
+  assert.equal(combineActual(null, list, "2026-11").alimentacao, 80);
+  assert.equal(combineActual(null, list, "2026-11").transporte, 0);
+  assert.equal(reimbursedTotal(list, "2026-11"), 80);
+  assert.equal(rankSpending(list, [], 2026).totalSpend, 80);
 });

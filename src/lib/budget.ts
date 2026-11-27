@@ -50,7 +50,8 @@ export function deleteMonth(userId: number, ym: string): boolean {
 }
 
 export function listExpenses(userId: number): Expense[] {
-  return db().prepare("SELECT id, day, cat, sub, amount, note, receipt_id receiptId, series_id seriesId FROM budget_expenses WHERE user_id = ? ORDER BY day, id LIMIT 20000").all(userId) as Expense[];
+  const rows = db().prepare("SELECT id, day, cat, sub, amount, note, receipt_id receiptId, series_id seriesId, reimb FROM budget_expenses WHERE user_id = ? ORDER BY day, id LIMIT 20000").all(userId) as (Omit<Expense, "reimb"> & { reimb: number })[];
+  return rows.map((r) => ({ ...r, reimb: r.reimb === 1 }));
 }
 
 export const MAX_RECEIPT_BYTES = 3 * 1024 * 1024;
@@ -73,7 +74,7 @@ export function getReceipt(userId: number, id: number): { mime: string; data: Bu
 }
 
 /** Lança um gasto. Com `repeatMonths` > 1 vira gasto fixo: cria um lançamento por mês, no mesmo dia, ligados por uma série. O anexo fica só no primeiro. */
-export function addExpense(userId: number, e: { day: string; cat: CatId; sub: string; amount: number; note: string; receiptId?: number | null; repeatMonths?: number }): Expense[] | null {
+export function addExpense(userId: number, e: { day: string; cat: CatId; sub: string; amount: number; note: string; receiptId?: number | null; repeatMonths?: number; reimb?: boolean }): Expense[] | null {
   if (!validDay(e.day) || !BUDGET_CATS.some((c) => c.id === e.cat)) return null;
   const amount = clean(e.amount);
   if (amount <= 0) return null;
@@ -84,15 +85,15 @@ export function addExpense(userId: number, e: { day: string; cat: CatId; sub: st
   }
   const sub = e.sub.slice(0, 40), note = e.note.slice(0, 80);
   const days = e.repeatMonths && e.repeatMonths > 1 ? repeatDays(e.day, e.repeatMonths) : [e.day];
-  const ins = db().prepare("INSERT INTO budget_expenses (user_id, day, cat, sub, amount, note, receipt_id, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+  const ins = db().prepare("INSERT INTO budget_expenses (user_id, day, cat, sub, amount, note, receipt_id, series_id, reimb) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
   const out: Expense[] = [];
   db().transaction(() => {
     let seriesId: number | null = null;
     days.forEach((d, i) => {
-      const r = ins.run(userId, d, e.cat, sub, amount, note, i === 0 ? receiptId : null, seriesId);
+      const r = ins.run(userId, d, e.cat, sub, amount, note, i === 0 ? receiptId : null, seriesId, e.reimb ? 1 : 0);
       const id = Number(r.lastInsertRowid);
       if (i === 0 && days.length > 1) { seriesId = id; db().prepare("UPDATE budget_expenses SET series_id = ? WHERE id = ?").run(id, id); }
-      out.push({ id, day: d, cat: e.cat, sub, amount, note, receiptId: i === 0 ? receiptId : null, seriesId: days.length > 1 ? seriesId : null });
+      out.push({ id, day: d, cat: e.cat, sub, amount, note, receiptId: i === 0 ? receiptId : null, seriesId: days.length > 1 ? seriesId : null, reimb: !!e.reimb });
     });
   })();
   return out;
