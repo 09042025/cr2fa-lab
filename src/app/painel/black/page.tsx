@@ -63,7 +63,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
           <Link href="/painel/comunidade?c=planejamento-de-reunioes" className="mt-3 inline-block text-gold-soft underline">Ver a agenda de Reuniões e Eventos</Link>
           <p className="mt-2 text-xs text-muted">Para renovar por mais 12 meses, contrate novamente abaixo.</p>
         </section>
-      ) : invite === "invited" || isAdmin ? null : invite === "requested" ? (
+      ) : null}
+
+      {(member || isAdmin) && (
+        <section className="card mb-6 border-gold/40 p-5">
+          <h2 className="font-display text-lg font-bold text-gold-soft">Niza Wallet</h2>
+          <p className="mt-1 text-sm text-muted">Carteira de criptomoedas exclusiva do Black Diamond. As suas chaves ficam só no seu aparelho: a Niza Wallet não é ligada à sua conta do Niza Invest.</p>
+          {/* Link comum (não <Link>): a rota confere o plano no servidor e redireciona para outro domínio. */}
+          <a href="/api/wallet/pass" className="btn-gold mt-3 inline-block rounded-full px-5 py-2 font-semibold">Abrir Niza Wallet</a>
+          {isAdmin && <p className="mt-3 text-xs text-muted">Admin: a chave pública para a Vercel fica em <a href="/api/admin/wallet-key" className="underline">/api/admin/wallet-key</a>.</p>}
+        </section>
+      )}
+
+      {member ? null : invite === "invited" || isAdmin ? null : invite === "requested" ? (
         <section className="card mb-6 border-gold/30 p-5"><h2 className="font-display text-lg font-bold text-gold-soft">Pedido de convite enviado</h2><p className="mt-1 text-sm text-muted">A organização avalia os pedidos com cuidado. Se for aprovado, a contratação é liberada aqui nesta página.</p></section>
       ) : invite === "declined" ? (
         <section className="card mb-6 border-down/40 p-5"><p className="text-sm text-muted">Neste momento o seu pedido não foi aprovado. Obrigado pelo interesse.</p></section>
