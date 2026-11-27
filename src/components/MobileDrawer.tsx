@@ -23,6 +23,28 @@ export function MobileDrawer({ name, avatarId, logo, children }: { name: string;
     return () => { window.removeEventListener("keydown", k); document.body.style.overflow = ""; };
   }, [open]);
 
+  // Arrastar o dedo para o lado: para a direita abre o menu, para a esquerda fecha (só no celular).
+  useEffect(() => {
+    let sx = 0, sy = 0, ok = false;
+    const scrollsSideways = (el: Element | null) => {
+      for (let n: Element | null = el; n && n !== document.body; n = n.parentElement) {
+        if (n instanceof HTMLInputElement && n.type === "range") return true;
+        if (n.scrollWidth > n.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(n).overflowX)) return true;
+      }
+      return false;
+    };
+    const ts = (e: TouchEvent) => { ok = e.touches.length === 1 && window.innerWidth < 768 && !scrollsSideways(e.target as Element); sx = e.touches[0].clientX; sy = e.touches[0].clientY; };
+    const te = (e: TouchEvent) => {
+      if (!ok) return;
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2) return;
+      setOpen(dx > 0);
+    };
+    window.addEventListener("touchstart", ts, { passive: true });
+    window.addEventListener("touchend", te, { passive: true });
+    return () => { window.removeEventListener("touchstart", ts); window.removeEventListener("touchend", te); };
+  }, []);
+
   return (
     <>
       <header className="sticky top-0 z-30 -mx-4 -mt-5 mb-1 flex items-center justify-between border-b border-line bg-ink/95 px-4 py-2 backdrop-blur md:hidden">
