@@ -181,6 +181,8 @@ export interface Expense {
   receiptId: number | null;
   /** Mesmo número em todos os lançamentos de um gasto fixo repetido. */
   seriesId: number | null;
+  /** Reembolso da empresa: o gasto corporativo será devolvido, então não pesa no mês. */
+  reimb: boolean;
 }
 
 export const validDay = (d: string) => /^(20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(d);
@@ -193,7 +195,7 @@ export const expenseLabel = (e: Pick<Expense, "sub" | "note">) => (e.sub === OTH
 /** Soma dos lançamentos por categoria em um mês ("AAAA-MM"). */
 export function actualFromExpenses(list: Expense[], ym: string): Amounts {
   const out = emptyAmounts();
-  for (const e of list) if (e.day.startsWith(ym)) out[e.cat] += e.amount;
+  for (const e of list) if (e.day.startsWith(ym) && !e.reimb) out[e.cat] += e.amount;
   for (const c of BUDGET_CATS) out[c.id] = Math.round(out[c.id] * 100) / 100;
   return out;
 }
@@ -222,7 +224,7 @@ export function rankSpending(list: Expense[], months: MonthEntry[], year: number
     map.set(key, cur);
   };
   for (const e of list) {
-    if (!e.day.startsWith(prefix) || e.cat === "reserva") continue;
+    if (!e.day.startsWith(prefix) || e.cat === "reserva" || e.reimb) continue;
     const label = expenseLabel(e);
     add(`${e.cat}|${label.toLowerCase()}`, label, e.cat, e.amount);
   }
@@ -254,4 +256,9 @@ export function repeatDays(day: string, count: number): string[] {
     out.push(dayOf(ymOf(yy, mm), Math.min(d, daysInMonth(yy, mm))));
   }
   return out;
+}
+
+/** Total que a empresa vai reembolsar no mês (já abatido dos gastos). */
+export function reimbursedTotal(list: Expense[], ym: string): number {
+  return Math.round(list.filter((e) => e.day.startsWith(ym) && e.reimb).reduce((t, e) => t + e.amount, 0) * 100) / 100;
 }
