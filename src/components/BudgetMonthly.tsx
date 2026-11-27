@@ -251,13 +251,15 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                 <h5 className="text-sm font-bold">Dia {Number(day.slice(8))} de {MONTH_NAMES[openMi].toLowerCase()}</h5>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <label className="block text-xs text-muted">Categoria
-                    <select className={`${field} mt-1 w-full`} value={cat} onChange={(e) => pickCat(e.target.value as CatId)}>
+                    <select className={`${field} mt-1 w-full`} value={reimb ? "__reimb" : cat} onChange={(e) => { if (e.target.value === "__reimb") { setReimb(true); if (cat === "reserva") pickCat("alimentacao"); } else { setReimb(false); pickCat(e.target.value as CatId); } }}>
                       {BUDGET_CATS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      <option value="__reimb">🏢 Reembolso empresa (abate do mês)</option>
                     </select>
                   </label>
                   <label className="block text-xs text-muted">Gasto específico
-                    <select className={`${field} mt-1 w-full`} value={sub} onChange={(e) => setSub(e.target.value)}>
-                      {SUBS[cat].map((x) => <option key={x} value={x}>{x}</option>)}
+                    <select className={`${field} mt-1 w-full`} value={reimb ? `${cat}|${sub}` : sub} onChange={(e) => { if (reimb) { const [c, ...r] = e.target.value.split("|"); setCat(c as CatId); setSub(r.join("|")); } else setSub(e.target.value); }}>
+                      {reimb ? BUDGET_CATS.filter((c) => c.id !== "reserva").map((c) => <optgroup key={c.id} label={c.label}>{SUBS[c.id].map((x) => <option key={x} value={`${c.id}|${x}`}>{x}</option>)}</optgroup>)
+                        : SUBS[cat].map((x) => <option key={x} value={x}>{x}</option>)}
                     </select>
                   </label>
                   <label className="block text-xs text-muted">Valor (R$)
@@ -268,8 +270,6 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                   </label>
                 </div>
                 <div className="mt-3 rounded-lg border border-line p-3">
-                  <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={reimb} onChange={(e) => setReimb(e.target.checked)} className="h-4 w-4 accent-[#d9b45a]" /> 🏢 Reembolso empresa</label>
-                  {reimb && <p className="mb-2 text-xs text-muted">Gasto corporativo (alimentação, estacionamento…) que a empresa devolve: o valor é abatido dos gastos do mês.</p>}
                   <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={fixed} onChange={(e) => setFixed(e.target.checked)} className="h-4 w-4 accent-[#d9b45a]" /> 🔁 Gasto fixo (repete todo mês)</label>
                   {fixed && (
                     <div className="mt-2 space-y-2">
