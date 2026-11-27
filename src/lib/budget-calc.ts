@@ -208,7 +208,7 @@ export function combineActual(manual: Amounts | null, list: Expense[], ym: strin
   return out;
 }
 
-export interface RankItem { label: string; cat: CatId; total: number; pctSpend: number; pctIncome: number | null }
+export interface RankItem { label: string; cat: CatId; total: number; pctSpend: number; pctIncome: number | null; byMonth: number[]; count: number }
 
 /**
  * Ranking anual dos maiores gastos (sem a categoria "Reserva e investimentos"), do maior para o menor.
@@ -216,29 +216,32 @@ export interface RankItem { label: string; cat: CatId; total: number; pctSpend: 
  */
 export function rankSpending(list: Expense[], months: MonthEntry[], year: number, limit = 10): { items: RankItem[]; totalSpend: number; totalIncome: number } {
   const prefix = `${year}-`;
-  const map = new Map<string, { label: string; cat: CatId; total: number }>();
-  const add = (key: string, label: string, cat: CatId, v: number) => {
+  const map = new Map<string, { label: string; cat: CatId; total: number; byMonth: number[]; count: number }>();
+  const add = (key: string, label: string, cat: CatId, v: number, ym: string) => {
     if (v <= 0) return;
-    const cur = map.get(key) ?? { label, cat, total: 0 };
+    const cur = map.get(key) ?? { label, cat, total: 0, byMonth: Array<number>(12).fill(0), count: 0 };
     cur.total += v;
+    cur.count += 1;
+    const mi = Number(ym.slice(5, 7)) - 1;
+    if (mi >= 0 && mi < 12) cur.byMonth[mi] += v;
     map.set(key, cur);
   };
   for (const e of list) {
     if (!e.day.startsWith(prefix) || e.cat === "reserva" || e.reimb) continue;
     const label = expenseLabel(e);
-    add(`${e.cat}|${label.toLowerCase()}`, label, e.cat, e.amount);
+    add(`${e.cat}|${label.toLowerCase()}`, label, e.cat, e.amount, e.day);
   }
   let totalIncome = 0;
   for (const m of months) {
     if (!m.ym.startsWith(prefix)) continue;
     totalIncome += m.income;
-    for (const c of BUDGET_CATS) if (c.id !== "reserva") add(`${c.id}|__manual`, `${c.label} (sem detalhar)`, c.id, m.actual[c.id] ?? 0);
+    for (const c of BUDGET_CATS) if (c.id !== "reserva") add(`${c.id}|__manual`, `${c.label} (sem detalhar)`, c.id, m.actual[c.id] ?? 0, m.ym);
   }
   const all = [...map.values()].sort((a, b) => b.total - a.total);
   const reimbYear = list.filter((e) => e.reimb && e.cat !== "reserva" && e.day.startsWith(prefix)).reduce((s, e) => s + e.amount, 0);
   const totalSpend = all.reduce((s, x) => s + x.total, 0) - reimbYear;
   return {
-    items: all.slice(0, limit).map((x) => ({ label: x.label, cat: x.cat, total: Math.round(x.total * 100) / 100, pctSpend: totalSpend > 0 ? (x.total / totalSpend) * 100 : 0, pctIncome: totalIncome > 0 ? (x.total / totalIncome) * 100 : null })),
+    items: all.slice(0, limit).map((x) => ({ label: x.label, cat: x.cat, total: Math.round(x.total * 100) / 100, pctSpend: totalSpend > 0 ? (x.total / totalSpend) * 100 : 0, pctIncome: totalIncome > 0 ? (x.total / totalIncome) * 100 : null, byMonth: x.byMonth.map((v) => Math.round(v * 100) / 100), count: x.count })),
     totalSpend: Math.round(totalSpend * 100) / 100,
     totalIncome,
   };

@@ -40,6 +40,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
   const [dayMsg, setDayMsg] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [reimb, setReimb] = useState(false);
+  const [openRank, setOpenRank] = useState<string | null>(null);
   const [fixed, setFixed] = useState(false);
   const [fixedN, setFixedN] = useState("12");
   const [fixedUnit, setFixedUnit] = useState<"meses" | "anos">("meses");
@@ -389,15 +390,54 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
             </p>
             <h3 className="mt-4 text-sm font-semibold">Ranking dos 10 maiores gastos</h3>
             <ol className="mt-2 space-y-2">
-              {rank.items.map((r, i) => (
-                <li key={`${r.cat}${r.label}`} className="text-sm">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-2"><span className={`w-6 shrink-0 text-right font-bold ${i < 3 ? "text-down" : "text-muted"}`}>{i + 1}º</span><span className="truncate">{r.label}</span><span className="hidden text-xs text-muted sm:inline">· {catLabel(r.cat)}</span></span>
-                    <span className="shrink-0 font-semibold">{brl(r.total)} <span className="text-xs font-normal text-muted">({r.pctSpend.toFixed(0)}%)</span></span>
-                  </div>
-                  <div className="ml-8 mt-1 h-2 overflow-hidden rounded bg-panel-2"><div className="h-full rounded" style={{ width: `${(r.total / maxRank) * 100}%`, background: i < 3 ? "#f87171" : COLORS[r.cat] }} /></div>
+              {rank.items.map((r, i) => {
+                const key = `${r.cat}${r.label}`;
+                const isOpen = openRank === key;
+                const active = r.byMonth.filter((v) => v > 0).length;
+                const maxM = Math.max(...r.byMonth, 1);
+                const avg = active > 0 ? r.total / active : 0;
+                const peak = r.byMonth.indexOf(Math.max(...r.byMonth));
+                return (
+                <li key={key} className="text-sm">
+                  <button type="button" onClick={() => setOpenRank(isOpen ? null : key)} aria-expanded={isOpen} className="block w-full rounded text-left hover:bg-panel-2/60">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2"><span className={`w-6 shrink-0 text-right font-bold ${i < 3 ? "text-down" : "text-muted"}`}>{i + 1}º</span><span className="truncate">{r.label}</span><span className="hidden text-xs text-muted sm:inline">· {catLabel(r.cat)}</span></span>
+                      <span className="shrink-0 font-semibold">{brl(r.total)} <span className="text-xs font-normal text-muted">({r.pctSpend.toFixed(0)}%)</span> <span className="text-xs text-gold-soft">{isOpen ? "▲" : "▼"}</span></span>
+                    </div>
+                    <div className="ml-8 mt-1 h-2 overflow-hidden rounded bg-panel-2"><div className="h-full rounded" style={{ width: `${(r.total / maxRank) * 100}%`, background: i < 3 ? "#f87171" : COLORS[r.cat] }} /></div>
+                  </button>
+                  {isOpen && (
+                    <div className="ml-8 mt-2 rounded-lg border border-gold/30 bg-panel-2/50 p-3">
+                      <p className="text-xs font-semibold text-gold-soft">Mês a mês acumulado em {year}</p>
+                      <div className="mt-2 flex h-20 items-end gap-1">
+                        {r.byMonth.map((v, mi) => (
+                          <div key={mi} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
+                            {v > 0 && <span className="mb-0.5 whitespace-nowrap text-[8px] text-muted">{hidden ? "•" : compactBRL(v)}</span>}
+                            {v > 0 && <div className="w-full rounded-t" style={{ height: `${(v / maxM) * 70}%`, background: i < 3 ? "#f87171" : COLORS[r.cat] }} />}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-1 flex gap-1 text-center text-[9px] text-muted">{MONTH_NAMES.map((n) => <span key={n} className="flex-1">{n.slice(0, 1)}</span>)}</div>
+                      <ul className="mt-3 space-y-1 text-xs text-muted">
+                        <li>Média nos meses com gasto: <b>{brl(avg)}</b> por mês ({r.count} {r.count === 1 ? "lançamento" : "lançamentos"}).</li>
+                        {r.byMonth[peak] > 0 && <li>Mês mais pesado: <b>{MONTH_NAMES[peak]}</b> com {brl(r.byMonth[peak])}.</li>}
+                        {r.pctIncome !== null && <li>Pesa <b>{r.pctIncome.toFixed(1)}%</b> da sua renda no ano.</li>}
+                      </ul>
+                      <p className="mt-3 text-xs font-semibold text-gold-soft">Oportunidade de corte</p>
+                      <div className="mt-1 grid grid-cols-3 gap-2 text-center">
+                        {[10, 20, 30].map((pc) => (
+                          <div key={pc} className="rounded-lg border border-line p-2">
+                            <div className="text-[11px] text-muted">Cortar {pc}%</div>
+                            <div className="text-sm font-bold text-up">{brl((r.total * pc) / 100)}</div>
+                            <div className="text-[10px] text-muted">no ano · {brl((r.total * pc) / 100 / 12)}/mês</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </li>
-              ))}
+                );
+              })}
             </ol>
             <div className="mt-3 flex items-baseline justify-between gap-2 border-t border-gold/40 pt-2 text-sm font-bold"><span>Total de gastos no ano</span><span>{brl(rank.totalSpend)}</span></div>
             <p className="mt-1 text-xs text-muted">Soma de todos os gastos de {year}, sem contar o que foi guardado. Os 10 maiores somam {brl(rank.items.reduce((t, r) => t + r.total, 0))} ({rank.totalSpend > 0 ? Math.round((rank.items.reduce((t, r) => t + r.total, 0) / rank.totalSpend) * 100) : 0}%).</p>
