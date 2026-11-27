@@ -179,6 +179,7 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
     const idealYear = months.reduce((s, m) => s + (m.has ? idealAmounts(incomeOf(m.ym))[c.id] : 0), 0);
     return { id: c.id, label: c.label, total, idealYear };
   });
+  const rankAll = useMemo(() => rankSpending(done, monthsForRank, year, 1000), [done, monthsForRank, year]);
   const maxRank = Math.max(...rank.items.map((r) => r.total), 1);
   const maxMonth = Math.max(...months.map((m) => (m.actual ? m.st!.total - m.actual.reserva : 0)), 1);
   const top = rank.items[0];
@@ -393,10 +394,6 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
               {rank.items.map((r, i) => {
                 const key = `${r.cat}${r.label}`;
                 const isOpen = openRank === key;
-                const active = r.byMonth.filter((v) => v > 0).length;
-                const maxM = Math.max(...r.byMonth, 1);
-                const avg = active > 0 ? r.total / active : 0;
-                const peak = r.byMonth.indexOf(Math.max(...r.byMonth));
                 return (
                 <li key={key} className="text-sm">
                   <button type="button" onClick={() => setOpenRank(isOpen ? null : key)} aria-expanded={isOpen} className="block w-full rounded text-left hover:bg-panel-2/60">
@@ -406,35 +403,28 @@ export function BudgetMonthly({ initial, base, initialExpenses }: { initial: Mon
                     </div>
                     <div className="ml-8 mt-1 h-2 overflow-hidden rounded bg-panel-2"><div className="h-full rounded" style={{ width: `${(r.total / maxRank) * 100}%`, background: i < 3 ? "#f87171" : COLORS[r.cat] }} /></div>
                   </button>
-                  {isOpen && (
+                  {isOpen && (() => {
+                    const sib = rankAll.items.filter((x) => x.cat === r.cat);
+                    const catSum = sib.reduce((t, x) => t + x.total, 0);
+                    const maxS = Math.max(...sib.map((x) => x.total), 1);
+                    return (
                     <div className="ml-8 mt-2 rounded-lg border border-gold/30 bg-panel-2/50 p-3">
-                      <p className="text-xs font-semibold text-gold-soft">Mês a mês acumulado em {year}</p>
-                      <div className="mt-2 flex h-20 items-end gap-1">
-                        {r.byMonth.map((v, mi) => (
-                          <div key={mi} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
-                            {v > 0 && <span className="mb-0.5 whitespace-nowrap text-[8px] text-muted">{hidden ? "•" : compactBRL(v)}</span>}
-                            {v > 0 && <div className="w-full rounded-t" style={{ height: `${(v / maxM) * 70}%`, background: i < 3 ? "#f87171" : COLORS[r.cat] }} />}
-                          </div>
+                      <p className="text-xs font-semibold text-gold-soft">{catLabel(r.cat)}: acumulado em {year} por tipo de gasto</p>
+                      <p className="text-[11px] text-muted">Total da categoria: {brl(catSum)}</p>
+                      <ol className="mt-2 space-y-2">
+                        {sib.map((x, k) => (
+                          <li key={x.label} className="text-xs">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className={`flex min-w-0 items-center gap-1.5 ${x.label === r.label ? "font-bold text-gold-soft" : ""}`}><span className="w-5 shrink-0 text-right text-muted">{k + 1}º</span><span className="truncate">{x.label}</span></span>
+                              <span className="shrink-0 font-semibold">{brl(x.total)} <span className="font-normal text-muted">({catSum > 0 ? ((x.total / catSum) * 100).toFixed(0) : 0}%)</span></span>
+                            </div>
+                            <div className="ml-6 mt-0.5 h-1.5 overflow-hidden rounded bg-panel"><div className="h-full rounded" style={{ width: `${(x.total / maxS) * 100}%`, background: COLORS[r.cat] }} /></div>
+                          </li>
                         ))}
-                      </div>
-                      <div className="mt-1 flex gap-1 text-center text-[9px] text-muted">{MONTH_NAMES.map((n) => <span key={n} className="flex-1">{n.slice(0, 1)}</span>)}</div>
-                      <ul className="mt-3 space-y-1 text-xs text-muted">
-                        <li>Média nos meses com gasto: <b>{brl(avg)}</b> por mês ({r.count} {r.count === 1 ? "lançamento" : "lançamentos"}).</li>
-                        {r.byMonth[peak] > 0 && <li>Mês mais pesado: <b>{MONTH_NAMES[peak]}</b> com {brl(r.byMonth[peak])}.</li>}
-                        {r.pctIncome !== null && <li>Pesa <b>{r.pctIncome.toFixed(1)}%</b> da sua renda no ano.</li>}
-                      </ul>
-                      <p className="mt-3 text-xs font-semibold text-gold-soft">Oportunidade de corte</p>
-                      <div className="mt-1 grid grid-cols-3 gap-2 text-center">
-                        {[10, 20, 30].map((pc) => (
-                          <div key={pc} className="rounded-lg border border-line p-2">
-                            <div className="text-[11px] text-muted">Cortar {pc}%</div>
-                            <div className="text-sm font-bold text-up">{brl((r.total * pc) / 100)}</div>
-                            <div className="text-[10px] text-muted">no ano · {brl((r.total * pc) / 100 / 12)}/mês</div>
-                          </div>
-                        ))}
-                      </div>
+                      </ol>
                     </div>
-                  )}
+                    );
+                  })()}
                 </li>
                 );
               })}
