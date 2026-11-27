@@ -118,8 +118,8 @@ import { reimbursedTotal } from "../src/lib/budget-calc";
 
 test("reembolso da empresa abate o valor do mês, do ranking e aparece à parte", () => {
   const list: Expense[] = [ex(1, "2026-11-03", "alimentacao", "Restaurante", 80), { ...ex(2, "2026-11-04", "alimentacao", "Restaurante", 50), reimb: true }, { ...ex(3, "2026-11-05", "transporte", "Estacionamento e pedágio", 30), reimb: true }];
-  assert.equal(combineActual(null, list, "2026-11").alimentacao, 80);
-  assert.equal(combineActual(null, list, "2026-11").transporte, 0);
+  assert.equal(combineActual(null, list, "2026-11").alimentacao, 30);
+  assert.equal(combineActual(null, list, "2026-11").transporte, -30);
   assert.equal(reimbursedTotal(list, "2026-11"), 80);
-  assert.equal(rankSpending(list, [], 2026).totalSpend, 80);
+  assert.equal(rankSpending(list, [], 2026).totalSpend, 0);
 });

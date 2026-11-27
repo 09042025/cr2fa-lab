@@ -195,7 +195,7 @@ export const expenseLabel = (e: Pick<Expense, "sub" | "note">) => (e.sub === OTH
 /** Soma dos lançamentos por categoria em um mês ("AAAA-MM"). */
 export function actualFromExpenses(list: Expense[], ym: string): Amounts {
   const out = emptyAmounts();
-  for (const e of list) if (e.day.startsWith(ym) && !e.reimb) out[e.cat] += e.amount;
+  for (const e of list) if (e.day.startsWith(ym)) out[e.cat] += e.reimb ? -e.amount : e.amount;
   for (const c of BUDGET_CATS) out[c.id] = Math.round(out[c.id] * 100) / 100;
   return out;
 }
@@ -235,7 +235,8 @@ export function rankSpending(list: Expense[], months: MonthEntry[], year: number
     for (const c of BUDGET_CATS) if (c.id !== "reserva") add(`${c.id}|__manual`, `${c.label} (sem detalhar)`, c.id, m.actual[c.id] ?? 0);
   }
   const all = [...map.values()].sort((a, b) => b.total - a.total);
-  const totalSpend = all.reduce((s, x) => s + x.total, 0);
+  const reimbYear = list.filter((e) => e.reimb && e.cat !== "reserva" && e.day.startsWith(prefix)).reduce((s, e) => s + e.amount, 0);
+  const totalSpend = all.reduce((s, x) => s + x.total, 0) - reimbYear;
   return {
     items: all.slice(0, limit).map((x) => ({ label: x.label, cat: x.cat, total: Math.round(x.total * 100) / 100, pctSpend: totalSpend > 0 ? (x.total / totalSpend) * 100 : 0, pctIncome: totalIncome > 0 ? (x.total / totalIncome) * 100 : null })),
     totalSpend: Math.round(totalSpend * 100) / 100,
