@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { AuthForm } from "@/components/AuthForm";
+import { FaceIdLoginButton } from "@/components/FaceId";
 import { Logo } from "@/components/ui";
 import { CODE_RE } from "@/lib/invites";
 
@@ -21,6 +22,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {senha === "redefinida" && (
             <p role="status" className="mb-4 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold-soft">Senha alterada. Entre com a nova senha.</p>
           )}
+          <FaceIdLoginButton />
           <AuthForm mode="login" after={after} />
           <p className="mt-3 text-center text-sm">
             <Link href="/esqueci-senha" className="text-gold-soft underline">Esqueci minha senha</Link>
