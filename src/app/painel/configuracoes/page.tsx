@@ -6,6 +6,8 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { date } from "@/lib/format";
 import { getMember, MAX_BIO } from "@/lib/feed";
 import { CommunityProfileForm } from "@/components/FeedClient";
+import { FaceIdSettings } from "@/components/FaceId";
+import { listPasskeys } from "@/lib/passkey";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Configurações" };
@@ -29,6 +31,11 @@ export default async function SettingsPage() {
           <CommunityProfileForm name={user.name} avatarId={me?.avatarId ?? null} bannerId={me?.bannerId ?? null} handle={me?.handle ?? ""} bio={me?.bio ?? ""} location={me?.location ?? ""} website={me?.website ?? ""} max={MAX_BIO} />
         </section>
       )}
+
+      <section className="card mb-6 p-5">
+        <h2 className="mb-3 font-semibold">Face ID</h2>
+        <FaceIdSettings keys={listPasskeys(user.id).map((k) => ({ id: k.id, name: k.name }))} />
+      </section>
 
       <section className="card mb-6 p-5">
         <h2 className="mb-4 font-semibold">Alterar senha</h2>

@@ -16,6 +16,7 @@ import wfsTitle from "@/assets/wfs/title.webp";
 import { CommunityTabs } from "@/components/CommunityTabs";
 import { Diamond } from "@/components/Diamond";
 import { MobileDrawer } from "@/components/MobileDrawer";
+import { AppLock } from "@/components/FaceId";
 
 type NavItem = { href: string; label: string; pro?: boolean; sub?: boolean; saved?: boolean; logo?: boolean; diamond?: boolean };
 
@@ -62,6 +63,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   const avatarId = (db().prepare("SELECT avatar_id a FROM users WHERE id = ?").get(user.id) as { a: number | null } | undefined)?.a ?? null;
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 md:flex-row">
+      <AppLock />
       <MobileDrawer name={user.name} avatarId={avatarId} logo={<Logo hub />}>
         <div className="card flex h-full flex-col overflow-hidden rounded-l-none p-4 md:rounded-l-2xl">
           <Logo hub />
