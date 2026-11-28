@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { browserSupportsWebAuthn, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 
 const LOCK_KEY = "niza-face-lock";
+const ACTIVE_KEY = "niza-last-active";
+const IDLE_MS = 10 * 60 * 1000;
 const post = (url: string, body: unknown = {}) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 const getLock = () => { try { return localStorage.getItem(LOCK_KEY) === "1"; } catch { return false; } };
 const setLockFlag = (on: boolean) => { try { if (on) localStorage.setItem(LOCK_KEY, "1"); else localStorage.removeItem(LOCK_KEY); } catch { /* ignora */ } };
@@ -90,8 +92,8 @@ export function FaceIdSettings({ keys }: { keys: { id: number; name: string }[] 
         <>
           <p className="text-sm text-up">Face ID ativo ({keys.length} {keys.length === 1 ? "aparelho" : "aparelhos"}).</p>
           <label className="flex items-center gap-3 text-sm">
-            <input type="checkbox" className="h-5 w-5 accent-[#d9b45a]" checked={lock} onChange={(e) => { setLock(e.target.checked); setLockFlag(e.target.checked); }} />
-            Pedir Face ID toda vez que abrir o app (neste aparelho)
+            <input type="checkbox" className="h-5 w-5 accent-[#d9b45a]" checked={lock} onChange={(e) => { setLock(e.target.checked); setLockFlag(e.target.checked); try { localStorage.setItem(ACTIVE_KEY, String(Date.now())); } catch { /* ignora */ } }} />
+            Pedir Face ID depois de 10 minutos sem usar o app (neste aparelho)
           </label>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn btn-ghost" disabled={busy} onClick={enable}>Cadastrar este aparelho de novo</button>
@@ -104,30 +106,37 @@ export function FaceIdSettings({ keys }: { keys: { id: number; name: string }[] 
   );
 }
 
-/** Tela de bloqueio: aparece ao abrir (e ao voltar depois de uns segundos) quando o Face ID está ligado neste aparelho. */
+/** Tela de bloqueio: aparece depois de 10 minutos sem uso quando o Face ID está ligado neste aparelho. */
 export function AppLock() {
   const router = useRouter();
   const [locked, setLocked] = useState(false);
+  const lockedRef = useRef(false);
+  lockedRef.current = locked;
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const hiddenAt = useRef(0);
   const tried = useRef(false);
 
+  // Só tranca depois de 10 minutos sem usar o app (o último uso fica guardado neste aparelho).
   useEffect(() => {
-    if (getLock() && browserSupportsWebAuthn()) setLocked(true);
-    const vis = () => {
-      if (document.visibilityState === "hidden") hiddenAt.current = Date.now();
-      else if (hiddenAt.current && Date.now() - hiddenAt.current > 20000 && getLock()) { tried.current = false; setLocked(true); }
-    };
+    const stamp = () => { try { localStorage.setItem(ACTIVE_KEY, String(Date.now())); } catch { /* ignora */ } };
+    const idle = () => { try { const t = Number(localStorage.getItem(ACTIVE_KEY) || 0); return !t || Date.now() - t > IDLE_MS; } catch { return true; } };
+    const check = () => { if (getLock() && browserSupportsWebAuthn() && idle()) { tried.current = false; setLocked(true); } };
+    check();
+    let last = 0;
+    const act = () => { const n = Date.now(); if (n - last > 5000 && !lockedRef.current) { last = n; stamp(); } };
+    const vis = () => { if (document.visibilityState === "visible") check(); else if (!lockedRef.current) stamp(); };
+    const evs = ["touchstart", "click", "keydown", "scroll"] as const;
+    evs.forEach((e) => window.addEventListener(e, act, { passive: true }));
     document.addEventListener("visibilitychange", vis);
-    return () => document.removeEventListener("visibilitychange", vis);
+    const iv = window.setInterval(check, 30000);
+    return () => { evs.forEach((e) => window.removeEventListener(e, act)); document.removeEventListener("visibilitychange", vis); window.clearInterval(iv); };
   }, []);
 
   async function unlock() {
     setErr(null); setBusy(true);
     const r = await faceIdLogin();
     setBusy(false);
-    if (r.next) setLocked(false); else setErr(r.error ?? null);
+    if (r.next) { try { localStorage.setItem(ACTIVE_KEY, String(Date.now())); } catch { /* ignora */ } setLocked(false); } else setErr(r.error ?? null);
   }
   useEffect(() => { if (locked && !tried.current) { tried.current = true; void unlock(); } }, [locked]);
 
